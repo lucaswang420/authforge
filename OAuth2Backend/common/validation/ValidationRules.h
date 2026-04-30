@@ -11,7 +11,8 @@ inline const char *CLIENT_ID_PATTERN = "^[a-zA-Z0-9._-]{1,128}$";
 inline const size_t CLIENT_ID_MIN_LEN = 1;
 inline const size_t CLIENT_ID_MAX_LEN = 128;
 
-inline const char *REDIRECT_URI_PATTERN = "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?(/[^\\s]*)?$";
+inline const char *REDIRECT_URI_PATTERN =
+    "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?(/[^\\s]*)?$";
 inline const size_t REDIRECT_URI_MIN_LEN = 10;
 inline const size_t REDIRECT_URI_MAX_LEN = 2048;
 
