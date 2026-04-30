@@ -119,7 +119,6 @@ target_sources(${PROJECT_NAME}
 			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 			    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/docs/api
 			    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/docs/api
-			    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/docs/api/index.html ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/docs/api/index.html
 			    COMMAND ${CMAKE_COMMAND} -E echo "Swagger UI files copied to ${CONFIG_TYPE} directory"
 			    COMMENT "Copying Swagger UI files to ${CONFIG_TYPE} directory"
 			)
@@ -129,7 +128,6 @@ target_sources(${PROJECT_NAME}
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 		    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/docs/api
 		    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/docs/api
-		    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/docs/api/index.html ${CMAKE_BINARY_DIR}/docs/api/index.html
 		    COMMAND ${CMAKE_COMMAND} -E echo "Swagger UI files copied successfully"
 		    COMMENT "Copying Swagger UI files to build directory"
 		)
