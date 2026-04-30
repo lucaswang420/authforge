@@ -31,6 +31,8 @@ set(TEST_SRC
     "common/ErrorHandlerTest.cc"
     "common/ValidatorTest.cc"
     "common/ValidationHelperTest.cc"
+    "common/OpenApiGeneratorTest.cc"
+    "common/OpenApiGeneratorParameterTypesTest.cc"
     "SecurityValidationTest.cc"
 )
 

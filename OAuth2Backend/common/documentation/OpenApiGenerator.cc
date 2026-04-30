@@ -3,6 +3,8 @@
 #include <iostream>
 #include <filesystem>
 #include <system_error>
+#include <sstream>
+#include <algorithm>
 
 namespace common::documentation
 {
@@ -115,15 +117,9 @@ Json::Value OpenApiGenerator::generatePathItem(const EndpointInfo &endpoint)
     if (!endpoint.parameters.empty())
     {
         Json::Value parameters(Json::arrayValue);
-        for (const auto &[name, desc] : endpoint.parameters)
+        for (const auto &param : endpoint.parameters)
         {
-            Json::Value param;
-            param["name"] = name;
-            param["in"] = "query";
-            param["description"] = desc;
-            param["required"] = true;
-            param["schema"]["type"] = "string";
-            parameters.append(param);
+            parameters.append(generateParameter(param));
         }
         pathItem["parameters"] = parameters;
     }
@@ -134,11 +130,18 @@ Json::Value OpenApiGenerator::generatePathItem(const EndpointInfo &endpoint)
     {
         Json::Value response;
         response["description"] = desc;
-        if (code == 200)
+
+        // Add response example if available
+        if (endpoint.responseExamples.find(code) != endpoint.responseExamples.end())
         {
-            response["content"]["application/json"]["schema"]["type"] =
-                "object";
+            response["content"]["application/json"]["example"] = endpoint.responseExamples.at(code);
         }
+        else if (code == 200)
+        {
+            // Default schema for 200 responses
+            response["content"]["application/json"]["schema"]["type"] = "object";
+        }
+
         responses[std::to_string(code)] = response;
     }
     pathItem["responses"] = responses;
@@ -187,6 +190,113 @@ Json::Value OpenApiGenerator::generateSchema()
     schemas["TokenResponse"] = tokenSchema;
 
     return schemas;
+}
+
+std::string OpenApiGenerator::parameterTypeToString(ParameterType type)
+{
+    switch (type)
+    {
+        case ParameterType::STRING:
+            return "string";
+        case ParameterType::INTEGER:
+            return "integer";
+        case ParameterType::NUMBER:
+            return "number";
+        case ParameterType::BOOLEAN:
+            return "boolean";
+        case ParameterType::ARRAY:
+            return "array";
+        case ParameterType::OBJECT:
+            return "object";
+        default:
+            return "string";
+    }
+}
+
+std::string OpenApiGenerator::parameterLocationToString(ParameterLocation location)
+{
+    switch (location)
+    {
+        case ParameterLocation::QUERY:
+            return "query";
+        case ParameterLocation::HEADER:
+            return "header";
+        case ParameterLocation::PATH:
+            return "path";
+        case ParameterLocation::COOKIE:
+            return "cookie";
+        default:
+            return "query";
+    }
+}
+
+Json::Value OpenApiGenerator::generateParameter(const ParameterInfo &param)
+{
+    Json::Value parameter;
+    parameter["name"] = param.name;
+    parameter["in"] = parameterLocationToString(param.location);
+    parameter["description"] = param.description;
+    parameter["required"] = param.required;
+
+    // Set schema based on parameter type
+    parameter["schema"]["type"] = parameterTypeToString(param.type);
+
+    // Add format if specified
+    if (!param.format.empty())
+    {
+        parameter["schema"]["format"] = param.format;
+    }
+
+    // Add default value if specified
+    if (!param.defaultValue.empty())
+    {
+        if (param.type == ParameterType::BOOLEAN)
+        {
+            parameter["schema"]["default"] = (param.defaultValue == "true");
+        }
+        else if (param.type == ParameterType::INTEGER || param.type == ParameterType::NUMBER)
+        {
+            // Try to parse as number
+            try
+            {
+                if (param.type == ParameterType::INTEGER)
+                {
+                    parameter["schema"]["default"] = std::stoi(param.defaultValue);
+                }
+                else
+                {
+                    parameter["schema"]["default"] = std::stod(param.defaultValue);
+                }
+            }
+            catch (...)
+            {
+                // If parsing fails, store as string
+                parameter["schema"]["default"] = param.defaultValue;
+            }
+        }
+        else
+        {
+            parameter["schema"]["default"] = param.defaultValue;
+        }
+    }
+
+    // Add enum values if specified
+    if (!param.enumValues.empty())
+    {
+        Json::Value enumArray(Json::arrayValue);
+        std::stringstream ss(param.enumValues);
+        std::string value;
+        while (std::getline(ss, value, ','))
+        {
+            // Trim whitespace
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            enumArray.append(value);
+        }
+        parameter["schema"]["enum"] = enumArray;
+    }
+
+    return parameter;
 }
 
 bool OpenApiGenerator::writeToFile(const std::string &outputPath)
