@@ -2,6 +2,7 @@
 #include <drogon/HttpRequest.h>
 #include <drogon/HttpResponse.h>
 #include <string>
+#include <mutex>
 
 using namespace common::validation;
 
@@ -51,8 +52,11 @@ void ValidationFilter::initializeValidationRules()
 ValidationFilter::RouteValidationRules ValidationFilter::getValidationRules(
     const std::string &path) const
 {
-    // 确保验证规则已初始化
-    const_cast<ValidationFilter *>(this)->initializeValidationRules();
+    // 线程安全的单次初始化
+    static std::once_flag initFlag;
+    std::call_once(initFlag, []() {
+        initializeValidationRules();
+    });
 
     // 精确匹配
     auto it = OAUTH2_VALIDATION_RULES.find(path);
