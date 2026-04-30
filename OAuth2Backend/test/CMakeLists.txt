@@ -30,6 +30,7 @@ set(TEST_SRC
     "common/ConfigManagerTest.cc"
     "common/ErrorHandlerTest.cc"
     "common/ValidatorTest.cc"
+    "common/ValidationHelperTest.cc"
     "SecurityValidationTest.cc"
 )
 

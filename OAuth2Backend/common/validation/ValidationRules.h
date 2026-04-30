@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 namespace common::validation
 {
@@ -23,8 +24,10 @@ inline const size_t TOKEN_MIN_LEN = 32;
 
 inline const char *RESPONSE_TYPE_PATTERN = "^[a-zA-Z0-9_]+$";
 inline const char *GRANT_TYPE_PATTERN = "^[a-zA-Z0-9_]+$";
+inline const char *USERNAME_PATTERN = "^[a-zA-Z0-9_]{1,100}$";
+inline const char *PASSWORD_PATTERN = "^[a-zA-Z0-9!@#$%^&*()_+]{8,200}$";
 
-enum class ValidationRule
+enum class ValidationRuleType
 {
     NOT_EMPTY,
     LENGTH_LIMIT,
@@ -32,6 +35,18 @@ enum class ValidationRule
     NUMERIC_RANGE,
     URL_FORMAT,
     EMAIL_FORMAT
+};
+
+// Validation rule configuration for ValidatorHelper
+struct ValidationRuleConfig
+{
+    std::string field;     // 字段名
+    std::string source;    // "query", "body", "header"
+    bool required;         // 是否必填
+    size_t minLength = 0;  // 最小长度
+    size_t maxLength = 0;  // 最大长度 (0 = 无限制)
+    std::string pattern;   // 正则表达式
+    std::function<bool(const std::string &)> customValidator;  // 自定义验证器
 };
 
 struct ValidationResult

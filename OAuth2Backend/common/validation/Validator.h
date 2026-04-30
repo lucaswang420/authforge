@@ -37,7 +37,7 @@ class Validator
     // Batch validation
     static std::vector<ValidationResult> validateAll(
         const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
-        const std::vector<ValidationRule> &rules);
+        const std::vector<ValidationRuleType> &rules);
 };
 
 }  // namespace common::validation

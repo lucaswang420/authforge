@@ -5,6 +5,8 @@
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
 #include "../common/documentation/OpenApiGenerator.h"
+#include "../common/validation/ValidatorHelper.h"
+#include "../common/validation/ValidationHelper.h"
 
 using namespace oauth2;
 using namespace services;
@@ -143,6 +145,18 @@ void OAuth2Controller::authorize(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
 {
+    // Use ValidatorHelper for consistent validation
+    auto errors =
+        common::validation::ValidatorHelper::validateOAuth2AuthorizeParams(req);
+
+    // Return validation errors if any
+    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
+            errors, std::move(callback)))
+    {
+        Metrics::incRequest("authorize", 400);
+        return;
+    }
+
     auto params = req->getParameters();
     std::string responseType = params["response_type"];
     std::string clientId = params["client_id"];
@@ -232,6 +246,17 @@ void OAuth2Controller::login(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
 {
+    // Use ValidatorHelper for consistent validation
+    auto errors = common::validation::ValidatorHelper::validateLoginParams(req);
+
+    // Return validation errors if any
+    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
+            errors, std::move(callback)))
+    {
+        Metrics::incLoginFailure("validation_failed");
+        return;
+    }
+
     // Prefer POST body (JSON or form data) over URL parameters for security
     std::string username, password;
     std::string clientId, redirectUri, scope, state;
@@ -260,39 +285,6 @@ void OAuth2Controller::login(
         redirectUri = params["redirect_uri"];
         scope = params["scope"];
         state = params["state"];
-    }
-
-    // Validate required fields and length limits
-    if (username.empty() || password.empty())
-    {
-        Metrics::incLoginFailure("missing_credentials");
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Username and password required");
-        callback(resp);
-        return;
-    }
-
-    // Add reasonable length limits to prevent DoS
-    const size_t MAX_USERNAME_LENGTH = 100;
-    const size_t MAX_PASSWORD_LENGTH = 200;
-    if (username.length() > MAX_USERNAME_LENGTH)
-    {
-        Metrics::incLoginFailure("username_too_long");
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Username exceeds maximum length");
-        callback(resp);
-        return;
-    }
-    if (password.length() > MAX_PASSWORD_LENGTH)
-    {
-        Metrics::incLoginFailure("password_too_long");
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Password exceeds maximum length");
-        callback(resp);
-        return;
     }
 
     AuthService::validateUser(
@@ -352,19 +344,21 @@ void OAuth2Controller::registerUser(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
 {
+    // Use ValidatorHelper for consistent validation
+    auto errors = common::validation::ValidatorHelper::validateLoginParams(req);
+
+    // Return validation errors if any
+    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
+            errors, std::move(callback)))
+    {
+        return;
+    }
+
+    // Extract parameters (validation ensures they exist and are valid)
     auto params = req->getParameters();
     std::string username = params["username"];
     std::string password = params["password"];
     std::string email = params["email"];
-
-    if (username.empty() || password.empty())
-    {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Username and password required");
-        callback(resp);
-        return;
-    }
 
     AuthService::registerUser(
         username, password, email, [callback](const std::string &error) {
@@ -388,6 +382,18 @@ void OAuth2Controller::token(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
 {
+    // Use ValidatorHelper for consistent validation
+    auto errors =
+        common::validation::ValidatorHelper::validateOAuth2TokenParams(req);
+
+    // Return validation errors if any
+    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
+            errors, std::move(callback)))
+    {
+        Metrics::incRequest("token", 400);
+        return;
+    }
+
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
@@ -424,17 +430,6 @@ void OAuth2Controller::token(
         clientId = req->getParameter("client_id");
         clientSecret = req->getParameter("client_secret");
         refreshToken = req->getParameter("refresh_token");
-    }
-
-    // Validate grant_type
-    if (grantType.empty())
-    {
-        Json::Value error;
-        error["error"] = "grant_type is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
-        return;
     }
 
     // Process grant types

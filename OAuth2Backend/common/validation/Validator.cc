@@ -229,7 +229,7 @@ ValidationResult Validator::validateToken(const std::string &token)
 
 std::vector<ValidationResult> Validator::validateAll(
     const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
-    const std::vector<ValidationRule> &rules)
+    const std::vector<ValidationRuleType> &rules)
 {
     std::vector<ValidationResult> results;
     // Implementation for batch validation
