@@ -32,8 +32,9 @@ namespace orm
 {
 class DbClient;
 using DbClientPtr = std::shared_ptr<DbClient>;
-}
-}
+}  // namespace orm
+}  // namespace drogon
+
 namespace drogon_model
 {
 namespace oauth_test
@@ -52,18 +53,20 @@ class RolePermissions
     static const std::string tableName;
     static const bool hasPrimaryKey;
     static const std::vector<std::string> primaryKeyName;
-    using PrimaryKeyType = std::tuple<int32_t,int32_t>;//role_id,permission_id
+    using PrimaryKeyType =
+        std::tuple<int32_t, int32_t>;  // role_id,permission_id
     PrimaryKeyType getPrimaryKey() const;
 
     /**
      * @brief constructor
      * @param r One row of records in the SQL query result.
-     * @param indexOffset Set the offset to -1 to access all columns by column names,
-     * otherwise access all columns by offsets.
-     * @note If the SQL is not a style of 'select * from table_name ...' (select all
-     * columns by an asterisk), please set the offset to -1.
+     * @param indexOffset Set the offset to -1 to access all columns by column
+     * names, otherwise access all columns by offsets.
+     * @note If the SQL is not a style of 'select * from table_name ...' (select
+     * all columns by an asterisk), please set the offset to -1.
      */
-    explicit RolePermissions(const drogon::orm::Row &r, const ssize_t indexOffset = 0) noexcept;
+    explicit RolePermissions(const drogon::orm::Row &r,
+                             const ssize_t indexOffset = 0) noexcept;
 
     /**
      * @brief constructor
@@ -76,50 +79,65 @@ class RolePermissions
      * @param pJson The json object to construct a new instance.
      * @param pMasqueradingVector The aliases of table columns.
      */
-    RolePermissions(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false);
+    RolePermissions(
+        const Json::Value &pJson,
+        const std::vector<std::string> &pMasqueradingVector) noexcept(false);
 
     RolePermissions() = default;
 
     void updateByJson(const Json::Value &pJson) noexcept(false);
-    void updateByMasqueradedJson(const Json::Value &pJson,
-                                 const std::vector<std::string> &pMasqueradingVector) noexcept(false);
-    static bool validateJsonForCreation(const Json::Value &pJson, std::string &err);
-    static bool validateMasqueradedJsonForCreation(const Json::Value &,
-                                                const std::vector<std::string> &pMasqueradingVector,
-                                                    std::string &err);
-    static bool validateJsonForUpdate(const Json::Value &pJson, std::string &err);
-    static bool validateMasqueradedJsonForUpdate(const Json::Value &,
-                                          const std::vector<std::string> &pMasqueradingVector,
-                                          std::string &err);
+    void updateByMasqueradedJson(
+        const Json::Value &pJson,
+        const std::vector<std::string> &pMasqueradingVector) noexcept(false);
+    static bool validateJsonForCreation(const Json::Value &pJson,
+                                        std::string &err);
+    static bool validateMasqueradedJsonForCreation(
+        const Json::Value &,
+        const std::vector<std::string> &pMasqueradingVector,
+        std::string &err);
+    static bool validateJsonForUpdate(const Json::Value &pJson,
+                                      std::string &err);
+    static bool validateMasqueradedJsonForUpdate(
+        const Json::Value &,
+        const std::vector<std::string> &pMasqueradingVector,
+        std::string &err);
     static bool validJsonOfField(size_t index,
-                          const std::string &fieldName,
-                          const Json::Value &pJson,
-                          std::string &err,
-                          bool isForCreation);
+                                 const std::string &fieldName,
+                                 const Json::Value &pJson,
+                                 std::string &err,
+                                 bool isForCreation);
 
     /**  For column role_id  */
-    ///Get the value of the column role_id, returns the default value if the column is null
+    /// Get the value of the column role_id, returns the default value if the
+    /// column is null
     const int32_t &getValueOfRoleId() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    /// Return a shared_ptr object pointing to the column const value, or an
+    /// empty shared_ptr object if the column is null
     const std::shared_ptr<int32_t> &getRoleId() const noexcept;
-    ///Set the value of the column role_id
+    /// Set the value of the column role_id
     void setRoleId(const int32_t &pRoleId) noexcept;
 
     /**  For column permission_id  */
-    ///Get the value of the column permission_id, returns the default value if the column is null
+    /// Get the value of the column permission_id, returns the default value if
+    /// the column is null
     const int32_t &getValueOfPermissionId() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    /// Return a shared_ptr object pointing to the column const value, or an
+    /// empty shared_ptr object if the column is null
     const std::shared_ptr<int32_t> &getPermissionId() const noexcept;
-    ///Set the value of the column permission_id
+    /// Set the value of the column permission_id
     void setPermissionId(const int32_t &pPermissionId) noexcept;
 
+    static size_t getColumnNumber() noexcept
+    {
+        return 2;
+    }
 
-    static size_t getColumnNumber() noexcept {  return 2;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
     std::string toString() const;
-    Json::Value toMasqueradedJson(const std::vector<std::string> &pMasqueradingVector) const;
+    Json::Value toMasqueradedJson(
+        const std::vector<std::string> &pMasqueradingVector) const;
     /// Relationship interfaces
   private:
     friend drogon::orm::Mapper<RolePermissions>;
@@ -134,10 +152,11 @@ class RolePermissions
     void outputArgs(drogon::orm::internal::SqlBinder &binder) const;
     const std::vector<std::string> updateColumns() const;
     void updateArgs(drogon::orm::internal::SqlBinder &binder) const;
-    ///For mysql or sqlite3
+    /// For mysql or sqlite3
     void updateId(const uint64_t id);
     std::shared_ptr<int32_t> roleId_;
     std::shared_ptr<int32_t> permissionId_;
+
     struct MetaData
     {
         const std::string colName_;
@@ -148,61 +167,74 @@ class RolePermissions
         const bool isPrimaryKey_;
         const bool notNull_;
     };
+
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[2]={ false };
+    bool dirtyFlag_[2] = {false};
+
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
-        static const std::string sql="select * from " + tableName + " where role_id = $1 and permission_id = $2";
+        static const std::string sql =
+            "select * from " + tableName +
+            " where role_id = $1 and permission_id = $2";
         return sql;
     }
 
     static const std::string &sqlForDeletingByPrimaryKey()
     {
-        static const std::string sql="delete from " + tableName + " where role_id = $1 and permission_id = $2";
+        static const std::string sql =
+            "delete from " + tableName +
+            " where role_id = $1 and permission_id = $2";
         return sql;
     }
+
     std::string sqlForInserting(bool &needSelection) const
     {
-        std::string sql="insert into " + tableName + " (";
+        std::string sql = "insert into " + tableName + " (";
         size_t parametersCount = 0;
         needSelection = false;
-        if(dirtyFlag_[0])
+        if (dirtyFlag_[0])
         {
             sql += "role_id,";
             ++parametersCount;
         }
-        if(dirtyFlag_[1])
+        if (dirtyFlag_[1])
         {
             sql += "permission_id,";
             ++parametersCount;
         }
-        if(parametersCount > 0)
+        if (parametersCount > 0)
         {
-            sql[sql.length()-1]=')';
+            sql[sql.length() - 1] = ')';
             sql += " values (";
         }
         else
             sql += ") values (";
 
-        int placeholder=1;
+        int placeholder = 1;
         char placeholderStr[64];
-        size_t n=0;
-        if(dirtyFlag_[0])
+        size_t n = 0;
+        if (dirtyFlag_[0])
         {
-            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            n = snprintf(placeholderStr,
+                         sizeof(placeholderStr),
+                         "$%d,",
+                         placeholder++);
             sql.append(placeholderStr, n);
         }
-        if(dirtyFlag_[1])
+        if (dirtyFlag_[1])
         {
-            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            n = snprintf(placeholderStr,
+                         sizeof(placeholderStr),
+                         "$%d,",
+                         placeholder++);
             sql.append(placeholderStr, n);
         }
-        if(parametersCount > 0)
+        if (parametersCount > 0)
         {
             sql.resize(sql.length() - 1);
         }
-        if(needSelection)
+        if (needSelection)
         {
             sql.append(") returning *");
         }
@@ -214,5 +246,5 @@ class RolePermissions
         return sql;
     }
 };
-} // namespace oauth_test
-} // namespace drogon_model
+}  // namespace oauth_test
+}  // namespace drogon_model

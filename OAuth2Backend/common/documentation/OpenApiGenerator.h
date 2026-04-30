@@ -36,9 +36,9 @@ struct ParameterInfo
     ParameterType type = ParameterType::STRING;
     ParameterLocation location = ParameterLocation::QUERY;
     bool required = true;
-    std::string defaultValue;     // Optional default value
-    std::string enumValues;       // Comma-separated enum values (optional)
-    std::string format;           // OpenAPI format (e.g., "int64", "email", "uuid")
+    std::string defaultValue;  // Optional default value
+    std::string enumValues;    // Comma-separated enum values (optional)
+    std::string format;  // OpenAPI format (e.g., "int64", "email", "uuid")
 };
 
 struct EndpointInfo

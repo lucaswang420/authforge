@@ -132,14 +132,17 @@ Json::Value OpenApiGenerator::generatePathItem(const EndpointInfo &endpoint)
         response["description"] = desc;
 
         // Add response example if available
-        if (endpoint.responseExamples.find(code) != endpoint.responseExamples.end())
+        if (endpoint.responseExamples.find(code) !=
+            endpoint.responseExamples.end())
         {
-            response["content"]["application/json"]["example"] = endpoint.responseExamples.at(code);
+            response["content"]["application/json"]["example"] =
+                endpoint.responseExamples.at(code);
         }
         else if (code == 200)
         {
             // Default schema for 200 responses
-            response["content"]["application/json"]["schema"]["type"] = "object";
+            response["content"]["application/json"]["schema"]["type"] =
+                "object";
         }
 
         responses[std::to_string(code)] = response;
@@ -213,7 +216,8 @@ std::string OpenApiGenerator::parameterTypeToString(ParameterType type)
     }
 }
 
-std::string OpenApiGenerator::parameterLocationToString(ParameterLocation location)
+std::string OpenApiGenerator::parameterLocationToString(
+    ParameterLocation location)
 {
     switch (location)
     {
@@ -254,18 +258,21 @@ Json::Value OpenApiGenerator::generateParameter(const ParameterInfo &param)
         {
             parameter["schema"]["default"] = (param.defaultValue == "true");
         }
-        else if (param.type == ParameterType::INTEGER || param.type == ParameterType::NUMBER)
+        else if (param.type == ParameterType::INTEGER ||
+                 param.type == ParameterType::NUMBER)
         {
             // Try to parse as number
             try
             {
                 if (param.type == ParameterType::INTEGER)
                 {
-                    parameter["schema"]["default"] = std::stoi(param.defaultValue);
+                    parameter["schema"]["default"] =
+                        std::stoi(param.defaultValue);
                 }
                 else
                 {
-                    parameter["schema"]["default"] = std::stod(param.defaultValue);
+                    parameter["schema"]["default"] =
+                        std::stod(param.defaultValue);
                 }
             }
             catch (...)

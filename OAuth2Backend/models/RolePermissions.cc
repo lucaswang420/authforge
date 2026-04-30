@@ -15,138 +15,157 @@ using namespace drogon_model::oauth_test;
 
 const std::string RolePermissions::Cols::_role_id = "\"role_id\"";
 const std::string RolePermissions::Cols::_permission_id = "\"permission_id\"";
-const std::vector<std::string> RolePermissions::primaryKeyName = {"role_id","permission_id"};
+const std::vector<std::string> RolePermissions::primaryKeyName =
+    {"role_id", "permission_id"};
 const bool RolePermissions::hasPrimaryKey = true;
 const std::string RolePermissions::tableName = "\"role_permissions\"";
 
-const std::vector<typename RolePermissions::MetaData> RolePermissions::metaData_={
-{"role_id","int32_t","integer",4,0,1,1},
-{"permission_id","int32_t","integer",4,0,1,1}
-};
+const std::vector<typename RolePermissions::MetaData>
+    RolePermissions::metaData_ = {
+        {"role_id", "int32_t", "integer", 4, 0, 1, 1},
+        {"permission_id", "int32_t", "integer", 4, 0, 1, 1}};
+
 const std::string &RolePermissions::getColumnName(size_t index) noexcept(false)
 {
     assert(index < metaData_.size());
     return metaData_[index].colName_;
 }
-RolePermissions::RolePermissions(const Row &r, const ssize_t indexOffset) noexcept
+
+RolePermissions::RolePermissions(const Row &r,
+                                 const ssize_t indexOffset) noexcept
 {
-    if(indexOffset < 0)
+    if (indexOffset < 0)
     {
-        if(!r["role_id"].isNull())
+        if (!r["role_id"].isNull())
         {
-            roleId_=std::make_shared<int32_t>(r["role_id"].as<int32_t>());
+            roleId_ = std::make_shared<int32_t>(r["role_id"].as<int32_t>());
         }
-        if(!r["permission_id"].isNull())
+        if (!r["permission_id"].isNull())
         {
-            permissionId_=std::make_shared<int32_t>(r["permission_id"].as<int32_t>());
+            permissionId_ =
+                std::make_shared<int32_t>(r["permission_id"].as<int32_t>());
         }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 2 > r.size())
+        if (offset + 2 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
         }
         size_t index;
         index = offset + 0;
-        if(!r[index].isNull())
+        if (!r[index].isNull())
         {
-            roleId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            roleId_ = std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 1;
-        if(!r[index].isNull())
+        if (!r[index].isNull())
         {
-            permissionId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            permissionId_ = std::make_shared<int32_t>(r[index].as<int32_t>());
         }
     }
-
 }
 
-RolePermissions::RolePermissions(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
+RolePermissions::RolePermissions(
+    const Json::Value &pJson,
+    const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 2)
+    if (pMasqueradingVector.size() != 2)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
     }
-    if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
+    if (!pMasqueradingVector[0].empty() &&
+        pJson.isMember(pMasqueradingVector[0]))
     {
         dirtyFlag_[0] = true;
-        if(!pJson[pMasqueradingVector[0]].isNull())
+        if (!pJson[pMasqueradingVector[0]].isNull())
         {
-            roleId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            roleId_ = std::make_shared<int32_t>(
+                (int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
-    if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
+    if (!pMasqueradingVector[1].empty() &&
+        pJson.isMember(pMasqueradingVector[1]))
     {
         dirtyFlag_[1] = true;
-        if(!pJson[pMasqueradingVector[1]].isNull())
+        if (!pJson[pMasqueradingVector[1]].isNull())
         {
-            permissionId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[1]].asInt64());
+            permissionId_ = std::make_shared<int32_t>(
+                (int32_t)pJson[pMasqueradingVector[1]].asInt64());
         }
     }
 }
 
 RolePermissions::RolePermissions(const Json::Value &pJson) noexcept(false)
 {
-    if(pJson.isMember("role_id"))
+    if (pJson.isMember("role_id"))
     {
-        dirtyFlag_[0]=true;
-        if(!pJson["role_id"].isNull())
+        dirtyFlag_[0] = true;
+        if (!pJson["role_id"].isNull())
         {
-            roleId_=std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
+            roleId_ =
+                std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
         }
     }
-    if(pJson.isMember("permission_id"))
+    if (pJson.isMember("permission_id"))
     {
-        dirtyFlag_[1]=true;
-        if(!pJson["permission_id"].isNull())
+        dirtyFlag_[1] = true;
+        if (!pJson["permission_id"].isNull())
         {
-            permissionId_=std::make_shared<int32_t>((int32_t)pJson["permission_id"].asInt64());
+            permissionId_ = std::make_shared<int32_t>(
+                (int32_t)pJson["permission_id"].asInt64());
         }
     }
 }
 
-void RolePermissions::updateByMasqueradedJson(const Json::Value &pJson,
-                                            const std::vector<std::string> &pMasqueradingVector) noexcept(false)
+void RolePermissions::updateByMasqueradedJson(
+    const Json::Value &pJson,
+    const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 2)
+    if (pMasqueradingVector.size() != 2)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
     }
-    if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
+    if (!pMasqueradingVector[0].empty() &&
+        pJson.isMember(pMasqueradingVector[0]))
     {
-        if(!pJson[pMasqueradingVector[0]].isNull())
+        if (!pJson[pMasqueradingVector[0]].isNull())
         {
-            roleId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            roleId_ = std::make_shared<int32_t>(
+                (int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
-    if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
+    if (!pMasqueradingVector[1].empty() &&
+        pJson.isMember(pMasqueradingVector[1]))
     {
-        if(!pJson[pMasqueradingVector[1]].isNull())
+        if (!pJson[pMasqueradingVector[1]].isNull())
         {
-            permissionId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[1]].asInt64());
+            permissionId_ = std::make_shared<int32_t>(
+                (int32_t)pJson[pMasqueradingVector[1]].asInt64());
         }
     }
 }
 
 void RolePermissions::updateByJson(const Json::Value &pJson) noexcept(false)
 {
-    if(pJson.isMember("role_id"))
+    if (pJson.isMember("role_id"))
     {
-        if(!pJson["role_id"].isNull())
+        if (!pJson["role_id"].isNull())
         {
-            roleId_=std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
+            roleId_ =
+                std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
         }
     }
-    if(pJson.isMember("permission_id"))
+    if (pJson.isMember("permission_id"))
     {
-        if(!pJson["permission_id"].isNull())
+        if (!pJson["permission_id"].isNull())
         {
-            permissionId_=std::make_shared<int32_t>((int32_t)pJson["permission_id"].asInt64());
+            permissionId_ = std::make_shared<int32_t>(
+                (int32_t)pJson["permission_id"].asInt64());
         }
     }
 }
@@ -154,14 +173,16 @@ void RolePermissions::updateByJson(const Json::Value &pJson) noexcept(false)
 const int32_t &RolePermissions::getValueOfRoleId() const noexcept
 {
     static const int32_t defaultValue = int32_t();
-    if(roleId_)
+    if (roleId_)
         return *roleId_;
     return defaultValue;
 }
+
 const std::shared_ptr<int32_t> &RolePermissions::getRoleId() const noexcept
 {
     return roleId_;
 }
+
 void RolePermissions::setRoleId(const int32_t &pRoleId) noexcept
 {
     roleId_ = std::make_shared<int32_t>(pRoleId);
@@ -171,14 +192,17 @@ void RolePermissions::setRoleId(const int32_t &pRoleId) noexcept
 const int32_t &RolePermissions::getValueOfPermissionId() const noexcept
 {
     static const int32_t defaultValue = int32_t();
-    if(permissionId_)
+    if (permissionId_)
         return *permissionId_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &RolePermissions::getPermissionId() const noexcept
+
+const std::shared_ptr<int32_t> &RolePermissions::getPermissionId()
+    const noexcept
 {
     return permissionId_;
 }
+
 void RolePermissions::setPermissionId(const int32_t &pPermissionId) noexcept
 {
     permissionId_ = std::make_shared<int32_t>(pPermissionId);
@@ -188,25 +212,23 @@ void RolePermissions::setPermissionId(const int32_t &pPermissionId) noexcept
 void RolePermissions::updateId(const uint64_t id)
 {
 }
+
 typename RolePermissions::PrimaryKeyType RolePermissions::getPrimaryKey() const
 {
-    return std::make_tuple(*roleId_,*permissionId_);
+    return std::make_tuple(*roleId_, *permissionId_);
 }
 
 const std::vector<std::string> &RolePermissions::insertColumns() noexcept
 {
-    static const std::vector<std::string> inCols={
-        "role_id",
-        "permission_id"
-    };
+    static const std::vector<std::string> inCols = {"role_id", "permission_id"};
     return inCols;
 }
 
 void RolePermissions::outputArgs(drogon::orm::internal::SqlBinder &binder) const
 {
-    if(dirtyFlag_[0])
+    if (dirtyFlag_[0])
     {
-        if(getRoleId())
+        if (getRoleId())
         {
             binder << getValueOfRoleId();
         }
@@ -215,9 +237,9 @@ void RolePermissions::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[1])
+    if (dirtyFlag_[1])
     {
-        if(getPermissionId())
+        if (getPermissionId())
         {
             binder << getValueOfPermissionId();
         }
@@ -231,11 +253,11 @@ void RolePermissions::outputArgs(drogon::orm::internal::SqlBinder &binder) const
 const std::vector<std::string> RolePermissions::updateColumns() const
 {
     std::vector<std::string> ret;
-    if(dirtyFlag_[0])
+    if (dirtyFlag_[0])
     {
         ret.push_back(getColumnName(0));
     }
-    if(dirtyFlag_[1])
+    if (dirtyFlag_[1])
     {
         ret.push_back(getColumnName(1));
     }
@@ -244,9 +266,9 @@ const std::vector<std::string> RolePermissions::updateColumns() const
 
 void RolePermissions::updateArgs(drogon::orm::internal::SqlBinder &binder) const
 {
-    if(dirtyFlag_[0])
+    if (dirtyFlag_[0])
     {
-        if(getRoleId())
+        if (getRoleId())
         {
             binder << getValueOfRoleId();
         }
@@ -255,9 +277,9 @@ void RolePermissions::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[1])
+    if (dirtyFlag_[1])
     {
-        if(getPermissionId())
+        if (getPermissionId())
         {
             binder << getValueOfPermissionId();
         }
@@ -267,24 +289,25 @@ void RolePermissions::updateArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
 }
+
 Json::Value RolePermissions::toJson() const
 {
     Json::Value ret;
-    if(getRoleId())
+    if (getRoleId())
     {
-        ret["role_id"]=getValueOfRoleId();
+        ret["role_id"] = getValueOfRoleId();
     }
     else
     {
-        ret["role_id"]=Json::Value();
+        ret["role_id"] = Json::Value();
     }
-    if(getPermissionId())
+    if (getPermissionId())
     {
-        ret["permission_id"]=getValueOfPermissionId();
+        ret["permission_id"] = getValueOfPermissionId();
     }
     else
     {
-        ret["permission_id"]=Json::Value();
+        ret["permission_id"] = Json::Value();
     }
     return ret;
 }
@@ -298,216 +321,256 @@ Json::Value RolePermissions::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 2)
+    if (pMasqueradingVector.size() == 2)
     {
-        if(!pMasqueradingVector[0].empty())
+        if (!pMasqueradingVector[0].empty())
         {
-            if(getRoleId())
+            if (getRoleId())
             {
-                ret[pMasqueradingVector[0]]=getValueOfRoleId();
+                ret[pMasqueradingVector[0]] = getValueOfRoleId();
             }
             else
             {
-                ret[pMasqueradingVector[0]]=Json::Value();
+                ret[pMasqueradingVector[0]] = Json::Value();
             }
         }
-        if(!pMasqueradingVector[1].empty())
+        if (!pMasqueradingVector[1].empty())
         {
-            if(getPermissionId())
+            if (getPermissionId())
             {
-                ret[pMasqueradingVector[1]]=getValueOfPermissionId();
+                ret[pMasqueradingVector[1]] = getValueOfPermissionId();
             }
             else
             {
-                ret[pMasqueradingVector[1]]=Json::Value();
+                ret[pMasqueradingVector[1]] = Json::Value();
             }
         }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
-    if(getRoleId())
+    if (getRoleId())
     {
-        ret["role_id"]=getValueOfRoleId();
+        ret["role_id"] = getValueOfRoleId();
     }
     else
     {
-        ret["role_id"]=Json::Value();
+        ret["role_id"] = Json::Value();
     }
-    if(getPermissionId())
+    if (getPermissionId())
     {
-        ret["permission_id"]=getValueOfPermissionId();
+        ret["permission_id"] = getValueOfPermissionId();
     }
     else
     {
-        ret["permission_id"]=Json::Value();
+        ret["permission_id"] = Json::Value();
     }
     return ret;
 }
 
-bool RolePermissions::validateJsonForCreation(const Json::Value &pJson, std::string &err)
+bool RolePermissions::validateJsonForCreation(const Json::Value &pJson,
+                                              std::string &err)
 {
-    if(pJson.isMember("role_id"))
+    if (pJson.isMember("role_id"))
     {
-        if(!validJsonOfField(0, "role_id", pJson["role_id"], err, true))
+        if (!validJsonOfField(0, "role_id", pJson["role_id"], err, true))
             return false;
     }
     else
     {
-        err="The role_id column cannot be null";
+        err = "The role_id column cannot be null";
         return false;
     }
-    if(pJson.isMember("permission_id"))
+    if (pJson.isMember("permission_id"))
     {
-        if(!validJsonOfField(1, "permission_id", pJson["permission_id"], err, true))
+        if (!validJsonOfField(
+                1, "permission_id", pJson["permission_id"], err, true))
             return false;
     }
     else
     {
-        err="The permission_id column cannot be null";
+        err = "The permission_id column cannot be null";
         return false;
     }
     return true;
 }
-bool RolePermissions::validateMasqueradedJsonForCreation(const Json::Value &pJson,
-                                                         const std::vector<std::string> &pMasqueradingVector,
-                                                         std::string &err)
+
+bool RolePermissions::validateMasqueradedJsonForCreation(
+    const Json::Value &pJson,
+    const std::vector<std::string> &pMasqueradingVector,
+    std::string &err)
 {
-    if(pMasqueradingVector.size() != 2)
+    if (pMasqueradingVector.size() != 2)
     {
         err = "Bad masquerading vector";
         return false;
     }
-    try {
-      if(!pMasqueradingVector[0].empty())
-      {
-          if(pJson.isMember(pMasqueradingVector[0]))
-          {
-              if(!validJsonOfField(0, pMasqueradingVector[0], pJson[pMasqueradingVector[0]], err, true))
-                  return false;
-          }
-        else
+    try
+    {
+        if (!pMasqueradingVector[0].empty())
         {
-            err="The " + pMasqueradingVector[0] + " column cannot be null";
-            return false;
+            if (pJson.isMember(pMasqueradingVector[0]))
+            {
+                if (!validJsonOfField(0,
+                                      pMasqueradingVector[0],
+                                      pJson[pMasqueradingVector[0]],
+                                      err,
+                                      true))
+                    return false;
+            }
+            else
+            {
+                err =
+                    "The " + pMasqueradingVector[0] + " column cannot be null";
+                return false;
+            }
         }
-      }
-      if(!pMasqueradingVector[1].empty())
-      {
-          if(pJson.isMember(pMasqueradingVector[1]))
-          {
-              if(!validJsonOfField(1, pMasqueradingVector[1], pJson[pMasqueradingVector[1]], err, true))
-                  return false;
-          }
-        else
+        if (!pMasqueradingVector[1].empty())
         {
-            err="The " + pMasqueradingVector[1] + " column cannot be null";
-            return false;
+            if (pJson.isMember(pMasqueradingVector[1]))
+            {
+                if (!validJsonOfField(1,
+                                      pMasqueradingVector[1],
+                                      pJson[pMasqueradingVector[1]],
+                                      err,
+                                      true))
+                    return false;
+            }
+            else
+            {
+                err =
+                    "The " + pMasqueradingVector[1] + " column cannot be null";
+                return false;
+            }
         }
-      }
     }
-    catch(const Json::LogicError &e)
+    catch (const Json::LogicError &e)
     {
-      err = e.what();
-      return false;
-    }
-    return true;
-}
-bool RolePermissions::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
-{
-    if(pJson.isMember("role_id"))
-    {
-        if(!validJsonOfField(0, "role_id", pJson["role_id"], err, false))
-            return false;
-    }
-    else
-    {
-        err = "The value of primary key must be set in the json object for update";
-        return false;
-    }
-    if(pJson.isMember("permission_id"))
-    {
-        if(!validJsonOfField(1, "permission_id", pJson["permission_id"], err, false))
-            return false;
-    }
-    else
-    {
-        err = "The value of primary key must be set in the json object for update";
+        err = e.what();
         return false;
     }
     return true;
 }
-bool RolePermissions::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
-                                                       const std::vector<std::string> &pMasqueradingVector,
-                                                       std::string &err)
+
+bool RolePermissions::validateJsonForUpdate(const Json::Value &pJson,
+                                            std::string &err)
 {
-    if(pMasqueradingVector.size() != 2)
+    if (pJson.isMember("role_id"))
+    {
+        if (!validJsonOfField(0, "role_id", pJson["role_id"], err, false))
+            return false;
+    }
+    else
+    {
+        err =
+            "The value of primary key must be set in the json object for "
+            "update";
+        return false;
+    }
+    if (pJson.isMember("permission_id"))
+    {
+        if (!validJsonOfField(
+                1, "permission_id", pJson["permission_id"], err, false))
+            return false;
+    }
+    else
+    {
+        err =
+            "The value of primary key must be set in the json object for "
+            "update";
+        return false;
+    }
+    return true;
+}
+
+bool RolePermissions::validateMasqueradedJsonForUpdate(
+    const Json::Value &pJson,
+    const std::vector<std::string> &pMasqueradingVector,
+    std::string &err)
+{
+    if (pMasqueradingVector.size() != 2)
     {
         err = "Bad masquerading vector";
         return false;
     }
-    try {
-      if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
-      {
-          if(!validJsonOfField(0, pMasqueradingVector[0], pJson[pMasqueradingVector[0]], err, false))
-              return false;
-      }
-    else
+    try
     {
-        err = "The value of primary key must be set in the json object for update";
+        if (!pMasqueradingVector[0].empty() &&
+            pJson.isMember(pMasqueradingVector[0]))
+        {
+            if (!validJsonOfField(0,
+                                  pMasqueradingVector[0],
+                                  pJson[pMasqueradingVector[0]],
+                                  err,
+                                  false))
+                return false;
+        }
+        else
+        {
+            err =
+                "The value of primary key must be set in the json object for "
+                "update";
+            return false;
+        }
+        if (!pMasqueradingVector[1].empty() &&
+            pJson.isMember(pMasqueradingVector[1]))
+        {
+            if (!validJsonOfField(1,
+                                  pMasqueradingVector[1],
+                                  pJson[pMasqueradingVector[1]],
+                                  err,
+                                  false))
+                return false;
+        }
+        else
+        {
+            err =
+                "The value of primary key must be set in the json object for "
+                "update";
+            return false;
+        }
+    }
+    catch (const Json::LogicError &e)
+    {
+        err = e.what();
         return false;
-    }
-      if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
-      {
-          if(!validJsonOfField(1, pMasqueradingVector[1], pJson[pMasqueradingVector[1]], err, false))
-              return false;
-      }
-    else
-    {
-        err = "The value of primary key must be set in the json object for update";
-        return false;
-    }
-    }
-    catch(const Json::LogicError &e)
-    {
-      err = e.what();
-      return false;
     }
     return true;
 }
+
 bool RolePermissions::validJsonOfField(size_t index,
                                        const std::string &fieldName,
                                        const Json::Value &pJson,
                                        std::string &err,
                                        bool isForCreation)
 {
-    switch(index)
+    switch (index)
     {
         case 0:
-            if(pJson.isNull())
+            if (pJson.isNull())
             {
-                err="The " + fieldName + " column cannot be null";
+                err = "The " + fieldName + " column cannot be null";
                 return false;
             }
-            if(!pJson.isInt())
+            if (!pJson.isInt())
             {
-                err="Type error in the "+fieldName+" field";
+                err = "Type error in the " + fieldName + " field";
                 return false;
             }
             break;
         case 1:
-            if(pJson.isNull())
+            if (pJson.isNull())
             {
-                err="The " + fieldName + " column cannot be null";
+                err = "The " + fieldName + " column cannot be null";
                 return false;
             }
-            if(!pJson.isInt())
+            if (!pJson.isInt())
             {
-                err="Type error in the "+fieldName+" field";
+                err = "Type error in the " + fieldName + " field";
                 return false;
             }
             break;
         default:
-            err="Internal error in the server";
+            err = "Internal error in the server";
             return false;
     }
     return true;

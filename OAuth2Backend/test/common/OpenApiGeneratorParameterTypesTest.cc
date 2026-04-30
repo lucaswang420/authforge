@@ -32,7 +32,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_String)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "name");
@@ -68,7 +69,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Integer)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "age");
@@ -103,7 +105,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Boolean)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "active");
@@ -139,7 +142,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Number)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "price");
@@ -174,7 +178,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Enum)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "status");
@@ -217,7 +222,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Format)
     // Generate spec and verify parameter
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 1);
     CHECK(parameters[0]["name"].asString() == "email");
@@ -270,7 +276,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Location)
     // Generate spec and verify parameter locations
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.size() == 3);
 
@@ -279,7 +286,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Location)
     bool foundPathParam = false;
     bool foundHeaderParam = false;
 
-    for (const auto& param : parameters)
+    for (const auto &param : parameters)
     {
         std::string paramIn = param["in"].asString();
         std::string paramName = param["name"].asString();
@@ -338,15 +345,18 @@ DROGON_TEST(OpenApiGenerator_ResponseExamples_Basic)
     // Generate spec and verify response examples
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
     std::string methodLower = "get";
-    Json::Value responses = spec["paths"][endpoint.path][methodLower]["responses"];
+    Json::Value responses =
+        spec["paths"][endpoint.path][methodLower]["responses"];
 
     // Verify 200 response has example
     CHECK(responses.isMember("200") == true);
     CHECK(responses["200"].isMember("content") == true);
     CHECK(responses["200"]["content"].isMember("application/json") == true);
-    CHECK(responses["200"]["content"]["application/json"].isMember("example") == true);
+    CHECK(responses["200"]["content"]["application/json"].isMember("example") ==
+          true);
 
-    Json::Value example200 = responses["200"]["content"]["application/json"]["example"];
+    Json::Value example200 =
+        responses["200"]["content"]["application/json"]["example"];
     CHECK(example200["status"].asString() == "success");
     CHECK(example200["data"].asString() == "test data");
 
@@ -354,9 +364,11 @@ DROGON_TEST(OpenApiGenerator_ResponseExamples_Basic)
     CHECK(responses.isMember("404") == true);
     CHECK(responses["404"].isMember("content") == true);
     CHECK(responses["404"]["content"].isMember("application/json") == true);
-    CHECK(responses["404"]["content"]["application/json"].isMember("example") == true);
+    CHECK(responses["404"]["content"]["application/json"].isMember("example") ==
+          true);
 
-    Json::Value example404 = responses["404"]["content"]["application/json"]["example"];
+    Json::Value example404 =
+        responses["404"]["content"]["application/json"]["example"];
     CHECK(example404["error"].asString() == "not found");
     CHECK(example404["code"].asInt() == 404);
 }
@@ -440,7 +452,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Complex)
     CHECK(parameters.size() == 4);
 
     // Verify parameter types and properties
-    for (const auto& param : parameters)
+    for (const auto &param : parameters)
     {
         std::string paramName = param["name"].asString();
         std::string paramType = param["schema"]["type"].asString();
@@ -475,7 +487,8 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Complex)
     }
 
     // Verify response example
-    Json::Value responseExample = pathItem["responses"]["200"]["content"]["application/json"]["example"];
+    Json::Value responseExample =
+        pathItem["responses"]["200"]["content"]["application/json"]["example"];
     CHECK(responseExample.isMember("posts") == true);
     CHECK(responseExample["posts"].isArray() == true);
 }

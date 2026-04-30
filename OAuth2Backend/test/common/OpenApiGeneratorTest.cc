@@ -109,8 +109,10 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_RequiredFields)
 
     // Convert method to lowercase for JSON key access
     std::string methodLower = endpoint.method;
-    std::transform(methodLower.begin(), methodLower.end(),
-                   methodLower.begin(), ::tolower);
+    std::transform(methodLower.begin(),
+                   methodLower.end(),
+                   methodLower.begin(),
+                   ::tolower);
 
     Json::Value pathItem = spec["paths"][endpoint.path][methodLower];
 
@@ -138,11 +140,9 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ParametersStructure)
     endpoint.summary = "Parameters test";
     endpoint.description = "Testing parameter structure";
     endpoint.tags = {"Test"};
-    endpoint.parameters = {
-        {"param1", "First parameter"},
-        {"param2", "Second parameter"},
-        {"param3", "Third parameter"}
-    };
+    endpoint.parameters = {{"param1", "First parameter"},
+                           {"param2", "Second parameter"},
+                           {"param3", "Third parameter"}};
     endpoint.responses = {{200, "OK"}};
     endpoint.requiresAuth = false;
 
@@ -153,16 +153,19 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ParametersStructure)
 
     // Convert method to lowercase for JSON key access
     std::string methodLower = endpoint.method;
-    std::transform(methodLower.begin(), methodLower.end(),
-                   methodLower.begin(), ::tolower);
+    std::transform(methodLower.begin(),
+                   methodLower.end(),
+                   methodLower.begin(),
+                   ::tolower);
 
-    Json::Value parameters = spec["paths"][endpoint.path][methodLower]["parameters"];
+    Json::Value parameters =
+        spec["paths"][endpoint.path][methodLower]["parameters"];
 
     CHECK(parameters.isArray() == true);
     CHECK(parameters.size() == 3);
 
     // Verify parameter structure
-    for (const auto& param : parameters)
+    for (const auto &param : parameters)
     {
         CHECK(param.isMember("name") == true);
         CHECK(param.isMember("in") == true);
@@ -182,13 +185,11 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ResponsesStructure)
     endpoint.summary = "Responses test";
     endpoint.description = "Testing response structure";
     endpoint.tags = {"Test"};
-    endpoint.responses = {
-        {200, "Success response"},
-        {201, "Resource created"},
-        {400, "Bad request"},
-        {401, "Unauthorized"},
-        {500, "Server error"}
-    };
+    endpoint.responses = {{200, "Success response"},
+                          {201, "Resource created"},
+                          {400, "Bad request"},
+                          {401, "Unauthorized"},
+                          {500, "Server error"}};
     endpoint.requiresAuth = true;
 
     OpenApiGenerator::addEndpoint(endpoint);
@@ -198,10 +199,13 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ResponsesStructure)
 
     // Convert method to lowercase for JSON key access
     std::string methodLower = endpoint.method;
-    std::transform(methodLower.begin(), methodLower.end(),
-                   methodLower.begin(), ::tolower);
+    std::transform(methodLower.begin(),
+                   methodLower.end(),
+                   methodLower.begin(),
+                   ::tolower);
 
-    Json::Value responses = spec["paths"][endpoint.path][methodLower]["responses"];
+    Json::Value responses =
+        spec["paths"][endpoint.path][methodLower]["responses"];
 
     // Verify all response codes exist
     CHECK(responses.isMember("200") == true);
@@ -246,19 +250,25 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_Authentication)
 
     // Convert method to lowercase for JSON key access
     std::string authMethodLower = authEndpoint.method;
-    std::transform(authMethodLower.begin(), authMethodLower.end(),
-                   authMethodLower.begin(), ::tolower);
+    std::transform(authMethodLower.begin(),
+                   authMethodLower.end(),
+                   authMethodLower.begin(),
+                   ::tolower);
     std::string noAuthMethodLower = noAuthEndpoint.method;
-    std::transform(noAuthMethodLower.begin(), noAuthMethodLower.end(),
-                   noAuthMethodLower.begin(), ::tolower);
+    std::transform(noAuthMethodLower.begin(),
+                   noAuthMethodLower.end(),
+                   noAuthMethodLower.begin(),
+                   ::tolower);
 
     // Verify auth endpoint has security requirement
-    Json::Value authPathItem = spec["paths"][authEndpoint.path][authMethodLower];
+    Json::Value authPathItem =
+        spec["paths"][authEndpoint.path][authMethodLower];
     CHECK(authPathItem.isMember("security") == true);
     CHECK(authPathItem["security"].size() > 0);
 
     // Verify no-auth endpoint exists and has correct path
-    Json::Value noAuthPathItem = spec["paths"][noAuthEndpoint.path][noAuthMethodLower];
+    Json::Value noAuthPathItem =
+        spec["paths"][noAuthEndpoint.path][noAuthMethodLower];
     CHECK(noAuthPathItem.isMember("summary") == true);
     CHECK(noAuthPathItem["summary"].asString() == "No authentication test");
 }
@@ -316,7 +326,7 @@ DROGON_TEST(OpenApiGenerator_CompleteSpec_Integrity)
 
     // Verify all required OpenAPI 3.0 fields exist
     std::vector<std::string> requiredFields = {"openapi", "info", "paths"};
-    for (const auto& field : requiredFields)
+    for (const auto &field : requiredFields)
     {
         CHECK(spec.isMember(field));
     }
