@@ -14,37 +14,41 @@ void ValidationFilter::initializeValidationRules()
 {
     // /oauth2/authorize 验证规则
     OAUTH2_VALIDATION_RULES["/oauth2/authorize"] = {
-        {
-            {"client_id", "query", true, 1, 128, CLIENT_ID_PATTERN, nullptr},
-            {"redirect_uri", "query", true, 10, 2048, REDIRECT_URI_PATTERN, nullptr},
-            {"response_type", "query", true, 1, 10, RESPONSE_TYPE_PATTERN, nullptr}
-        },
+        {{"client_id", "query", true, 1, 128, CLIENT_ID_PATTERN, nullptr},
+         {"redirect_uri",
+          "query",
+          true,
+          10,
+          2048,
+          REDIRECT_URI_PATTERN,
+          nullptr},
+         {"response_type",
+          "query",
+          true,
+          1,
+          10,
+          RESPONSE_TYPE_PATTERN,
+          nullptr}},
         true  // enabled
     };
 
     // /oauth2/token 验证规则
     OAUTH2_VALIDATION_RULES["/oauth2/token"] = {
-        {
-            {"grant_type", "body", true, 1, 50, GRANT_TYPE_PATTERN, nullptr}
-        },
+        {{"grant_type", "body", true, 1, 50, GRANT_TYPE_PATTERN, nullptr}},
         true  // enabled
     };
 
     // /oauth2/login 验证规则
     OAUTH2_VALIDATION_RULES["/oauth2/login"] = {
-        {
-            {"username", "body", true, 1, 100, USERNAME_PATTERN, nullptr},
-            {"password", "body", true, 8, 200, PASSWORD_PATTERN, nullptr}
-        },
+        {{"username", "body", true, 1, 100, USERNAME_PATTERN, nullptr},
+         {"password", "body", true, 8, 200, PASSWORD_PATTERN, nullptr}},
         true  // enabled
     };
 
     // /api/register 验证规则
     OAUTH2_VALIDATION_RULES["/api/register"] = {
-        {
-            {"username", "body", true, 1, 100, USERNAME_PATTERN, nullptr},
-            {"password", "body", true, 8, 200, PASSWORD_PATTERN, nullptr}
-        },
+        {{"username", "body", true, 1, 100, USERNAME_PATTERN, nullptr},
+         {"password", "body", true, 8, 200, PASSWORD_PATTERN, nullptr}},
         true  // enabled
     };
 }
@@ -54,9 +58,7 @@ ValidationFilter::RouteValidationRules ValidationFilter::getValidationRules(
 {
     // 线程安全的单次初始化
     static std::once_flag initFlag;
-    std::call_once(initFlag, []() {
-        initializeValidationRules();
-    });
+    std::call_once(initFlag, []() { initializeValidationRules(); });
 
     // 精确匹配
     auto it = OAUTH2_VALIDATION_RULES.find(path);

@@ -32,12 +32,17 @@ class ValidatorHelper
         const std::vector<ValidationRuleConfig> &rules);
 
     // OAuth2 专用快速验证方法
-    static std::optional<std::string> validateClientId(const std::string &clientId);
-    static std::optional<std::string> validateClientSecret(const std::string &secret);
-    static std::optional<std::string> validateRedirectUri(const std::string &uri);
+    static std::optional<std::string> validateClientId(
+        const std::string &clientId);
+    static std::optional<std::string> validateClientSecret(
+        const std::string &secret);
+    static std::optional<std::string> validateRedirectUri(
+        const std::string &uri);
     static std::optional<std::string> validateScope(const std::string &scope);
-    static std::optional<std::string> validateResponseType(const std::string &type);
-    static std::optional<std::string> validateGrantType(const std::string &type);
+    static std::optional<std::string> validateResponseType(
+        const std::string &type);
+    static std::optional<std::string> validateGrantType(
+        const std::string &type);
     static std::optional<std::string> validateToken(const std::string &token);
 
     // 便捷验证组合
@@ -51,13 +56,13 @@ class ValidatorHelper
   private:
     // 从 HttpRequest 提取字段值
     static std::string extractFieldValue(const drogon::HttpRequestPtr &req,
-                                       const std::string &field,
-                                       const std::string &source);
+                                         const std::string &field,
+                                         const std::string &source);
 
     // 根据源位置获取字段值
     static std::string getValueFromSource(const drogon::HttpRequestPtr &req,
-                                       const std::string &field,
-                                       const std::string &source);
+                                          const std::string &field,
+                                          const std::string &source);
 };
 
 }  // namespace common::validation

@@ -28,7 +28,8 @@ DROGON_TEST(ValidatorHelper_ValidateClientId_Empty)
 
 DROGON_TEST(ValidatorHelper_ValidateRedirectUri_Valid)
 {
-    auto result = ValidatorHelper::validateRedirectUri("https://example.com/callback");
+    auto result =
+        ValidatorHelper::validateRedirectUri("https://example.com/callback");
     CHECK(!result.has_value());
 
     result = ValidatorHelper::validateRedirectUri("http://localhost:3000/auth");
@@ -73,7 +74,8 @@ DROGON_TEST(ValidatorHelper_ValidateGrantType_Invalid)
 
 DROGON_TEST(ValidatorHelper_ValidateToken_Valid)
 {
-    auto result = ValidatorHelper::validateToken("abcdefghijklmnopqrstuvwxyz123456");
+    auto result =
+        ValidatorHelper::validateToken("abcdefghijklmnopqrstuvwxyz123456");
     CHECK(!result.has_value());
 }
 
@@ -115,18 +117,22 @@ DROGON_TEST(ValidatorHelper_ValidateField_Config)
     config.maxLength = 10;
     config.pattern = "^[a-zA-Z0-9]+$";
 
-    auto result = ValidatorHelper::validateField("valid123", "test_field", config);
+    auto result =
+        ValidatorHelper::validateField("valid123", "test_field", config);
     CHECK(!result.has_value());
 
     result = ValidatorHelper::validateField("ab", "test_field", config);
     CHECK(result.has_value());
     CHECK(result->find("at least") != std::string::npos);
 
-    result = ValidatorHelper::validateField("way_too_long_field", "test_field", config);
+    result = ValidatorHelper::validateField("way_too_long_field",
+                                            "test_field",
+                                            config);
     CHECK(result.has_value());
     CHECK(result->find("at most") != std::string::npos);
 
-    result = ValidatorHelper::validateField("invalid@chars", "test_field", config);
+    result =
+        ValidatorHelper::validateField("invalid@chars", "test_field", config);
     CHECK(result.has_value());  // Should fail pattern validation
 }
 
@@ -156,14 +162,14 @@ DROGON_TEST(ValidatorHelper_ValidateFields_Multiple)
     std::vector<std::pair<std::string, std::string>> fields = {
         {"username", "valid_user"},
         {"password", "pass123"},
-        {"email", "invalid@email"}  // will fail pattern validation if pattern is set
+        {"email", "invalid@email"}
+        // will fail pattern validation if pattern is set
     };
 
     std::vector<ValidationRuleConfig> rules = {
         {"username", "body", true, 3, 20, "^[a-zA-Z0-9_]+$", nullptr},
         {"password", "body", true, 6, 50, "^[a-zA-Z0-9]+$", nullptr},
-        {"email", "body", false, 0, 100, "", nullptr}
-    };
+        {"email", "body", false, 0, 100, "", nullptr}};
 
     auto errors = ValidatorHelper::validateFields(fields, rules);
     CHECK(errors.empty());  // All should pass with these rules

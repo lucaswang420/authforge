@@ -80,8 +80,10 @@ Json::Value ValidationHelper::createErrorJson(
     // 添加时间戳
     std::time_t now = std::time(nullptr);
     char timestamp[64];
-    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ",
-                 std::gmtime(&now));
+    std::strftime(timestamp,
+                  sizeof(timestamp),
+                  "%Y-%m-%dT%H:%M:%SZ",
+                  std::gmtime(&now));
     error["timestamp"] = timestamp;
 
     Json::Value root;

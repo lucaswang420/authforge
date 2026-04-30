@@ -27,14 +27,14 @@ std::optional<std::string> ValidatorHelper::validateField(
     // 长度验证
     if (value.length() < rule.minLength)
     {
-        return fieldName + " must be at least " + std::to_string(rule.minLength) +
-               " characters";
+        return fieldName + " must be at least " +
+               std::to_string(rule.minLength) + " characters";
     }
 
     if (rule.maxLength > 0 && value.length() > rule.maxLength)
     {
-        return fieldName + " must be at most " + std::to_string(rule.maxLength) +
-               " characters";
+        return fieldName + " must be at most " +
+               std::to_string(rule.maxLength) + " characters";
     }
 
     // 正则表达式验证
