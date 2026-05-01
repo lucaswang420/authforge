@@ -33,6 +33,7 @@ set(TEST_SRC
     "common/ValidationHelperTest.cc"
     "common/OpenApiGeneratorTest.cc"
     "common/OpenApiGeneratorParameterTypesTest.cc"
+    "services/AuthServiceGetUserInfoTest.cc"
     "SecurityValidationTest.cc"
 )
 

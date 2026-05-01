@@ -24,6 +24,11 @@ class AuthService
         const std::string &password,
         const std::string &email,
         std::function<void(const std::string &error)> &&callback);
+
+    // Fetch user info and roles from database
+    static void getUserInfo(
+        int userId,
+        std::function<void(std::optional<Json::Value> userInfo)> &&callback);
 };
 
 }  // namespace services

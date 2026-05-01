@@ -513,16 +513,35 @@ void OAuth2Controller::userInfo(
     }
     userId = attrs->get<std::string>("userId");
 
-    // TODO: Replace with actual user data from database
-    // This is placeholder data for demonstration
-    // Ideally should query users table and return real email, name, etc.
-    Json::Value json;
-    json["sub"] = userId;
-    json["name"] = userId;
-    json["email"] = userId + "@local";
+    int uid = -1;
+    try
+    {
+        uid = std::stoi(userId);
+    }
+    catch (...)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k400BadRequest);
+        resp->setBody("Invalid User ID format");
+        callback(resp);
+        return;
+    }
 
-    auto resp = HttpResponse::newHttpJsonResponse(json);
-    callback(resp);
+    AuthService::getUserInfo(
+        uid, [callback](std::optional<Json::Value> userInfo) {
+            if (userInfo)
+            {
+                auto resp = HttpResponse::newHttpJsonResponse(*userInfo);
+                callback(resp);
+            }
+            else
+            {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k404NotFound);
+                resp->setBody("User not found");
+                callback(resp);
+            }
+        });
 }
 
 void OAuth2Controller::health(

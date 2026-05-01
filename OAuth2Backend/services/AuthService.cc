@@ -167,4 +167,66 @@ void AuthService::registerUser(
     }
 }
 
+void AuthService::getUserInfo(
+    int userId,
+    std::function<void(std::optional<Json::Value> userInfo)> &&callback)
+{
+    auto sharedCb = std::make_shared<
+        std::function<void(std::optional<Json::Value> userInfo)>>(
+        std::move(callback));
+
+    try
+    {
+        auto db = app().getDbClient();
+        auto userMapper = Mapper<drogon_model::oauth_test::Users>(db);
+
+        userMapper.findByPrimaryKey(
+            userId,
+            [sharedCb, db, userId](
+                const drogon_model::oauth_test::Users &user) {
+                // Fetch roles
+                db->execSqlAsync(
+                    "SELECT r.name FROM roles r JOIN user_roles ur ON r.id = "
+                    "ur.role_id WHERE ur.user_id = $1",
+                    [sharedCb, user, userId](const Result &r) {
+                        Json::Value json;
+                        json["sub"] = std::to_string(userId);
+                        json["name"] = user.getValueOfUsername();
+                        json["email"] = user.getValueOfEmail();
+
+                        Json::Value roles(Json::arrayValue);
+                        for (auto row : r)
+                        {
+                            roles.append(row["name"].as<std::string>());
+                        }
+                        json["roles"] = roles;
+
+                        (*sharedCb)(json);
+                    },
+                    [sharedCb, user, userId](const DrogonDbException &e) {
+                        // Error fetching roles, just return user info with
+                        // empty roles
+                        LOG_WARN << "Failed to fetch roles for user " << userId
+                                 << ": " << e.base().what();
+                        Json::Value json;
+                        json["sub"] = std::to_string(userId);
+                        json["name"] = user.getValueOfUsername();
+                        json["email"] = user.getValueOfEmail();
+                        json["roles"] = Json::Value(Json::arrayValue);
+                        (*sharedCb)(json);
+                    },
+                    userId);
+            },
+            [sharedCb](const DrogonDbException &e) {
+                LOG_WARN << "Get User Info Failed: " << e.base().what();
+                (*sharedCb)(std::nullopt);
+            });
+    }
+    catch (const DrogonDbException &e)
+    {
+        LOG_WARN << "Get User Info Init Failed: " << e.base().what();
+        (*sharedCb)(std::nullopt);
+    }
+}
+
 }  // namespace services
