@@ -15,15 +15,15 @@ It implements the **Authorization Code Grant** flow and supports:
 
 ```
 OAuth2Test/
-├── OAuth2Backend/      # C++ OAuth2 Provider (Drogon)
-│   ├── controllers/    # API verify (OAuth2, WeChat)
-│   ├── filters/        # Middleware (Token Validation)
-│   ├── plugins/        # Core OAuth2 Logic Plugin
-│   ├── views/          # Server-side Login Pages (CSP)
-│   └── config.json     # App Configuration
-└── OAuth2Frontend/     # Vue.js Client Application
-    ├── src/views/      # Login & Callback Pages
-    └── ...
+|-- OAuth2Backend/      # C++ OAuth2 Provider (Drogon)
+|   |-- controllers/    # API verify (OAuth2, WeChat)
+|   |-- filters/        # Middleware (Token Validation)
+|   |-- plugins/        # Core OAuth2 Logic Plugin
+|   |-- views/          # Server-side Login Pages (CSP)
+|   `-- config.json     # App Configuration
+`-- OAuth2Frontend/     # Vue.js Client Application
+    |-- src/views/      # Login & Callback Pages
+    `-- ...
 ```
 
 ## Prerequisites
@@ -75,11 +75,11 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 
 ### Features
 
-- ✅ Full integration testing with PostgreSQL and Redis (Linux)
-- ✅ Platform-specific optimizations and dependency management
-- ✅ Automatic artifact collection and test log collection on failure
-- ✅ Detailed platform diagnostics for debugging
-- ✅ Memory storage testing on Windows for faster CI cycles
+- [x] Full integration testing with PostgreSQL and Redis (Linux)
+- [x] Platform-specific optimizations and dependency management
+- [x] Automatic artifact collection and test log collection on failure
+- [x] Detailed platform diagnostics for debugging
+- [x] Memory storage testing on Windows for faster CI cycles
 
 ### Known Issues
 
@@ -87,8 +87,8 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 
 ### Testing Coverage
 
-- ✅ **18/18** Security tests (100%) - SQL injection, XSS, CORS, rate limiting, etc.
-- ✅ **21/21** Functional tests (100%) - OAuth2 flow, UTF-8, RBAC, token lifecycle
+- [x] **18/18** Security tests (100%) - SQL injection, XSS, CORS, rate limiting, etc.
+- [x] **21/21** Functional tests (100%) - OAuth2 flow, UTF-8, RBAC, token lifecycle
 - Unit tests for OAuth2 core logic
 - Integration tests for PostgreSQL persistence (Linux)
 - Integration tests for Redis caching (Linux)
@@ -96,8 +96,8 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 - RBAC permission system tests
 - End-to-end OAuth2 authorization flow tests
 
-**Security & Quality Status**: 🟢 **Production Ready**
-- All 10 critical security vulnerabilities fixed ✅
+**Security & Quality Status**: **Production Ready**
+- All 10 critical security vulnerabilities fixed
 - 18 bugs resolved (51% completion rate)
 - 17 remaining bugs are low-priority technical debt
 - 1 bug confirmed as false positive (DB connection leak)
@@ -240,48 +240,48 @@ Client Secrets are securely stored using **SHA256 Hashing with Salt**.
 This project uses a flexible persistence layer supporting **PostgreSQL** (Production) and **Redis** (High Performance).
 
 For detailed architecture, supported backends, and schema designs, please refer to:
-👉 **[Data Persistence Guide](OAuth2Backend/docs/data_persistence.md)**
+See **[Data Persistence Guide](OAuth2Backend/docs/data_persistence.md)**
 
 ### Data Consistency & Security
 
 We implement **Atomic Consume** operations and **SHA256 Hashing** to ensure high security and consistency.
 
 For implementation details (Lua Scripts, Threat Models, Token Lifecycle):
-👉 **[Data Consistency Guide](OAuth2Backend/docs/data_consistency.md)**
-👉 **[Security Architecture](OAuth2Backend/docs/security_architecture.md)**
+See **[Data Consistency Guide](OAuth2Backend/docs/data_consistency.md)**
+See **[Security Architecture](OAuth2Backend/docs/security_architecture.md)**
 
 ### Observability
 
 Production-ready monitoring with Prometheus Metrics and Structured Audit Logs.
-👉 **[Observability Guide](OAuth2Backend/docs/observability.md)**
+See **[Observability Guide](OAuth2Backend/docs/observability.md)**
 
 ### Security Hardening
 
 We implement Rate Limiting and Security Headers to protect against attacks.
-👉 **[Security Hardening Guide](OAuth2Backend/docs/security_hardening.md)**
+See **[Security Hardening Guide](OAuth2Backend/docs/security_hardening.md)**
 
 **Verified Security Features** (as of 2026-04-21):
-- ✅ SQL injection protection (parameterized queries)
-- ✅ XSS attack prevention (input validation + CSP headers)
-- ✅ Command injection prevention
-- ✅ DoS protection (input length limits: username 100 chars, password 200 chars)
-- ✅ Rate limiting (brute force protection)
-- ✅ CORS policy (domain whitelist)
-- ✅ Token revocation mechanism
-- ✅ Complete security HTTP headers
-- ✅ HSTS (HTTPS-only configuration)
-- ✅ Sensitive data protection (POST body credential transmission)
+- [x] SQL injection protection (parameterized queries)
+- [x] XSS attack prevention (input validation + CSP headers)
+- [x] Command injection prevention
+- [x] DoS protection (input length limits: username 100 chars, password 200 chars)
+- [x] Rate limiting (brute force protection)
+- [x] CORS policy (domain whitelist)
+- [x] Token revocation mechanism
+- [x] Complete security HTTP headers
+- [x] HSTS (HTTPS-only configuration)
+- [x] Sensitive data protection (POST body credential transmission)
 
 ### Configuration & Deployment (New)
 
 Full guide on Environment Variables and Docker deployment.
-👉 **[Configuration Guide](OAuth2Backend/docs/configuration_guide.md)**
+See **[Configuration Guide](OAuth2Backend/docs/configuration_guide.md)**
 
 ### RBAC Permission System
 
 Role-Based Access Control using `AuthorizationFilter` and `rbac_rules` configuration.
 Matches URL patterns to required roles (e.g. `/api/admin/.*` -> `["admin"]`).
-👉 **[RBAC Guide](OAuth2Backend/docs/rbac_guide.md)**
+See **[RBAC Guide](OAuth2Backend/docs/rbac_guide.md)**
 
 ### Multi-Platform Compatibility
 
@@ -291,9 +291,9 @@ This project provides **full cross-platform support** with platform-specific opt
 
 | Platform | Build System | Package Manager | Testing | Production | Status |
 |----------|-------------|-----------------|---------|------------|--------|
-| **Linux** | CMake + Make | System (apt/yum) | ✅ Full (PostgreSQL + Redis) | ✅ Docker / Systemd | 🟢 Stable |
-| **Windows** | CMake + MSBuild | Conan | ✅ Full (Memory Storage) | ✅ Service / EXE | 🟢 Stable |
-| **macOS** | CMake + Make | Homebrew | ⚠️ Build-only | ⚠️ Development | 🟡 Limited* |
+| **Linux** | CMake + Make | System (apt/yum) | Full (PostgreSQL + Redis) | Docker / Systemd | Stable |
+| **Windows** | CMake + MSBuild | Conan | Full (Memory Storage) | Service / EXE | Stable |
+| **macOS** | CMake + Make | Homebrew | Build-only | Development | Limited* |
 
 *macOS is recommended for development and build verification only. Runtime testing limited due to Drogon framework libc++ compatibility issues on ARM64.
 
@@ -332,19 +332,19 @@ docker run -d -p 5555:5555 --name oauth2-server oauth2-backend:v1.9.12
 #### Platform-Specific Fixes
 
 **Linux Teardown Crash Fix** (2026-04-22):
-- ✅ Fixed SegFault during program exit
+- [x] Fixed SegFault during program exit
 - `OAuth2CleanupService` with `stopped_` flag prevents duplicate cleanup
 - Tests exit cleanly without `std::_Exit(0)`
 
 **Windows Teardown Crash Fix** (2026-04-22):
-- ✅ Fixed SegFault in `thr.join()` during teardown
+- [x] Fixed SegFault in `thr.join()` during teardown
 - Uses `std::_Exit(0)` for successful tests to bypass framework bugs
 - Proper `queueInLoop(quit())` handling
 
 **macOS Compatibility** (2026-04-15):
-- ✅ Fixed C++17/20 compatibility issues
-- ✅ ARM64 (Apple Silicon) support
-- ⚠️ Tests disabled (build-only verification)
+- [x] Fixed C++17/20 compatibility issues
+- [x] ARM64 (Apple Silicon) support
+- [!] Tests disabled (build-only verification)
 
 **Verification**:
 ```bash
@@ -355,7 +355,7 @@ docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-q
 # Expected result:
 # assertions: 46 | 46 passed | 0 failed
 # test cases: 11 | 11 passed | 0 failed
-# ✅ SUCCESS: No crash during teardown!
+# SUCCESS: No crash during teardown!
 ```
 
 For detailed debugging and verification instructions, see:

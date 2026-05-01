@@ -95,25 +95,25 @@ const register = async () => {
     <!-- Left Panel - Branding -->
     <div class="brand-panel">
       <div class="brand-content">
-        <div class="logo">🔐</div>
+        <div class="logo" aria-hidden="true">OAuth</div>
         <h1>Join OAuth2 Platform</h1>
         <p class="tagline">Create your account in seconds</p>
         
         <div class="benefits">
           <div class="benefit">
-            <span class="check">✓</span>
+            <span class="check" aria-hidden="true">OK</span>
             Free to use, forever
           </div>
           <div class="benefit">
-            <span class="check">✓</span>
+            <span class="check" aria-hidden="true">OK</span>
             Secure authentication
           </div>
           <div class="benefit">
-            <span class="check">✓</span>
+            <span class="check" aria-hidden="true">OK</span>
             Connect multiple providers
           </div>
           <div class="benefit">
-            <span class="check">✓</span>
+            <span class="check" aria-hidden="true">OK</span>
             No credit card required
           </div>
         </div>

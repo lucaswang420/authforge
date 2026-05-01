@@ -22,10 +22,11 @@ namespace functional
 {
 
 // Helper: Make HTTP request and get response
-static std::string makeRequest(const std::string &method,
-                               const std::string &path,
-                               const std::string &body = "",
-                               const std::string &authHeader = "")
+static drogon::HttpResponsePtr makeHttpResponse(
+    const std::string &method,
+    const std::string &path,
+    const std::string &body = "",
+    const std::string &authHeader = "")
 {
     auto client = drogon::HttpClient::newHttpClient("http://localhost:5555");
     auto req = drogon::HttpRequest::newHttpRequest();
@@ -47,6 +48,15 @@ static std::string makeRequest(const std::string &method,
         req->setHeader("Authorization", authHeader);
 
     auto resp = client->sendRequest(req);
+    return resp;
+}
+
+static std::string makeRequest(const std::string &method,
+                               const std::string &path,
+                               const std::string &body = "",
+                               const std::string &authHeader = "")
+{
+    auto resp = makeHttpResponse(method, path, body, authHeader);
     return std::string(resp->body());
 }
 
@@ -199,8 +209,10 @@ TEST(FunctionalHealth, BasicHealthCheck)
 {
     // Test: Basic health check endpoint
     // Expected: Should return service status and database connectivity
-    std::string response = makeRequest("GET", "/health");
+    auto resp = makeHttpResponse("GET", "/health");
+    std::string response = std::string(resp->body());
 
+    EXPECT_EQ(resp->statusCode(), drogon::k200OK);
     // Should contain JSON with status information
     EXPECT_TRUE(response.find("\"status\"") != std::string::npos);
     EXPECT_TRUE(response.find("\"service\"") != std::string::npos);

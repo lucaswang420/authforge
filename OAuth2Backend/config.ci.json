@@ -6,15 +6,6 @@
             "https": false
         }
     ],
-    "rbac_rules": {
-        "/api/admin/.*": [
-            "admin"
-        ],
-        "/api/user/.*": [
-            "user",
-            "admin"
-        ]
-    },
     "db_clients": [],
     "redis_clients": [],
     "app": {
@@ -117,55 +108,6 @@
             }
         },
         {
-            "name": "drogon::plugin::Hodor",
-            "dependencies": [],
-            "config": {
-                "algorithm": "token_bucket",
-                "time_unit": 60,
-                "capacity": 1000,
-                "ip_capacity": 60,
-                "user_capacity": 0,
-                "use_real_ip_resolver": false,
-                "multi_threads": true,
-                "rejection_message": "Too Many Requests",
-                "limiter_expire_time": 600,
-                "urls": [
-                    "^/.*"
-                ],
-                "sub_limits": [
-                    {
-                        "urls": [
-                            "^/oauth2/login"
-                        ],
-                        "capacity": 5000,
-                        "ip_capacity": 5,
-                        "user_capacity": 5
-                    },
-                    {
-                        "urls": [
-                            "^/oauth2/token"
-                        ],
-                        "capacity": 10000,
-                        "ip_capacity": 10,
-                        "user_capacity": 10
-                    },
-                    {
-                        "urls": [
-                            "^/api/register"
-                        ],
-                        "capacity": 5000,
-                        "ip_capacity": 5,
-                        "user_capacity": 5
-                    }
-                ],
-                "trust_ips": [
-                    "172.16.0.0/12",
-                    "172.17.0.0/12",
-                    "192.168.0.0/16"
-                ]
-            }
-        },
-        {
             "name": "OAuth2Plugin",
             "dependencies": [],
             "config": {
@@ -192,6 +134,15 @@
         }
     ],
     "custom_config": {
+        "rbac_rules": {
+            "/api/admin/.*": [
+                "admin"
+            ],
+            "/api/user/.*": [
+                "user",
+                "admin"
+            ]
+        },
         "cors": {
             "allow_origins": [
                 "http://localhost:5173",

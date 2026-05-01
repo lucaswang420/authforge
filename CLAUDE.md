@@ -65,8 +65,8 @@ OAuth2Backend/
 3. **禁止使用协程接口** (`CoroMapper`)
 
 **Lambda 捕获规范**
-- ✅ 捕获 `sharedCb`: `[sharedCb]`
-- ❌ 捕获裸指针: `[this]`, `[&var]`
+- [+] 捕获 `sharedCb`: `[sharedCb]`
+- [-] 捕获裸指针: `[this]`, `[&var]`
 - 如需使用裸指针，必须在 PR 中说明生命周期保障方案 (`shared_from_this`, `weak_ptr`)
 
 ---
@@ -76,16 +76,18 @@ OAuth2Backend/
 ### [MUST] ORM 使用规范
 
 **禁止使用 raw SQL 的情况**
-- ❌ `SELECT * FROM table WHERE condition` → 使用 `Mapper::findBy`
-- ❌ `INSERT INTO table VALUES (...)` → 使用 `Mapper::insert`
-- ❌ `UPDATE table SET ...` → 使用 `Mapper::update`
-- ❌ JOIN 查询 → 拆分为多个 ORM 查询或使用 `Criteria::In`
+
+- [-] `SELECT * FROM table WHERE condition` → 使用 `Mapper::findBy`
+- [-] `INSERT INTO table VALUES (...)` → 使用 `Mapper::insert`
+- [-] `UPDATE table SET ...` → 使用 `Mapper::update`
+- [-] JOIN 查询 → 拆分为多个 ORM 查询或使用 `Criteria::In`
 
 **允许使用 raw SQL 的特殊情况**
-- ✅ PostgreSQL `UPDATE ... RETURNING` (原子操作)
-- ✅ DDL 操作 (表结构变更，需用 SchemaSetup.cc)
-- ✅ 批量操作优化 (需说明必要性)
-- ✅ 测试代码清理
+
+- [+] PostgreSQL `UPDATE ... RETURNING` (原子操作)
+- [+] DDL 操作 (表结构变更，需用 SchemaSetup.cc)
+- [+] 批量操作优化 (需说明必要性)
+- [+] 测试代码清理
 
 **Drogon ORM Mapper 完整实现示例**
 
@@ -93,7 +95,7 @@ OAuth2Backend/
 
 ```cpp
 ```cpp
-// ✅ 使用 ORM 替代 JOIN
+// [+] 使用 ORM 替代 JOIN
 void getUserRoles(const std::string &userId, StringListCallback &&cb) {
     auto sharedCb = std::make_shared<StringListCallback>(std::move(cb));
 
@@ -131,10 +133,10 @@ void getUserRoles(const std::string &userId, StringListCallback &&cb) {
 
 **示例说明**：
 
-1. ✅ **Callback 生命周期管理**: 使用 `std::make_shared<StringListCallback>(std::move(cb))` 确保 callback 对象在异步操作完成前不被销毁
-2. ✅ **替代 JOIN 查询**: 将 `SELECT r.name FROM roles r JOIN user_roles ur` 拆分为两个 ORM 查询
-3. ✅ **错误处理**: 所有异步回调都有错误处理分支，确保 `(*sharedCb)(...)` 总是被调用
-4. ✅ **Lambda 捕获**: 所有回调都捕获 `[sharedCb]` 而非裸指针
+1. [+] **Callback 生命周期管理**: 使用 `std::make_shared<StringListCallback>(std::move(cb))` 确保 callback 对象在异步操作完成前不被销毁
+2. [+] **替代 JOIN 查询**: 将 `SELECT r.name FROM roles r JOIN user_roles ur` 拆分为两个 ORM 查询
+3. [+] **错误处理**: 所有异步回调都有错误处理分支，确保 `(*sharedCb)(...)` 总是被调用
+4. [+] **Lambda 捕获**: 所有回调都捕获 `[sharedCb]` 而非裸指针
 
 ### [MUST] 数据库连接管理
 - 读写分离: `dbClientMaster_` (写), `dbClientReader_` (读)
@@ -151,8 +153,9 @@ void getUserRoles(const std::string &userId, StringListCallback &&cb) {
 - 启动时自动检查配置文件存在性
 
 ### [MUST] 敏感信息保护
-- ❌ 禁止明文存储密码/密钥在配置文件中
-- ✅ 使用环境变量覆盖: `OAUTH2_DB_PASSWORD`, `OAUTH2_REDIS_PASSWORD`
+
+- [-] 禁止明文存储密码/密钥在配置文件中
+- [+] 使用环境变量覆盖: `OAUTH2_DB_PASSWORD`, `OAUTH2_REDIS_PASSWORD`
 - 示例:
 ```json
 {
@@ -268,6 +271,11 @@ build.bat -debug
 - 使用 Google C++ Style Guide (Drogon 默认)
 - 行长度限制: 100 字符
 - 使用 clang-format 自动格式化
+- **禁止使用 emoji 字符** - 在代码、注释、文档、脚本和日志中使用 ASCII 符号替代
+  - 禁止使用: checkmarks, crosses, magnifying glasses, light bulbs, targets 等 emoji 符号
+  - 推荐使用: `[+]`, `[-]`, `[*]`, `[!]`, `>>>`, `===` 等 ASCII 符号
+  - 原因: Windows 终端兼容性问题，跨平台显示不一致
+  - 适用范围: C++ 代码、注释、PowerShell 脚本、Shell 脚本、文档、日志输出
 
 ### [MUST] 错误处理
 - 所有 Drogon 异常必须捕获: `catch (const DrogonDbException &e)`
@@ -304,10 +312,11 @@ build.bat -debug
 ## 八、开发流程规范
 
 ### [MUST] Git 提交规范
+
 - 每个迭代完成后先更新文档
 - 然后执行 `git commit`
-- ✅ 允许 `git commit`
-- ❌ **禁止 `git push`** (需人工审核后推送)
+- [+] 允许 `git commit`
+- [-] **禁止 `git push`** (需人工审核后推送)
 
 ### [MUST] 调试规范
 - 调试代码在问题解决后必须移除
@@ -315,10 +324,11 @@ build.bat -debug
 - 生产构建禁用 DEBUG 日志
 
 ### [MUST] 任务完成标准
-- ✅ 所有测试通过 (`ctest`)
-- ✅ 代码通过静态分析 (clang-tidy)
-- ✅ 跨平台 CI 构建成功
-- ✅ 文档更新完整
+
+- [+] 所有测试通过 (`ctest`)
+- [+] 代码通过静态分析 (clang-tidy)
+- [+] 跨平台 CI 构建成功
+- [+] 文档更新完整
 
 ---
 

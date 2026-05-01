@@ -30,17 +30,6 @@ docker build --no-cache -f Dockerfile.debug.cn -t oauth2-backend-debug:v1.9.12 .
 docker build --no-cache -f Dockerfile.debug -t oauth2-backend-debug:v1.9.12 .
 ```
 
-#### 使用代理的用户
-
-```powershell
-# 使用代理访问 GitHub
-docker build --no-cache \
-  --build-arg HTTP_PROXY=http://host.docker.internal:7897 \
-  --build-arg HTTPS_PROXY=http://host.docker.internal:7897 \
-  -f Dockerfile.debug \
-  -t oauth2-backend-debug:v1.9.12 .
-```
-
 **镜像内容**：
 - Ubuntu 22.04 基础环境
 - 所有编译依赖（gcc, cmake, libpq-dev, etc.）

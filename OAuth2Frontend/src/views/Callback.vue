@@ -32,7 +32,7 @@ onMounted(async () => {
             // Call our Backend to perform the server-side exchange for external providers
             const loginEndpoint = provider === 'wechat' ? '/api/wechat/login' : '/api/google/login';
             
-            const response = await fetch(`/api${loginEndpoint}`, {
+            const response = await fetch(loginEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ code: code })
@@ -118,7 +118,7 @@ onMounted(async () => {
 <template>
   <div class="callback-container">
     <div class="glass-card">
-        <div class="logo">🚀</div>
+        <div class="logo" aria-hidden="true">OAuth</div>
         
         <!-- Loading State -->
         <div v-if="!userInfo && !error" class="status-box">
@@ -128,7 +128,7 @@ onMounted(async () => {
 
         <!-- Error State -->
         <div v-if="error" class="error-box">
-            <div class="icon">❌</div>
+            <div class="icon" aria-hidden="true">Error</div>
             <h3>Authentication Failed</h3>
             <p>{{ error }}</p>
             <router-link to="/" class="btn-primary">Return Home</router-link>
@@ -136,7 +136,7 @@ onMounted(async () => {
         
         <!-- Success State -->
         <div v-if="userInfo" class="success-box">
-            <div class="icon">🎉</div>
+            <div class="icon" aria-hidden="true">OK</div>
             <h3>Login Successful!</h3>
             <p class="welcome-text">Welcome back, <strong>{{ userInfo.displayName }}</strong></p>
             

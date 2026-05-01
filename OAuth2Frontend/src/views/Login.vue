@@ -78,27 +78,27 @@ const loginWithGoogle = () => {
     <!-- Left Panel - Branding -->
     <div class="brand-panel">
       <div class="brand-content">
-        <div class="logo">🔐</div>
+        <div class="logo" aria-hidden="true">OAuth</div>
         <h1>OAuth2 Platform</h1>
         <p class="tagline">Secure authentication for modern applications</p>
         
         <div class="features">
           <div class="feature">
-            <span class="feature-icon">🛡️</span>
+            <span class="feature-icon" aria-hidden="true">SEC</span>
             <div>
               <strong>Enterprise Security</strong>
               <p>Industry-standard OAuth2.0 & OpenID Connect</p>
             </div>
           </div>
           <div class="feature">
-            <span class="feature-icon">⚡</span>
+            <span class="feature-icon" aria-hidden="true">FAST</span>
             <div>
               <strong>Lightning Fast</strong>
               <p>Powered by Drogon high-performance C++ framework</p>
             </div>
           </div>
           <div class="feature">
-            <span class="feature-icon">🔗</span>
+            <span class="feature-icon" aria-hidden="true">SSO</span>
             <div>
               <strong>Multi-Provider</strong>
               <p>Connect with Google, WeChat, and more</p>
@@ -125,7 +125,7 @@ const loginWithGoogle = () => {
         <div class="social-buttons">
           <button @click="loginWithDrogon" :disabled="loading" class="btn btn-social btn-drogon">
             <span v-if="loading" class="spinner"></span>
-            <span v-else>🚀</span>
+            <span v-else aria-hidden="true">OAuth</span>
             Sign in with Drogon
           </button>
           

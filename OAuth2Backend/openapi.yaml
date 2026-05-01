@@ -58,7 +58,7 @@ paths:
   /oauth2/token:
     post:
       summary: Token Endpoint
-      description: Exchanges authorization code for access token.
+      description: Exchanges authorization code for access token or refreshes access token.
       requestBody:
         required: true
         content:
@@ -68,24 +68,26 @@ paths:
               properties:
                 grant_type:
                   type: string
-                  enum: [authorization_code]
+                  enum: [authorization_code, refresh_token]
                   default: authorization_code
                 code:
                   type: string
-                  description: Paste the code obtained from /oauth2/login here
+                  description: Paste the code obtained from /oauth2/login here (required for authorization_code grant)
                 redirect_uri:
                   type: string
                   default: http://127.0.0.1:5173/callback
+                  description: Required for authorization_code grant
                 client_id:
                   type: string
                   default: vue-client
                 client_secret:
                   type: string
                   default: 123456
+                refresh_token:
+                  type: string
+                  description: Refresh token obtained from previous token exchange (required for refresh_token grant)
               required:
                 - grant_type
-                - code
-                - redirect_uri
                 - client_id
                 - client_secret
       responses:
@@ -112,7 +114,7 @@ paths:
                     items:
                       type: string
         "400":
-          description: Invalid request.
+          description: Invalid request or unsupported grant type.
         "429":
           description: Rate limit exceeded (10 req/min).
 
@@ -233,18 +235,125 @@ paths:
                 properties:
                   message:
                     type: string
-                  user_id:
+                  status:
                     type: string
-                  roles:
-                    type: array
-                    items:
-                      type: string
         "401":
           description: Unauthorized (Invalid Token).
         "403":
           description: Forbidden (Insufficient permissions/roles).
         "429":
           description: Rate limit exceeded (5 req/min).
+
+  /health:
+    get:
+      summary: Health Check Endpoint
+      description: Health check endpoint for monitoring/orchestration systems. Returns 200 OK if service is healthy.
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: OAuth2Server
+                  timestamp:
+                    type: integer
+                    description: Unix timestamp
+                  storage_type:
+                    type: string
+                    description: Type of storage backend (memory/redis/postgres/cached)
+                  database:
+                    type: string
+                    enum: [connected, disconnected, unknown]
+        "503":
+          description: Service is unhealthy (database disconnected).
+
+  /api/wechat/login:
+    post:
+      summary: WeChat Login
+      description: WeChat OAuth2 login endpoint. Exchanges authorization code for WeChat user information.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from WeChat OAuth2 flow
+      responses:
+        "200":
+          description: Successfully retrieved WeChat user information.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  openid:
+                    type: string
+                    description: WeChat user OpenID
+                  nickname:
+                    type: string
+                    description: WeChat nickname
+                  headimgurl:
+                    type: string
+                    description: WeChat profile picture URL
+                  sex:
+                    type: integer
+                    description: Gender (1=male, 2=female, 0=unknown)
+                  city:
+                    type: string
+                    description: City
+                  province:
+                    type: string
+                    description: Province
+                  country:
+                    type: string
+                    description: Country
+        "400":
+          description: Missing code parameter or WeChat API error.
+        "502":
+          description: Failed to contact WeChat API.
+
+  /api/google/login:
+    post:
+      summary: Google Login
+      description: Google OAuth2 login endpoint. Exchanges authorization code for Google user information.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Google OAuth2 flow
+      responses:
+        "200":
+          description: Successfully retrieved Google user information.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sub:
+                    type: string
+                    description: Google user ID
+                  name:
+                    type: string
+                    description: Full name
+                  email:
+                    type: string
+                    description: Email address
+                  picture:
+                    type: string
+                    description: Profile picture URL
+        "400":
+          description: Missing code parameter or Google API error.
+        "502":
+          description: Failed to contact Google API.
 
 components:
   securitySchemes:

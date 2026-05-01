@@ -230,20 +230,24 @@ int main()
             }
         });
 
-    // Configure Hodor rate limiter with user identification callback
-    // Use registerBeginningAdvice to ensure Hodor plugin is initialized first
-    // TODO: Temporarily disabled to debug crash
-    // drogon::app().registerBeginningAdvice([]() {
-    //     try {
-    //         auto hodor = drogon::app().getPlugin<drogon::plugin::Hodor>();
-    //         std::cout << "Hodor plugin loaded successfully" << std::endl;
-    //         std::cout << "Hodor rate limiter user ID getter configured
-    //         successfully" << std::endl;
-    //     } catch (const std::exception& e) {
-    //         std::cerr << "Warning: Failed to configure Hodor plugin: " <<
-    //         e.what() << std::endl;
-    //     }
-    // });
+    // Report Hodor status after plugins have been initialized. Hodor is loaded
+    // only by production configuration.
+    drogon::app().registerBeginningAdvice([]() {
+        try
+        {
+            auto hodor = drogon::app().getPlugin<drogon::plugin::Hodor>();
+            if (hodor)
+                std::cout << "Hodor rate limiter enabled" << std::endl;
+            else
+                std::cout << "Hodor rate limiter not enabled by this config"
+                          << std::endl;
+        }
+        catch (const std::exception &)
+        {
+            std::cout << "Hodor rate limiter not enabled by this config"
+                      << std::endl;
+        }
+    });
 
     // Initialize API documentation
     std::cout << "Initializing API documentation..." << std::endl;
