@@ -115,6 +115,45 @@ jobs:
           ctest -V -C ${{env.BUILD_TYPE}} --output-on-failure --timeout 180
         shell: bash
 
+      - name: Run Performance Benchmarks
+        working-directory: ${{github.workspace}}/OAuth2Backend/build/test/${{env.BUILD_TYPE}}
+        env:
+          OAUTH2_DB_HOST: ""
+          OAUTH2_REDIS_HOST: ""
+        run: |
+          echo "=== Running Performance Benchmarks ==="
+          ./OAuth2Test_test.exe -r Performance_OAuth2Flow
+          ./OAuth2Test_test.exe -r Performance_StorageThroughput
+          ./OAuth2Test_test.exe -r Performance_MemoryUsage
+          ./OAuth2Test_test.exe -r Performance_LatencyPercentiles
+        shell: bash
+
+      - name: Run E2E Tests
+        working-directory: ${{github.workspace}}/OAuth2Backend/build/test/${{env.BUILD_TYPE}}
+        env:
+          OAUTH2_DB_HOST: ""
+          OAUTH2_REDIS_HOST: ""
+        run: |
+          echo "=== Running E2E Tests ==="
+          ./OAuth2Test_test.exe -r OAuth2AuthorizationCodeFlow
+          ./OAuth2Test_test.exe -r SessionManagement
+          ./OAuth2Test_test.exe -r ClientAuthentication
+          ./OAuth2Test_test.exe -r RedirectURIValidation
+        shell: bash
+
+      - name: Run Integration Tests
+        working-directory: ${{github.workspace}}/OAuth2Backend/build/test/${{env.BUILD_TYPE}}
+        env:
+          OAUTH2_DB_HOST: ""
+          OAUTH2_REDIS_HOST: ""
+        run: |
+          echo "=== Running Integration Tests ==="
+          ./OAuth2Test_test.exe -r RedirectUriValidation_MemoryStorage
+          ./OAuth2Test_test.exe -r RedirectUriValidation_Atomicity
+          ./OAuth2Test_test.exe -r RedirectUriValidation_EdgeCases
+          ./OAuth2Test_test.exe -r RedirectUriValidation_SecurityScenarios
+        shell: bash
+
       - name: Restore original config
         if: always()
         working-directory: ${{github.workspace}}/OAuth2Backend
