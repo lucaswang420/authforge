@@ -1,8 +1,29 @@
 #include "MemoryOAuth2Storage.h"
 #include <chrono>
 #include <drogon/drogon.h>
-#include <openssl/crypto.h>
 #include "../common/types/OAuth2Types.h"
+
+namespace
+{
+/**
+ * @brief Constant-time memory comparison to prevent timing attacks
+ * Returns 0 if buffers are equal, non-zero otherwise
+ */
+inline int constantTimeMemcmp(const void *s1, const void *s2, size_t n)
+{
+    const unsigned char *p1 = static_cast<const unsigned char *>(s1);
+    const unsigned char *p2 = static_cast<const unsigned char *>(s2);
+    int result = 0;
+    size_t i;
+
+    for (i = 0; i < n; ++i)
+    {
+        result |= p1[i] ^ p2[i];
+    }
+
+    return result;
+}
+}  // namespace
 
 namespace oauth2
 {
@@ -118,12 +139,11 @@ void MemoryOAuth2Storage::validateClient(const std::string &clientId,
     }
 
     // Constant-time comparison to prevent timing attacks
-    // Use OpenSSL's CRYPTO_memcmp for security
     const std::string &storedHash = client.clientSecretHash;
-    bool valid = (CRYPTO_memcmp(clientSecret.c_str(),
-                                storedHash.c_str(),
-                                std::min(clientSecret.length(),
-                                         storedHash.length())) == 0) &&
+    bool valid = (constantTimeMemcmp(clientSecret.c_str(),
+                                     storedHash.c_str(),
+                                     std::min(clientSecret.length(),
+                                              storedHash.length())) == 0) &&
                  clientSecret.length() == storedHash.length();
 
     LOG_DEBUG << "MemoryOAuth2Storage validateClient: Secret validation "

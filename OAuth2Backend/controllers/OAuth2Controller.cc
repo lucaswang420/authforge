@@ -7,9 +7,6 @@
 #include "../common/documentation/OpenApiGenerator.h"
 #include "../common/validation/ValidatorHelper.h"
 #include "../common/validation/ValidationHelper.h"
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
 #include "../common/types/OAuth2Types.h"
 
 using namespace oauth2;
@@ -19,24 +16,34 @@ using namespace common::documentation;
 namespace
 {
 /**
- * @brief Base64 decode string using OpenSSL
+ * @brief Simple Base64 decode implementation
  */
 std::string base64_decode(const std::string &encoded)
 {
-    BIO *bio = BIO_new_mem_buf(encoded.c_str(), encoded.length());
-    BIO *b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_push(b64, bio);
+    static const std::string chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::string decoded;
-    char buffer[1024];
-    int len = BIO_read(bio, buffer, encoded.length());
-    if (len > 0)
+    std::vector<int> T(256, -1);
+
+    for (size_t i = 0; i < 64; i++)
+        T[chars[i]] = i;
+
+    int val = 0, valb = -8;
+    for (unsigned char c : encoded)
     {
-        decoded.append(buffer, len);
+        if (T[c] == -1) break;
+
+        val = (val << 6) + T[c];
+        valb += 6;
+
+        if (valb >= 0)
+        {
+            decoded.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
     }
 
-    BIO_free_all(bio);
     return decoded;
 }
 

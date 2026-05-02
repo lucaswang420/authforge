@@ -71,6 +71,7 @@ DROGON_TEST(PluginTest)
         auto f = p.get_future();
         plugin->exchangeCodeForToken(authCode,
                                      "plugin-client",
+                                     "",  // Empty secret for test client (PUBLIC)
                                      [&](const Json::Value &result) {
                                          p.set_value(result);
                                      });
@@ -92,6 +93,7 @@ DROGON_TEST(PluginTest)
         auto f = p.get_future();
         plugin->exchangeCodeForToken(authCode,
                                      "plugin-client",
+                                     "",  // Empty secret for test client (PUBLIC)
                                      [&](const Json::Value &result) {
                                          p.set_value(result);
                                      });
@@ -157,6 +159,7 @@ DROGON_TEST(PluginTest)
         auto f2 = p2.get_future();
         plugin->exchangeCodeForToken(adminCode,
                                      "plugin-client",
+                                     "",  // Empty secret for test client (PUBLIC)
                                      [&](const Json::Value &v) {
                                          p2.set_value(v);
                                      });

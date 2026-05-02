@@ -2,8 +2,29 @@
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include "plugins/OAuth2Metrics.h"
-#include <openssl/crypto.h>
 #include "../common/types/OAuth2Types.h"
+
+namespace
+{
+/**
+ * @brief Constant-time memory comparison to prevent timing attacks
+ * Returns 0 if buffers are equal, non-zero otherwise
+ */
+inline int constantTimeMemcmp(const void *s1, const void *s2, size_t n)
+{
+    const unsigned char *p1 = static_cast<const unsigned char *>(s1);
+    const unsigned char *p2 = static_cast<const unsigned char *>(s2);
+    int result = 0;
+    size_t i;
+
+    for (i = 0; i < n; ++i)
+    {
+        result |= p1[i] ^ p2[i];
+    }
+
+    return result;
+}
+}  // namespace
 
 #include "../models/Oauth2Clients.h"
 #include "../models/Oauth2Codes.h"
@@ -178,12 +199,12 @@ void PostgresOAuth2Storage::validateClient(const std::string &clientId,
                 LOG_DEBUG << "Postgres validateClient: Verifying secret for "
                           << clientId;
 
-                // Use OpenSSL's constant-time comparison
+                // Use constant-time comparison to prevent timing attacks
                 bool match =
-                    (CRYPTO_memcmp(computedHash.c_str(),
-                                   storedHash.c_str(),
-                                   std::min(computedHash.length(),
-                                            storedHash.length())) == 0) &&
+                    (constantTimeMemcmp(computedHash.c_str(),
+                                       storedHash.c_str(),
+                                       std::min(computedHash.length(),
+                                                storedHash.length())) == 0) &&
                     computedHash.length() == storedHash.length();
 
                 LOG_DEBUG << "Postgres validateClient: Secret validation "
