@@ -1,5 +1,6 @@
 #include "WeChatController.h"
 #include <drogon/HttpClient.h>
+#include "../common/documentation/OpenApiGenerator.h"
 
 // TODO: REPLACE WITH YOUR REAL CREDENTIALS
 const std::string WECHAT_APPID_KEY = "appid";
@@ -16,6 +17,49 @@ std::string getWeChatConfig(const std::string &key)
     return "";
 }
 
+// Register OpenAPI documentation (executed once at startup)
+namespace
+{
+struct WeChatControllerDocs
+{
+    WeChatControllerDocs()
+    {
+        using namespace common::documentation;
+
+        Json::Value successExample;
+        successExample["openid"] = "oXXXXXXXXXXXXXXXXXXXXXXXXXX";
+        successExample["nickname"] = "WeChat User";
+        successExample["headimgurl"] = "https://thirdwx.qlogo.cn/...";
+
+        Json::Value errorExample;
+        errorExample["error"] = "Missing code parameter";
+
+        OpenApiGenerator::addEndpoint(
+            {.path = "/api/wechat/login",
+             .method = "POST",
+             .summary = "WeChat OAuth2 Login",
+             .description =
+                 "Exchange WeChat authorization code for user information. "
+                 "This endpoint handles the server-side OAuth2 flow with "
+                 "WeChat Open Platform.",
+             .tags = {"External Auth", "WeChat"},
+             .parameters =
+                 {{"code",
+                   "Authorization code from WeChat OAuth2 callback (required)",
+                   ParameterType::STRING,
+                   ParameterLocation::QUERY,
+                   true}},
+             .responses = {{200, "WeChat user info retrieved successfully"},
+                           {400, "Invalid request (missing or invalid code)"},
+                           {502, "Failed to contact WeChat API"}},
+             .responseExamples = {{200, successExample}, {400, errorExample}},
+             .requiresAuth = false});
+    }
+};
+
+WeChatControllerDocs docs_;
+}  // namespace
+
 void WeChatController::login(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
@@ -28,7 +72,36 @@ void WeChatController::login(
         return;
     }
 
-    auto code = req->getParameter("code");
+    // Try to get code from POST body first, then fallback to query parameter
+    std::string code;
+
+    // Check Content-Type and parse accordingly
+    auto contentType = req->getHeader("Content-Type");
+    if (contentType.find("application/x-www-form-urlencoded") !=
+        std::string::npos)
+    {
+        // Parse from POST body
+        auto body = req->getBody();
+        // Simple parsing for "code=xxx" format
+        size_t codePos = body.find("code=");
+        if (codePos != std::string::npos)
+        {
+            size_t valueStart = codePos + 5;  // "code=" length
+            size_t valueEnd = body.find("&", valueStart);
+            if (valueEnd == std::string::npos)
+            {
+                valueEnd = body.length();
+            }
+            code = body.substr(valueStart, valueEnd - valueStart);
+        }
+    }
+
+    // Fallback to query parameter
+    if (code.empty())
+    {
+        code = req->getParameter("code");
+    }
+
     if (code.empty())
     {
         auto resp = HttpResponse::newHttpResponse();

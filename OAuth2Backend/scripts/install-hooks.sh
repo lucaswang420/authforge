@@ -19,7 +19,7 @@ HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
 mkdir -p "$HOOKS_DIR"
 
 # Copy the pre-commit hook
-PRE_COMMIT_SOURCE="$PROJECT_ROOT/scripts/pre-commit-validate-openapi.sh"
+PRE_COMMIT_SOURCE="$PROJECT_ROOT/scripts/validate-openapi.sh"
 PRE_COMMIT_TARGET="$HOOKS_DIR/pre-commit"
 
 if [ -f "$PRE_COMMIT_SOURCE" ]; then
@@ -55,12 +55,12 @@ cat > "$HOOKS_CONFIG_DIR/config.json" <<EOF
     "pre-commit": {
       "enabled": true,
       "description": "Validate OpenAPI specification before commit",
-      "script": "scripts/pre-commit-validate-openapi.sh"
+      "script": "scripts/validate-openapi.sh"
     },
     "pre-push": {
       "enabled": false,
       "description": "Run full CI validation before push",
-      "script": "scripts/ci-validate-openapi.sh"
+      "script": "scripts/validate-openapi.sh"
     }
   },
   "validation": {
@@ -79,8 +79,8 @@ echo "📋 Hook Installation Summary"
 echo "============================="
 echo "Pre-commit hook: ${GREEN}Enabled${NC}"
 echo "  - Validates OpenAPI specification before each commit"
-echo "  - Runs OpenAPI tests"
-echo "  - Checks JSON structure and required fields"
+echo "  - Runs OpenAPI tests and full validation"
+echo "  - Checks JSON structure, required fields, and coverage"
 echo ""
 echo "To disable hooks temporarily:"
 echo "  git commit --no-verify"

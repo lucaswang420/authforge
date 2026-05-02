@@ -309,6 +309,7 @@ void RedisOAuth2Storage::markAuthCodeUsed(const std::string &code,
 }
 
 void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
+                                         const std::string &redirectUri,
                                          AuthCodeCallback &&cb)
 {
     if (!redisClient_)
@@ -320,10 +321,16 @@ void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
 
     std::string script = R"(
         local key = KEYS[1]
+        local redirect_uri = ARGV[1]
         local val = redis.call('GET', key)
         if not val then return nil end
         local json = cjson.decode(val)
         if json.used then return nil end
+        -- CRITICAL: Validate redirect_uri matches authorization
+        -- Per OAuth2 RFC 6749 Section 4.1.3
+        if redirect_uri ~= "" and redirect_uri ~= json.redirect_uri then
+            return nil
+        end
         json.used = true
         local newVal = cjson.encode(json)
         local ttl = redis.call('TTL', key)
@@ -336,9 +343,20 @@ void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
     )";
 
     redisClient_->execCommandAsync(
-        [cb, codeStr = code](const RedisResult &result) {
+        [cb, codeStr = code, requestUri = redirectUri](
+            const RedisResult &result) {
             if (result.type() == RedisResultType::kNil)
             {
+                // Log if this was a redirect_uri mismatch vs code not found
+                // (we can't distinguish in Lua script, but we can log the
+                // attempt)
+                if (!requestUri.empty())
+                {
+                    LOG_DEBUG << "[SECURITY] Auth code consumption failed "
+                              << "(code not found, expired, or redirect_uri "
+                                 "mismatch): "
+                              << codeStr;
+                }
                 cb(std::nullopt);
                 return;
             }
@@ -368,9 +386,10 @@ void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
             LOG_ERROR << "consumeAuthCode Redis Error: " << e.what();
             cb(std::nullopt);
         },
-        "EVAL %s 1 %s",
+        "EVAL %s 1 %s %s",
         script.c_str(),
-        key.c_str());
+        key.c_str(),
+        redirectUri.c_str());
 }
 
 void RedisOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token,

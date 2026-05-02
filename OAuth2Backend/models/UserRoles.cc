@@ -16,158 +16,147 @@ using namespace drogon_model::oauth_test;
 const std::string UserRoles::Cols::_user_id = "\"user_id\"";
 const std::string UserRoles::Cols::_role_id = "\"role_id\"";
 const std::string UserRoles::Cols::_assigned_at = "\"assigned_at\"";
-const std::vector<std::string> UserRoles::primaryKeyName = {"user_id",
-                                                            "role_id"};
+const std::vector<std::string> UserRoles::primaryKeyName = {"user_id","role_id"};
 const bool UserRoles::hasPrimaryKey = true;
 const std::string UserRoles::tableName = "\"user_roles\"";
 
-const std::vector<typename UserRoles::MetaData> UserRoles::metaData_ = {
-    {"user_id", "int32_t", "integer", 4, 0, 1, 1},
-    {"role_id", "int32_t", "integer", 4, 0, 1, 1},
-    {"assigned_at", "::trantor::Date", "timestamp with time zone", 0, 0, 0, 0}};
-
+const std::vector<typename UserRoles::MetaData> UserRoles::metaData_={
+{"user_id","int32_t","integer",4,0,1,1},
+{"role_id","int32_t","integer",4,0,1,1},
+{"assigned_at","::trantor::Date","timestamp with time zone",0,0,0,0}
+};
 const std::string &UserRoles::getColumnName(size_t index) noexcept(false)
 {
     assert(index < metaData_.size());
     return metaData_[index].colName_;
 }
-
 UserRoles::UserRoles(const Row &r, const ssize_t indexOffset) noexcept
 {
-    if (indexOffset < 0)
+    if(indexOffset < 0)
     {
-        if (!r["user_id"].isNull())
+        if(!r["user_id"].isNull())
         {
-            userId_ = std::make_shared<int32_t>(r["user_id"].as<int32_t>());
+            userId_=std::make_shared<int32_t>(r["user_id"].as<int32_t>());
         }
-        if (!r["role_id"].isNull())
+        if(!r["role_id"].isNull())
         {
-            roleId_ = std::make_shared<int32_t>(r["role_id"].as<int32_t>());
+            roleId_=std::make_shared<int32_t>(r["role_id"].as<int32_t>());
         }
-        if (!r["assigned_at"].isNull())
+        if(!r["assigned_at"].isNull())
         {
             auto timeStr = r["assigned_at"].as<std::string>();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if (offset + 3 > r.size())
+        if(offset + 3 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
         }
         size_t index;
         index = offset + 0;
-        if (!r[index].isNull())
+        if(!r[index].isNull())
         {
-            userId_ = std::make_shared<int32_t>(r[index].as<int32_t>());
+            userId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 1;
-        if (!r[index].isNull())
+        if(!r[index].isNull())
         {
-            roleId_ = std::make_shared<int32_t>(r[index].as<int32_t>());
+            roleId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 2;
-        if (!r[index].isNull())
+        if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
+
 }
 
-UserRoles::UserRoles(
-    const Json::Value &pJson,
-    const std::vector<std::string> &pMasqueradingVector) noexcept(false)
+UserRoles::UserRoles(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if (pMasqueradingVector.size() != 3)
+    if(pMasqueradingVector.size() != 3)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
     }
-    if (!pMasqueradingVector[0].empty() &&
-        pJson.isMember(pMasqueradingVector[0]))
+    if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
     {
         dirtyFlag_[0] = true;
-        if (!pJson[pMasqueradingVector[0]].isNull())
+        if(!pJson[pMasqueradingVector[0]].isNull())
         {
-            userId_ = std::make_shared<int32_t>(
-                (int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
-    if (!pMasqueradingVector[1].empty() &&
-        pJson.isMember(pMasqueradingVector[1]))
+    if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
     {
         dirtyFlag_[1] = true;
-        if (!pJson[pMasqueradingVector[1]].isNull())
+        if(!pJson[pMasqueradingVector[1]].isNull())
         {
-            roleId_ = std::make_shared<int32_t>(
-                (int32_t)pJson[pMasqueradingVector[1]].asInt64());
+            roleId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[1]].asInt64());
         }
     }
-    if (!pMasqueradingVector[2].empty() &&
-        pJson.isMember(pMasqueradingVector[2]))
+    if(!pMasqueradingVector[2].empty() && pJson.isMember(pMasqueradingVector[2]))
     {
         dirtyFlag_[2] = true;
-        if (!pJson[pMasqueradingVector[2]].isNull())
+        if(!pJson[pMasqueradingVector[2]].isNull())
         {
             auto timeStr = pJson[pMasqueradingVector[2]].asString();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -175,105 +164,95 @@ UserRoles::UserRoles(
 
 UserRoles::UserRoles(const Json::Value &pJson) noexcept(false)
 {
-    if (pJson.isMember("user_id"))
+    if(pJson.isMember("user_id"))
     {
-        dirtyFlag_[0] = true;
-        if (!pJson["user_id"].isNull())
+        dirtyFlag_[0]=true;
+        if(!pJson["user_id"].isNull())
         {
-            userId_ =
-                std::make_shared<int32_t>((int32_t)pJson["user_id"].asInt64());
+            userId_=std::make_shared<int32_t>((int32_t)pJson["user_id"].asInt64());
         }
     }
-    if (pJson.isMember("role_id"))
+    if(pJson.isMember("role_id"))
     {
-        dirtyFlag_[1] = true;
-        if (!pJson["role_id"].isNull())
+        dirtyFlag_[1]=true;
+        if(!pJson["role_id"].isNull())
         {
-            roleId_ =
-                std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
+            roleId_=std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
         }
     }
-    if (pJson.isMember("assigned_at"))
+    if(pJson.isMember("assigned_at"))
     {
-        dirtyFlag_[2] = true;
-        if (!pJson["assigned_at"].isNull())
+        dirtyFlag_[2]=true;
+        if(!pJson["assigned_at"].isNull())
         {
             auto timeStr = pJson["assigned_at"].asString();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
 }
 
-void UserRoles::updateByMasqueradedJson(
-    const Json::Value &pJson,
-    const std::vector<std::string> &pMasqueradingVector) noexcept(false)
+void UserRoles::updateByMasqueradedJson(const Json::Value &pJson,
+                                            const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if (pMasqueradingVector.size() != 3)
+    if(pMasqueradingVector.size() != 3)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
     }
-    if (!pMasqueradingVector[0].empty() &&
-        pJson.isMember(pMasqueradingVector[0]))
+    if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
     {
-        if (!pJson[pMasqueradingVector[0]].isNull())
+        if(!pJson[pMasqueradingVector[0]].isNull())
         {
-            userId_ = std::make_shared<int32_t>(
-                (int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
-    if (!pMasqueradingVector[1].empty() &&
-        pJson.isMember(pMasqueradingVector[1]))
+    if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
     {
-        if (!pJson[pMasqueradingVector[1]].isNull())
+        if(!pJson[pMasqueradingVector[1]].isNull())
         {
-            roleId_ = std::make_shared<int32_t>(
-                (int32_t)pJson[pMasqueradingVector[1]].asInt64());
+            roleId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[1]].asInt64());
         }
     }
-    if (!pMasqueradingVector[2].empty() &&
-        pJson.isMember(pMasqueradingVector[2]))
+    if(!pMasqueradingVector[2].empty() && pJson.isMember(pMasqueradingVector[2]))
     {
         dirtyFlag_[2] = true;
-        if (!pJson[pMasqueradingVector[2]].isNull())
+        if(!pJson[pMasqueradingVector[2]].isNull())
         {
             auto timeStr = pJson[pMasqueradingVector[2]].asString();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -281,46 +260,43 @@ void UserRoles::updateByMasqueradedJson(
 
 void UserRoles::updateByJson(const Json::Value &pJson) noexcept(false)
 {
-    if (pJson.isMember("user_id"))
+    if(pJson.isMember("user_id"))
     {
-        if (!pJson["user_id"].isNull())
+        if(!pJson["user_id"].isNull())
         {
-            userId_ =
-                std::make_shared<int32_t>((int32_t)pJson["user_id"].asInt64());
+            userId_=std::make_shared<int32_t>((int32_t)pJson["user_id"].asInt64());
         }
     }
-    if (pJson.isMember("role_id"))
+    if(pJson.isMember("role_id"))
     {
-        if (!pJson["role_id"].isNull())
+        if(!pJson["role_id"].isNull())
         {
-            roleId_ =
-                std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
+            roleId_=std::make_shared<int32_t>((int32_t)pJson["role_id"].asInt64());
         }
     }
-    if (pJson.isMember("assigned_at"))
+    if(pJson.isMember("assigned_at"))
     {
         dirtyFlag_[2] = true;
-        if (!pJson["assigned_at"].isNull())
+        if(!pJson["assigned_at"].isNull())
         {
             auto timeStr = pJson["assigned_at"].asString();
             struct tm stm;
-            memset(&stm, 0, sizeof(stm));
-            auto p = strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S", &stm);
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
             time_t t = mktime(&stm);
             size_t decimalNum = 0;
-            if (p)
+            if(p)
             {
-                if (*p == '.')
+                if(*p=='.')
                 {
-                    std::string decimals(p + 1, &timeStr[timeStr.length()]);
-                    while (decimals.length() < 6)
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
                     {
                         decimals += "0";
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                assignedAt_ =
-                    std::make_shared<::trantor::Date>(t * 1000000 + decimalNum);
+                assignedAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -329,16 +305,14 @@ void UserRoles::updateByJson(const Json::Value &pJson) noexcept(false)
 const int32_t &UserRoles::getValueOfUserId() const noexcept
 {
     static const int32_t defaultValue = int32_t();
-    if (userId_)
+    if(userId_)
         return *userId_;
     return defaultValue;
 }
-
 const std::shared_ptr<int32_t> &UserRoles::getUserId() const noexcept
 {
     return userId_;
 }
-
 void UserRoles::setUserId(const int32_t &pUserId) noexcept
 {
     userId_ = std::make_shared<int32_t>(pUserId);
@@ -348,16 +322,14 @@ void UserRoles::setUserId(const int32_t &pUserId) noexcept
 const int32_t &UserRoles::getValueOfRoleId() const noexcept
 {
     static const int32_t defaultValue = int32_t();
-    if (roleId_)
+    if(roleId_)
         return *roleId_;
     return defaultValue;
 }
-
 const std::shared_ptr<int32_t> &UserRoles::getRoleId() const noexcept
 {
     return roleId_;
 }
-
 void UserRoles::setRoleId(const int32_t &pRoleId) noexcept
 {
     roleId_ = std::make_shared<int32_t>(pRoleId);
@@ -367,23 +339,19 @@ void UserRoles::setRoleId(const int32_t &pRoleId) noexcept
 const ::trantor::Date &UserRoles::getValueOfAssignedAt() const noexcept
 {
     static const ::trantor::Date defaultValue = ::trantor::Date();
-    if (assignedAt_)
+    if(assignedAt_)
         return *assignedAt_;
     return defaultValue;
 }
-
-const std::shared_ptr<::trantor::Date> &UserRoles::getAssignedAt()
-    const noexcept
+const std::shared_ptr<::trantor::Date> &UserRoles::getAssignedAt() const noexcept
 {
     return assignedAt_;
 }
-
 void UserRoles::setAssignedAt(const ::trantor::Date &pAssignedAt) noexcept
 {
     assignedAt_ = std::make_shared<::trantor::Date>(pAssignedAt);
     dirtyFlag_[2] = true;
 }
-
 void UserRoles::setAssignedAtToNull() noexcept
 {
     assignedAt_.reset();
@@ -393,25 +361,26 @@ void UserRoles::setAssignedAtToNull() noexcept
 void UserRoles::updateId(const uint64_t id)
 {
 }
-
 typename UserRoles::PrimaryKeyType UserRoles::getPrimaryKey() const
 {
-    return std::make_tuple(*userId_, *roleId_);
+    return std::make_tuple(*userId_,*roleId_);
 }
 
 const std::vector<std::string> &UserRoles::insertColumns() noexcept
 {
-    static const std::vector<std::string> inCols = {"user_id",
-                                                    "role_id",
-                                                    "assigned_at"};
+    static const std::vector<std::string> inCols={
+        "user_id",
+        "role_id",
+        "assigned_at"
+    };
     return inCols;
 }
 
 void UserRoles::outputArgs(drogon::orm::internal::SqlBinder &binder) const
 {
-    if (dirtyFlag_[0])
+    if(dirtyFlag_[0])
     {
-        if (getUserId())
+        if(getUserId())
         {
             binder << getValueOfUserId();
         }
@@ -420,9 +389,9 @@ void UserRoles::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if (dirtyFlag_[1])
+    if(dirtyFlag_[1])
     {
-        if (getRoleId())
+        if(getRoleId())
         {
             binder << getValueOfRoleId();
         }
@@ -431,9 +400,9 @@ void UserRoles::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if (dirtyFlag_[2])
+    if(dirtyFlag_[2])
     {
-        if (getAssignedAt())
+        if(getAssignedAt())
         {
             binder << getValueOfAssignedAt();
         }
@@ -447,15 +416,15 @@ void UserRoles::outputArgs(drogon::orm::internal::SqlBinder &binder) const
 const std::vector<std::string> UserRoles::updateColumns() const
 {
     std::vector<std::string> ret;
-    if (dirtyFlag_[0])
+    if(dirtyFlag_[0])
     {
         ret.push_back(getColumnName(0));
     }
-    if (dirtyFlag_[1])
+    if(dirtyFlag_[1])
     {
         ret.push_back(getColumnName(1));
     }
-    if (dirtyFlag_[2])
+    if(dirtyFlag_[2])
     {
         ret.push_back(getColumnName(2));
     }
@@ -464,9 +433,9 @@ const std::vector<std::string> UserRoles::updateColumns() const
 
 void UserRoles::updateArgs(drogon::orm::internal::SqlBinder &binder) const
 {
-    if (dirtyFlag_[0])
+    if(dirtyFlag_[0])
     {
-        if (getUserId())
+        if(getUserId())
         {
             binder << getValueOfUserId();
         }
@@ -475,9 +444,9 @@ void UserRoles::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if (dirtyFlag_[1])
+    if(dirtyFlag_[1])
     {
-        if (getRoleId())
+        if(getRoleId())
         {
             binder << getValueOfRoleId();
         }
@@ -486,9 +455,9 @@ void UserRoles::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if (dirtyFlag_[2])
+    if(dirtyFlag_[2])
     {
-        if (getAssignedAt())
+        if(getAssignedAt())
         {
             binder << getValueOfAssignedAt();
         }
@@ -498,33 +467,32 @@ void UserRoles::updateArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
 }
-
 Json::Value UserRoles::toJson() const
 {
     Json::Value ret;
-    if (getUserId())
+    if(getUserId())
     {
-        ret["user_id"] = getValueOfUserId();
+        ret["user_id"]=getValueOfUserId();
     }
     else
     {
-        ret["user_id"] = Json::Value();
+        ret["user_id"]=Json::Value();
     }
-    if (getRoleId())
+    if(getRoleId())
     {
-        ret["role_id"] = getValueOfRoleId();
-    }
-    else
-    {
-        ret["role_id"] = Json::Value();
-    }
-    if (getAssignedAt())
-    {
-        ret["assigned_at"] = getAssignedAt()->toDbStringLocal();
+        ret["role_id"]=getValueOfRoleId();
     }
     else
     {
-        ret["assigned_at"] = Json::Value();
+        ret["role_id"]=Json::Value();
+    }
+    if(getAssignedAt())
+    {
+        ret["assigned_at"]=getAssignedAt()->toDbStringLocal();
+    }
+    else
+    {
+        ret["assigned_at"]=Json::Value();
     }
     return ret;
 }
@@ -538,319 +506,269 @@ Json::Value UserRoles::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if (pMasqueradingVector.size() == 3)
+    if(pMasqueradingVector.size() == 3)
     {
-        if (!pMasqueradingVector[0].empty())
+        if(!pMasqueradingVector[0].empty())
         {
-            if (getUserId())
+            if(getUserId())
             {
-                ret[pMasqueradingVector[0]] = getValueOfUserId();
+                ret[pMasqueradingVector[0]]=getValueOfUserId();
             }
             else
             {
-                ret[pMasqueradingVector[0]] = Json::Value();
+                ret[pMasqueradingVector[0]]=Json::Value();
             }
         }
-        if (!pMasqueradingVector[1].empty())
+        if(!pMasqueradingVector[1].empty())
         {
-            if (getRoleId())
+            if(getRoleId())
             {
-                ret[pMasqueradingVector[1]] = getValueOfRoleId();
+                ret[pMasqueradingVector[1]]=getValueOfRoleId();
             }
             else
             {
-                ret[pMasqueradingVector[1]] = Json::Value();
+                ret[pMasqueradingVector[1]]=Json::Value();
             }
         }
-        if (!pMasqueradingVector[2].empty())
+        if(!pMasqueradingVector[2].empty())
         {
-            if (getAssignedAt())
+            if(getAssignedAt())
             {
-                ret[pMasqueradingVector[2]] =
-                    getAssignedAt()->toDbStringLocal();
+                ret[pMasqueradingVector[2]]=getAssignedAt()->toDbStringLocal();
             }
             else
             {
-                ret[pMasqueradingVector[2]] = Json::Value();
+                ret[pMasqueradingVector[2]]=Json::Value();
             }
         }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
-    if (getUserId())
+    if(getUserId())
     {
-        ret["user_id"] = getValueOfUserId();
+        ret["user_id"]=getValueOfUserId();
     }
     else
     {
-        ret["user_id"] = Json::Value();
+        ret["user_id"]=Json::Value();
     }
-    if (getRoleId())
+    if(getRoleId())
     {
-        ret["role_id"] = getValueOfRoleId();
-    }
-    else
-    {
-        ret["role_id"] = Json::Value();
-    }
-    if (getAssignedAt())
-    {
-        ret["assigned_at"] = getAssignedAt()->toDbStringLocal();
+        ret["role_id"]=getValueOfRoleId();
     }
     else
     {
-        ret["assigned_at"] = Json::Value();
+        ret["role_id"]=Json::Value();
+    }
+    if(getAssignedAt())
+    {
+        ret["assigned_at"]=getAssignedAt()->toDbStringLocal();
+    }
+    else
+    {
+        ret["assigned_at"]=Json::Value();
     }
     return ret;
 }
 
-bool UserRoles::validateJsonForCreation(const Json::Value &pJson,
-                                        std::string &err)
+bool UserRoles::validateJsonForCreation(const Json::Value &pJson, std::string &err)
 {
-    if (pJson.isMember("user_id"))
+    if(pJson.isMember("user_id"))
     {
-        if (!validJsonOfField(0, "user_id", pJson["user_id"], err, true))
+        if(!validJsonOfField(0, "user_id", pJson["user_id"], err, true))
             return false;
     }
     else
     {
-        err = "The user_id column cannot be null";
+        err="The user_id column cannot be null";
         return false;
     }
-    if (pJson.isMember("role_id"))
+    if(pJson.isMember("role_id"))
     {
-        if (!validJsonOfField(1, "role_id", pJson["role_id"], err, true))
+        if(!validJsonOfField(1, "role_id", pJson["role_id"], err, true))
             return false;
     }
     else
     {
-        err = "The role_id column cannot be null";
+        err="The role_id column cannot be null";
         return false;
     }
-    if (pJson.isMember("assigned_at"))
+    if(pJson.isMember("assigned_at"))
     {
-        if (!validJsonOfField(
-                2, "assigned_at", pJson["assigned_at"], err, true))
+        if(!validJsonOfField(2, "assigned_at", pJson["assigned_at"], err, true))
             return false;
     }
     return true;
 }
-
-bool UserRoles::validateMasqueradedJsonForCreation(
-    const Json::Value &pJson,
-    const std::vector<std::string> &pMasqueradingVector,
-    std::string &err)
+bool UserRoles::validateMasqueradedJsonForCreation(const Json::Value &pJson,
+                                                   const std::vector<std::string> &pMasqueradingVector,
+                                                   std::string &err)
 {
-    if (pMasqueradingVector.size() != 3)
+    if(pMasqueradingVector.size() != 3)
     {
         err = "Bad masquerading vector";
         return false;
     }
-    try
-    {
-        if (!pMasqueradingVector[0].empty())
+    try {
+      if(!pMasqueradingVector[0].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[0]))
+          {
+              if(!validJsonOfField(0, pMasqueradingVector[0], pJson[pMasqueradingVector[0]], err, true))
+                  return false;
+          }
+        else
         {
-            if (pJson.isMember(pMasqueradingVector[0]))
-            {
-                if (!validJsonOfField(0,
-                                      pMasqueradingVector[0],
-                                      pJson[pMasqueradingVector[0]],
-                                      err,
-                                      true))
-                    return false;
-            }
-            else
-            {
-                err =
-                    "The " + pMasqueradingVector[0] + " column cannot be null";
-                return false;
-            }
+            err="The " + pMasqueradingVector[0] + " column cannot be null";
+            return false;
         }
-        if (!pMasqueradingVector[1].empty())
+      }
+      if(!pMasqueradingVector[1].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[1]))
+          {
+              if(!validJsonOfField(1, pMasqueradingVector[1], pJson[pMasqueradingVector[1]], err, true))
+                  return false;
+          }
+        else
         {
-            if (pJson.isMember(pMasqueradingVector[1]))
-            {
-                if (!validJsonOfField(1,
-                                      pMasqueradingVector[1],
-                                      pJson[pMasqueradingVector[1]],
-                                      err,
-                                      true))
-                    return false;
-            }
-            else
-            {
-                err =
-                    "The " + pMasqueradingVector[1] + " column cannot be null";
-                return false;
-            }
+            err="The " + pMasqueradingVector[1] + " column cannot be null";
+            return false;
         }
-        if (!pMasqueradingVector[2].empty())
-        {
-            if (pJson.isMember(pMasqueradingVector[2]))
-            {
-                if (!validJsonOfField(2,
-                                      pMasqueradingVector[2],
-                                      pJson[pMasqueradingVector[2]],
-                                      err,
-                                      true))
-                    return false;
-            }
-        }
+      }
+      if(!pMasqueradingVector[2].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[2]))
+          {
+              if(!validJsonOfField(2, pMasqueradingVector[2], pJson[pMasqueradingVector[2]], err, true))
+                  return false;
+          }
+      }
     }
-    catch (const Json::LogicError &e)
+    catch(const Json::LogicError &e)
     {
-        err = e.what();
-        return false;
+      err = e.what();
+      return false;
     }
     return true;
 }
-
-bool UserRoles::validateJsonForUpdate(const Json::Value &pJson,
-                                      std::string &err)
+bool UserRoles::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
 {
-    if (pJson.isMember("user_id"))
+    if(pJson.isMember("user_id"))
     {
-        if (!validJsonOfField(0, "user_id", pJson["user_id"], err, false))
+        if(!validJsonOfField(0, "user_id", pJson["user_id"], err, false))
             return false;
     }
     else
     {
-        err =
-            "The value of primary key must be set in the json object for "
-            "update";
+        err = "The value of primary key must be set in the json object for update";
         return false;
     }
-    if (pJson.isMember("role_id"))
+    if(pJson.isMember("role_id"))
     {
-        if (!validJsonOfField(1, "role_id", pJson["role_id"], err, false))
+        if(!validJsonOfField(1, "role_id", pJson["role_id"], err, false))
             return false;
     }
     else
     {
-        err =
-            "The value of primary key must be set in the json object for "
-            "update";
+        err = "The value of primary key must be set in the json object for update";
         return false;
     }
-    if (pJson.isMember("assigned_at"))
+    if(pJson.isMember("assigned_at"))
     {
-        if (!validJsonOfField(
-                2, "assigned_at", pJson["assigned_at"], err, false))
+        if(!validJsonOfField(2, "assigned_at", pJson["assigned_at"], err, false))
             return false;
     }
     return true;
 }
-
-bool UserRoles::validateMasqueradedJsonForUpdate(
-    const Json::Value &pJson,
-    const std::vector<std::string> &pMasqueradingVector,
-    std::string &err)
+bool UserRoles::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
+                                                 const std::vector<std::string> &pMasqueradingVector,
+                                                 std::string &err)
 {
-    if (pMasqueradingVector.size() != 3)
+    if(pMasqueradingVector.size() != 3)
     {
         err = "Bad masquerading vector";
         return false;
     }
-    try
+    try {
+      if(!pMasqueradingVector[0].empty() && pJson.isMember(pMasqueradingVector[0]))
+      {
+          if(!validJsonOfField(0, pMasqueradingVector[0], pJson[pMasqueradingVector[0]], err, false))
+              return false;
+      }
+    else
     {
-        if (!pMasqueradingVector[0].empty() &&
-            pJson.isMember(pMasqueradingVector[0]))
-        {
-            if (!validJsonOfField(0,
-                                  pMasqueradingVector[0],
-                                  pJson[pMasqueradingVector[0]],
-                                  err,
-                                  false))
-                return false;
-        }
-        else
-        {
-            err =
-                "The value of primary key must be set in the json object for "
-                "update";
-            return false;
-        }
-        if (!pMasqueradingVector[1].empty() &&
-            pJson.isMember(pMasqueradingVector[1]))
-        {
-            if (!validJsonOfField(1,
-                                  pMasqueradingVector[1],
-                                  pJson[pMasqueradingVector[1]],
-                                  err,
-                                  false))
-                return false;
-        }
-        else
-        {
-            err =
-                "The value of primary key must be set in the json object for "
-                "update";
-            return false;
-        }
-        if (!pMasqueradingVector[2].empty() &&
-            pJson.isMember(pMasqueradingVector[2]))
-        {
-            if (!validJsonOfField(2,
-                                  pMasqueradingVector[2],
-                                  pJson[pMasqueradingVector[2]],
-                                  err,
-                                  false))
-                return false;
-        }
-    }
-    catch (const Json::LogicError &e)
-    {
-        err = e.what();
+        err = "The value of primary key must be set in the json object for update";
         return false;
+    }
+      if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
+      {
+          if(!validJsonOfField(1, pMasqueradingVector[1], pJson[pMasqueradingVector[1]], err, false))
+              return false;
+      }
+    else
+    {
+        err = "The value of primary key must be set in the json object for update";
+        return false;
+    }
+      if(!pMasqueradingVector[2].empty() && pJson.isMember(pMasqueradingVector[2]))
+      {
+          if(!validJsonOfField(2, pMasqueradingVector[2], pJson[pMasqueradingVector[2]], err, false))
+              return false;
+      }
+    }
+    catch(const Json::LogicError &e)
+    {
+      err = e.what();
+      return false;
     }
     return true;
 }
-
 bool UserRoles::validJsonOfField(size_t index,
                                  const std::string &fieldName,
                                  const Json::Value &pJson,
                                  std::string &err,
                                  bool isForCreation)
 {
-    switch (index)
+    switch(index)
     {
         case 0:
-            if (pJson.isNull())
+            if(pJson.isNull())
             {
-                err = "The " + fieldName + " column cannot be null";
+                err="The " + fieldName + " column cannot be null";
                 return false;
             }
-            if (!pJson.isInt())
+            if(!pJson.isInt())
             {
-                err = "Type error in the " + fieldName + " field";
+                err="Type error in the "+fieldName+" field";
                 return false;
             }
             break;
         case 1:
-            if (pJson.isNull())
+            if(pJson.isNull())
             {
-                err = "The " + fieldName + " column cannot be null";
+                err="The " + fieldName + " column cannot be null";
                 return false;
             }
-            if (!pJson.isInt())
+            if(!pJson.isInt())
             {
-                err = "Type error in the " + fieldName + " field";
+                err="Type error in the "+fieldName+" field";
                 return false;
             }
             break;
         case 2:
-            if (pJson.isNull())
+            if(pJson.isNull())
             {
                 return true;
             }
-            if (!pJson.isString())
+            if(!pJson.isString())
             {
-                err = "Type error in the " + fieldName + " field";
+                err="Type error in the "+fieldName+" field";
                 return false;
             }
             break;
         default:
-            err = "Internal error in the server";
+            err="Internal error in the server";
             return false;
     }
     return true;

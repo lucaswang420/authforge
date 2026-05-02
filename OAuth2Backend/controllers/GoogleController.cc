@@ -1,5 +1,6 @@
 #include "GoogleController.h"
 #include <drogon/HttpClient.h>
+#include "../common/documentation/OpenApiGenerator.h"
 
 // TODO: REPLACE WITH YOUR REAL GOOGLE CREDENTIALS
 const std::string GOOGLE_CLIENT_ID_KEY = "client_id";
@@ -17,6 +18,51 @@ std::string getGoogleConfig(const std::string &key)
     return "";
 }
 
+// Register OpenAPI documentation (executed once at startup)
+namespace
+{
+struct GoogleControllerDocs
+{
+    GoogleControllerDocs()
+    {
+        using namespace common::documentation;
+
+        Json::Value successExample;
+        successExample["sub"] = "123456789012345678901";
+        successExample["name"] = "John Doe";
+        successExample["email"] = "john.doe@gmail.com";
+        successExample["picture"] = "https://lh3.googleusercontent.com/...";
+
+        Json::Value errorExample;
+        errorExample["error"] = "Missing code parameter";
+
+        OpenApiGenerator::addEndpoint(
+            {.path = "/api/google/login",
+             .method = "POST",
+             .summary = "Google OAuth2 Login",
+             .description =
+                 "Exchange Google authorization code for user information. "
+                 "This endpoint handles the server-side OAuth2 flow with "
+                 "Google "
+                 "Identity Platform.",
+             .tags = {"External Auth", "Google"},
+             .parameters =
+                 {{"code",
+                   "Authorization code from Google OAuth2 callback (required)",
+                   ParameterType::STRING,
+                   ParameterLocation::QUERY,
+                   true}},
+             .responses = {{200, "Google user info retrieved successfully"},
+                           {400, "Invalid request (missing or invalid code)"},
+                           {502, "Failed to contact Google API"}},
+             .responseExamples = {{200, successExample}, {400, errorExample}},
+             .requiresAuth = false});
+    }
+};
+
+GoogleControllerDocs docs_;
+}  // namespace
+
 void GoogleController::login(
     const HttpRequestPtr &req,
     std::function<void(const HttpResponsePtr &)> &&callback)
@@ -29,7 +75,36 @@ void GoogleController::login(
         return;
     }
 
-    auto code = req->getParameter("code");
+    // Try to get code from POST body first, then fallback to query parameter
+    std::string code;
+
+    // Check Content-Type and parse accordingly
+    auto contentType = req->getHeader("Content-Type");
+    if (contentType.find("application/x-www-form-urlencoded") !=
+        std::string::npos)
+    {
+        // Parse from POST body
+        auto body = req->getBody();
+        // Simple parsing for "code=xxx" format
+        size_t codePos = body.find("code=");
+        if (codePos != std::string::npos)
+        {
+            size_t valueStart = codePos + 5;  // "code=" length
+            size_t valueEnd = body.find("&", valueStart);
+            if (valueEnd == std::string::npos)
+            {
+                valueEnd = body.length();
+            }
+            code = body.substr(valueStart, valueEnd - valueStart);
+        }
+    }
+
+    // Fallback to query parameter
+    if (code.empty())
+    {
+        code = req->getParameter("code");
+    }
+
     if (code.empty())
     {
         auto resp = HttpResponse::newHttpResponse();

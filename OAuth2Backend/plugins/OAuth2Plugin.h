@@ -39,6 +39,7 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     void generateAuthorizationCode(const std::string &clientId,
                                    const std::string &userId,
                                    const std::string &scope,
+                                   const std::string &redirectUri,
                                    std::function<void(std::string)> &&callback);
 
     /**
@@ -49,12 +50,15 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param clientId Client identifier
      * @param clientSecret Client secret (required for CONFIDENTIAL clients,
      * empty for PUBLIC)
+     * @param redirectUri Redirect URI from token request (must match
+     * authorization request per OAuth2 RFC 6749 Section 4.1.3)
      * @param callback Callback with token response or error
      */
     void exchangeCodeForToken(
         const std::string &code,
         const std::string &clientId,
         const std::string &clientSecret,
+        const std::string &redirectUri,
         std::function<void(const Json::Value &)> &&callback);
 
     /**

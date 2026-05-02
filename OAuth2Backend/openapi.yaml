@@ -121,12 +121,12 @@ paths:
   /oauth2/userinfo:
     get:
       summary: User Info Endpoint
-      description: Helper endpoint to get user profile. Protected by Bearer Token.
+      description: Helper endpoint to get user profile. Protected by Bearer Token. Returns user profile data including username, email, and assigned roles according to OpenID Connect standards.
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: User profile data.
+          description: User information retrieved successfully.
           content:
             application/json:
               schema:
@@ -134,12 +134,33 @@ paths:
                 properties:
                   sub:
                     type: string
+                    description: User ID
+                    example: "1"
                   name:
                     type: string
+                    description: Username
+                    example: john_doe
                   email:
                     type: string
+                    description: Email address
+                    example: john@example.com
+                  roles:
+                    type: array
+                    description: User assigned roles
+                    items:
+                      type: string
+                    example: ["user", "admin"]
+              example:
+                sub: "1"
+                name: john_doe
+                email: john@example.com
+                roles: ["user", "admin"]
+        "400":
+          description: Invalid User ID format.
         "401":
-          description: Unauthorized (Invalid Token).
+          description: Invalid or expired access token.
+        "404":
+          description: User not found.
 
   /oauth2/login:
     post:
@@ -243,6 +264,36 @@ paths:
           description: Forbidden (Insufficient permissions/roles).
         "429":
           description: Rate limit exceeded (5 req/min).
+
+  /oauth2/logout:
+    post:
+      summary: Logout Endpoint
+      description: Logout user and revoke the current access token. Protected by Bearer Token.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+                  userId:
+                    type: string
+                    description: User ID of the logged out user
+              example:
+                message: Logged out successfully
+                userId: "1"
+        "401":
+          description: Invalid or missing Authorization header.
+        "403":
+          description: Token does not belong to this user.
+        "500":
+          description: Internal server error (OAuth2Plugin not loaded or storage not available).
 
   /health:
     get:

@@ -12,52 +12,38 @@
 
 ## 🔧 工具说明
 
-### 1. Pre-commit Hook (`pre-commit-validate-openapi.sh`)
+### 1. OpenAPI验证脚本 (`validate-openapi.sh`)
 
-在每次git commit前自动运行，验证OpenAPI文档：
+统一的OpenAPI文档验证脚本，用于：
+- **Pre-commit Hook**: 每次commit前自动验证
+- **CI/CD集成**: 在CI管道中进行完整验证
 
 **验证内容：**
-- 运行OpenAPI生成器测试
-- 验证JSON结构有效性
-- 检查必需字段（openapi, info, paths, servers）
-- 确保OpenAPI规范符合3.0.0标准
+1. 构建项目
+2. 运行OpenAPI测试套件
+3. 验证JSON结构有效性
+4. 检查必需字段（openapi, info, paths, servers）
+5. 检查文档覆盖率（描述和示例）
+6. 安全文档检查
 
 **使用方法：**
 ```bash
-# 自动触发（在commit时）
+# 本地运行完整验证
+./scripts/validate-openapi.sh
+
+# 自动触发（在commit时，如果安装了pre-commit hook）
 git commit -m "your message"
 
 # 如果需要跳过验证
 git commit --no-verify -m "your message"
 ```
 
-### 2. CI验证脚本 (`ci-validate-openapi.sh`)
-
-用于CI/CD管道的完整验证流程：
-
-**验证步骤：**
-1. 构建项目
-2. 运行OpenAPI测试套件
-3. 验证JSON结构
-4. 检查文档覆盖率
-5. 安全文档检查
-
-**使用方法：**
-```bash
-# 本地运行（模拟CI验证）
-./scripts/ci-validate-openapi.sh
-
-# CI集成示例（.github/workflows/docs.yml）
-- name: Validate OpenAPI Documentation
-  run: ./scripts/ci-validate-openapi.sh
-```
-
-### 3. Hook安装脚本 (`install-hooks.sh`)
+### 2. Hook安装脚本 (`install-hooks.sh`)
 
 自动安装和配置git hooks：
 
 **功能：**
-- 安装pre-commit hook
+- 安装pre-commit hook（链接到validate-openapi.sh）
 - 创建hooks配置文件
 - 设置正确的文件权限
 - 备份现有hooks
@@ -90,7 +76,7 @@ chmod +x scripts/*.sh
 ls -la .git/hooks/pre-commit
 
 # 手动测试hook
-./scripts/pre-commit-validate-openapi.sh
+./scripts/validate-openapi.sh
 ```
 
 ### 3. 正常开发流程
@@ -182,12 +168,12 @@ Hooks配置位于 `.hooks/config.json`:
     "pre-commit": {
       "enabled": true,
       "description": "Validate OpenAPI specification before commit",
-      "script": "scripts/pre-commit-validate-openapi.sh"
+      "script": "scripts/validate-openapi.sh"
     },
     "pre-push": {
       "enabled": false,
       "description": "Run full CI validation before push",
-      "script": "scripts/ci-validate-openapi.sh"
+      "script": "scripts/validate-openapi.sh"
     }
   },
   "validation": {

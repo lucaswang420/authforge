@@ -88,7 +88,10 @@ onMounted(async () => {
 
         const tokenData = await tokenResponse.json();
         const accessToken = tokenData.access_token;
-        
+
+        // Store access token in localStorage
+        localStorage.setItem('access_token', accessToken);
+
         status.value = "Fetching user info...";
 
         // Fetch User Info
@@ -149,7 +152,7 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <router-link to="/" class="btn-primary">Continue to Dashboard</router-link>
+            <router-link to="/dashboard" class="btn-primary">Continue to Dashboard</router-link>
         </div>
     </div>
   </div>

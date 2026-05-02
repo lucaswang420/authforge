@@ -151,6 +151,7 @@ void OAuth2Plugin::generateAuthorizationCode(
     const std::string &clientId,
     const std::string &userId,
     const std::string &scope,
+    const std::string &redirectUri,
     std::function<void(std::string)> &&callback)
 {
     if (!storage_)
@@ -165,6 +166,9 @@ void OAuth2Plugin::generateAuthorizationCode(
     authCode.clientId = clientId;
     authCode.userId = userId;
     authCode.scope = scope;
+    authCode.redirectUri =
+        redirectUri;  // CRITICAL: Store redirect_uri for
+                      // validation per RFC 6749 Section 4.1.3
 
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::system_clock::now().time_since_epoch())
@@ -191,6 +195,7 @@ void OAuth2Plugin::exchangeCodeForToken(
     const std::string &code,
     const std::string &clientId,
     const std::string &clientSecret,
+    const std::string &redirectUri,
     std::function<void(const Json::Value &)> &&callback)
 {
     if (!storage_)
@@ -203,7 +208,7 @@ void OAuth2Plugin::exchangeCodeForToken(
     storage_->validateClient(
         clientId,
         clientSecret,
-        [this, code, clientId, callback = std::move(callback)](
+        [this, code, clientId, redirectUri, callback = std::move(callback)](
             bool isValid) mutable {
             if (!isValid)
             {
@@ -215,16 +220,19 @@ void OAuth2Plugin::exchangeCodeForToken(
                 return;
             }
 
-            // Client validated, now consume auth code
+            // Client validated, now consume auth code WITH redirect_uri
+            // validation
             storage_
                 ->consumeAuthCode(
                     code,
+                    redirectUri,
                     [this, callback = std::move(callback), clientId, code](
                         std::optional<oauth2::OAuth2AuthCode> authCode) {
                         if (!authCode)
                         {
                             LOG_WARN
-                                << "Invalid code (Not Found or Already Used): "
+                                << "Invalid code (Not Found, Already Used, or "
+                                   "redirect_uri mismatch): "
                                 << code;
                             callback(makeError("invalid_grant",
                                                "Invalid authorization code"));

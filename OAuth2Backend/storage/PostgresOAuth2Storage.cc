@@ -350,6 +350,7 @@ void PostgresOAuth2Storage::markAuthCodeUsed(const std::string &code,
 
 void PostgresOAuth2Storage::consumeAuthCode(
     const std::string &code,
+    const std::string &redirectUri,
     IOAuth2Storage::AuthCodeCallback &&cb)
 {
     if (!dbClientMaster_)
@@ -366,10 +367,25 @@ void PostgresOAuth2Storage::consumeAuthCode(
         Mapper<Oauth2Codes> mapper(dbClientMaster_);
         mapper.findOne(
             Criteria(Oauth2Codes::Cols::_code, CompareOperator::EQ, code),
-            [sharedCb, code, this](const Oauth2Codes &row) mutable {
+            [sharedCb, code, redirectUri, this](
+                const Oauth2Codes &row) mutable {
                 // Step 2: Check if already used
                 if (row.getValueOfUsed())
                 {
+                    LOG_DEBUG << "[SECURITY] Auth code already used: " << code;
+                    (*sharedCb)(std::nullopt);
+                    return;
+                }
+
+                // Step 2.5: CRITICAL - Validate redirect_uri matches
+                // authorization Per OAuth2 RFC 6749 Section 4.1.3
+                std::string storedRedirectUri = row.getValueOfRedirectUri();
+                if (!redirectUri.empty() && redirectUri != storedRedirectUri)
+                {
+                    LOG_WARN << "[SECURITY] redirect_uri mismatch in token "
+                                "exchange. "
+                             << "Expected: " << storedRedirectUri
+                             << ", Got: " << redirectUri << ", Code: " << code;
                     (*sharedCb)(std::nullopt);
                     return;
                 }

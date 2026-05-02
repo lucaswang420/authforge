@@ -1,10 +1,19 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
+
+// Check if user is already logged in
+onMounted(() => {
+    const accessToken = localStorage.getItem('access_token')
+    if (accessToken) {
+        // User is already logged in, redirect to dashboard
+        router.push('/dashboard')
+    }
+})
 
 const goToRegister = () => {
     router.push('/register')

@@ -197,6 +197,7 @@ void MemoryOAuth2Storage::markAuthCodeUsed(const std::string &code,
 }
 
 void MemoryOAuth2Storage::consumeAuthCode(const std::string &code,
+                                          const std::string &redirectUri,
                                           AuthCodeCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -205,6 +206,18 @@ void MemoryOAuth2Storage::consumeAuthCode(const std::string &code,
     {
         if (!it->second.used)
         {
+            // CRITICAL: Validate redirect_uri matches authorization
+            // Per OAuth2 RFC 6749 Section 4.1.3
+            if (!redirectUri.empty() && redirectUri != it->second.redirectUri)
+            {
+                LOG_WARN
+                    << "[SECURITY] redirect_uri mismatch in token exchange. "
+                    << "Expected: " << it->second.redirectUri
+                    << ", Got: " << redirectUri << ", Code: " << code;
+                cb(std::nullopt);
+                return;
+            }
+
             it->second.used = true;
             cb(it->second);
             return;

@@ -55,9 +55,10 @@ void CachedOAuth2Storage::markAuthCodeUsed(const std::string &code,
 }
 
 void CachedOAuth2Storage::consumeAuthCode(const std::string &code,
+                                          const std::string &redirectUri,
                                           AuthCodeCallback &&cb)
 {
-    impl_->consumeAuthCode(code, std::move(cb));
+    impl_->consumeAuthCode(code, redirectUri, std::move(cb));
 }
 
 // Access Token - Write Side (Cache Invalidation or Write-Through)

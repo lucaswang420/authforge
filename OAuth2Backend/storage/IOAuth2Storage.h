@@ -125,8 +125,19 @@ class IOAuth2Storage
     /**
      * @brief Atomic Consume: Get Code, Check if Used, Mark Used, Return Code.
      * If code not found OR already used, callback with std::nullopt.
+     *
+     * CRITICAL: Per OAuth2 RFC 6749 Section 4.1.3, MUST validate redirect_uri
+     * matches the value used in authorization request. Returns nullopt if
+     * mismatch.
+     *
+     * @param code Authorization code
+     * @param redirectUri Redirect URI from token request (must match
+     * authorization)
+     * @param cb Callback with auth code data or nullopt if
+     * invalid/used/mismatch
      */
     virtual void consumeAuthCode(const std::string &code,
+                                 const std::string &redirectUri,
                                  AuthCodeCallback &&cb) = 0;
 
     // ========== Access Token Operations ==========

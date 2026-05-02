@@ -27,6 +27,7 @@ class PostgresOAuth2Storage : public IOAuth2Storage
     void getAuthCode(const std::string &code, AuthCodeCallback &&cb) override;
     void markAuthCodeUsed(const std::string &code, VoidCallback &&cb) override;
     void consumeAuthCode(const std::string &code,
+                         const std::string &redirectUri,
                          AuthCodeCallback &&cb) override;
 
     // Access Token Operations

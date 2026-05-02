@@ -283,6 +283,8 @@ void OAuth2Controller::authorize(
                             clientId,
                             userId,
                             scope,
+                            redirectUri,  // CRITICAL: Pass redirect_uri for RFC
+                                          // 6749 Section 4.1.3 validation
                             [=,
                              callback = std::move(callback)](std::string code) {
                                 std::string location =
@@ -379,6 +381,8 @@ void OAuth2Controller::login(
                     clientId,
                     std::to_string(*userId),
                     scope,
+                    redirectUri,  // CRITICAL: Pass redirect_uri for RFC 6749
+                                  // Section 4.1.3 validation
                     [=, callback = std::move(callback)](std::string code) {
                         std::string location = redirectUri + "?code=" + code;
                         if (!state.empty())
@@ -541,6 +545,8 @@ void OAuth2Controller::token(
             code,
             clientId,
             clientSecret,  // CRITICAL: Pass client_secret for validation
+            redirectUri,   // CRITICAL: Pass redirect_uri for validation per RFC
+                           // 6749 Section 4.1.3
             [callback = std::move(callback)](const Json::Value &result) {
                 if (result.isMember("error"))
                 {
@@ -654,6 +660,111 @@ void OAuth2Controller::userInfo(
                 resp->setBody("User not found");
                 callback(resp);
             }
+        });
+}
+
+void OAuth2Controller::logout(
+    const HttpRequestPtr &req,
+    std::function<void(const HttpResponsePtr &)> &&callback)
+{
+    // This endpoint is protected by OAuth2Middleware
+    // The middleware validates the access token and sets userId in request
+    // attributes
+
+    std::string userId;
+    auto attrs = req->getAttributes();
+    if (!attrs->find("userId"))
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k401Unauthorized);
+        resp->setBody("User ID not found in request attributes");
+        callback(resp);
+        return;
+    }
+    userId = attrs->get<std::string>("userId");
+
+    // Get the access token from the Authorization header
+    std::string authHeader = req->getHeader("Authorization");
+    if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ")
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k401Unauthorized);
+        resp->setBody("Invalid or missing Authorization header");
+        callback(resp);
+        return;
+    }
+    std::string accessToken = authHeader.substr(7);
+
+    // Revoke the access token
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("OAuth2Plugin not loaded");
+        callback(resp);
+        return;
+    }
+
+    auto storage = plugin->getStorage();
+    if (!storage)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("Storage not available");
+        callback(resp);
+        return;
+    }
+
+    // Mark token as revoked
+    storage->getAccessToken(
+        accessToken,
+        [storage, userId, callback, req](
+            const std::optional<oauth2::OAuth2AccessToken> &token) {
+            if (!token)
+            {
+                // Token not found (already expired or invalid)
+                // CRITICAL: Clear session anyway to ensure complete logout
+                req->session()->erase("userId");
+                req->session()->clear();
+
+                // Still return success for idempotency
+                Json::Value json;
+                json["message"] = "Logged out successfully";
+                json["userId"] = userId;
+                auto resp = HttpResponse::newHttpJsonResponse(json);
+                resp->setStatusCode(k200OK);
+                callback(resp);
+                return;
+            }
+
+            // Verify token belongs to the user
+            if (token->userId != userId)
+            {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k403Forbidden);
+                resp->setBody("Token does not belong to this user");
+                callback(resp);
+                return;
+            }
+
+            // Revoke the token
+            oauth2::OAuth2AccessToken revokedToken = *token;
+            revokedToken.revoked = true;
+
+            storage->saveAccessToken(revokedToken, [userId, callback, req]() {
+                // CRITICAL: Clear session to prevent reuse
+                // This ensures user must re-authenticate after logout
+                req->session()->erase("userId");
+                req->session()->clear();
+
+                Json::Value json;
+                json["message"] = "Logged out successfully";
+                json["userId"] = userId;
+                auto resp = HttpResponse::newHttpJsonResponse(json);
+                resp->setStatusCode(k200OK);
+                callback(resp);
+            });
         });
 }
 

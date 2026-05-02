@@ -51,12 +51,12 @@ DROGON_TEST(PluginTest)
     {
         std::promise<std::string> p;
         auto f = p.get_future();
-        plugin->generateAuthorizationCode("plugin-client",
-                                          "user1",
-                                          "scope1",
-                                          [&](std::string c) {
-                                              p.set_value(c);
-                                          });
+        plugin->generateAuthorizationCode(
+            "plugin-client",
+            "user1",
+            "scope1",
+            "http://localhost/cb",  // redirect_uri
+            [&](std::string c) { p.set_value(c); });
         if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -74,7 +74,8 @@ DROGON_TEST(PluginTest)
         plugin->exchangeCodeForToken(
             authCode,
             "plugin-client",
-            "",  // Empty secret for test client (PUBLIC)
+            "",                     // Empty secret for test client (PUBLIC)
+            "http://localhost/cb",  // redirect_uri must match authorization
             [&](const Json::Value &result) { p.set_value(result); });
         if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
         {
@@ -95,7 +96,8 @@ DROGON_TEST(PluginTest)
         plugin->exchangeCodeForToken(
             authCode,
             "plugin-client",
-            "",  // Empty secret for test client (PUBLIC)
+            "",                     // Empty secret for test client (PUBLIC)
+            "http://localhost/cb",  // redirect_uri must match authorization
             [&](const Json::Value &result) { p.set_value(result); });
         if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
         {
@@ -142,12 +144,12 @@ DROGON_TEST(PluginTest)
         // Generate code for admin
         std::promise<std::string> p;
         auto f = p.get_future();
-        plugin->generateAuthorizationCode("plugin-client",
-                                          "admin",
-                                          "scope1",
-                                          [&](std::string c) {
-                                              p.set_value(c);
-                                          });
+        plugin->generateAuthorizationCode(
+            "plugin-client",
+            "admin",
+            "scope1",
+            "http://localhost/cb",  // redirect_uri
+            [&](std::string c) { p.set_value(c); });
         if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -160,7 +162,8 @@ DROGON_TEST(PluginTest)
         plugin->exchangeCodeForToken(
             adminCode,
             "plugin-client",
-            "",  // Empty secret for test client (PUBLIC)
+            "",                     // Empty secret for test client (PUBLIC)
+            "http://localhost/cb",  // redirect_uri must match authorization
             [&](const Json::Value &v) { p2.set_value(v); });
         auto res = f2.get();
 
