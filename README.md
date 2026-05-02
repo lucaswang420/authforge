@@ -365,15 +365,39 @@ For detailed debugging and verification instructions, see:
 ## Features & Endpoints
 
 > **OpenAPI Specification**: [openapi.yaml](OAuth2Backend/openapi.yaml)
+> **Interactive API Docs**: <http://localhost:5555/docs/api> (Swagger UI)
 
 | Feature | Endpoint / Description |
 |---------|------------------------|
 | **Authorize** | `GET /oauth2/authorize` - Logic to handle Authorization requests. |
 | **Token** | `POST /oauth2/token` - Exchange Auth Code for Access Token. |
 | **User Info** | `GET /oauth2/userinfo` - Protected Endpoint (Requires Bearer Token). |
+| **Logout** | `POST /oauth2/logout` - Revoke tokens and clear session. |
 | **WeChat Login** | `POST /api/wechat/login` - Server-side exchange of WeChat code for Session. |
 | **Persistence** | Support for Redis/Postgres backends via Strategy Pattern. |
 | **Expiration** | Auto-cleanup of expired tokens (Hourly) via Scheduler. |
+
+### Recent Security Improvements (2026-05)
+
+**Client Authentication** (RFC 6749 Section 2.3.1):
+
+- [x] Implemented type-aware client validation (PUBLIC vs CONFIDENTIAL)
+- [x] HTTP Basic Authentication support for confidential clients
+- [x] Constant-time comparison to prevent timing attacks
+- [x] Proper HTTP status codes (401 vs 400 per OAuth2 spec)
+
+**Redirect URI Validation** (RFC 6749 Section 4.1.3):
+
+- [x] Strict redirect_uri validation in token endpoint
+- [x] Atomic validation in Redis using Lua scripts
+- [x] Prevents authorization code interception attacks
+
+**Frontend Enhancements**:
+
+- [x] New Dashboard page with user info and role display
+- [x] Complete logout functionality with session clearing
+- [x] Route guards for authentication state management
+- [x] Fixed authentication flow and token handling
 
 ## Usage Guide
 
@@ -382,10 +406,30 @@ For detailed debugging and verification instructions, see:
 3. **Local Login**:
     - Click "Login with Drogon".
     - Credentials: `admin` / `admin`.
-    - Observe successful redirect and user info display.
-4. **WeChat Login**:
+    - Observe successful redirect to dashboard with user info and roles.
+4. **Logout**:
+    - Click "Logout" button in the dashboard.
+    - Verify session is cleared and redirected to login page.
+    - Attempt to login again to confirm session state is reset.
+5. **WeChat Login**:
     - Requires valid AppID Configuration.
     - Click "Login with WeChat", scan QR code, and verify login.
+
+### Frontend Routes
+
+The Vue.js application includes the following routes with authentication guards:
+
+- `/` - Login page (redirects to dashboard if already authenticated)
+- `/register` - Registration page (redirects to dashboard if already authenticated)
+- `/dashboard` - User dashboard (requires authentication, displays user info and roles)
+- `/callback` - OAuth2 callback handler
+
+### API Documentation
+
+Interactive Swagger UI documentation is available at:
+
+- Backend API: <http://localhost:5555/docs/api>
+- OpenAPI Specification: [openapi.yaml](OAuth2Backend/openapi.yaml)
 
 ## License
 
