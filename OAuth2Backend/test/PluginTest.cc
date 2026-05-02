@@ -23,6 +23,8 @@ DROGON_TEST(PluginTest)
     // map.
 
     Json::Value clientConfig;
+    clientConfig["type"] =
+        "PUBLIC";  // Set as PUBLIC client (no secret required)
     clientConfig["secret"] = "plugin-secret";
     clientConfig["redirect_uri"] = "http://localhost/cb";
     config["clients"]["plugin-client"] = clientConfig;

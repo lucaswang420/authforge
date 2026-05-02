@@ -10,6 +10,10 @@
         "roles",
         "permissions",
         "user_roles",
-        "role_permissions"
+        "role_permissions",
+        "oauth2_clients",
+        "oauth2_codes",
+        "oauth2_access_tokens",
+        "oauth2_refresh_tokens"
     ]
 }
