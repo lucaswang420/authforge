@@ -1,0 +1,2 @@
+# Ignore generated models from clang-format
+OAuth2Backend/models/*

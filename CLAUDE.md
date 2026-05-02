@@ -411,7 +411,7 @@ cmake -B build && cmake --build build
 cd build && ctest --output-on-failure
 
 # 代码格式化
-clang-format -i OAuth2Backend/**/*.cc OAuth2Backend/**/*.h
+git ls-files 'OAuth2Backend/*.cc' 'OAuth2Backend/*.h' | grep -v '^OAuth2Backend/models/' | xargs clang-format -i
 
 # 静态分析
 clang-tidy OAuth2Backend/**/*.cc -- -I OAuth2Backend/
