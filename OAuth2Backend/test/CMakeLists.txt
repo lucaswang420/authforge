@@ -25,6 +25,7 @@ set(TEST_SRC
     "UserTest.cc"
     "IntegrationE2ETest.cc"
     "OAuth2FlowE2ETest.cc"
+    "RedirectUriValidationTest.cc"
     "EnvConfigTest.cc"
     "RateLimiterTest.cc"
     "ConfigMigrationTest.cc"
