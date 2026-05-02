@@ -547,7 +547,7 @@ void OAuth2Controller::token(
                     auto resp = HttpResponse::newHttpJsonResponse(result);
                     // CRITICAL: Use correct HTTP status code
                     std::string errorCode = result.get("error", "").asString();
-                    HttpStatus statusCode =
+                    drogon::HttpStatusCode statusCode =
                         getHttpStatusCodeForError(errorCode);
                     resp->setStatusCode(statusCode);
                     Metrics::incRequest("token", static_cast<int>(statusCode));
@@ -573,7 +573,7 @@ void OAuth2Controller::token(
                     auto resp = HttpResponse::newHttpJsonResponse(result);
                     // CRITICAL: Use correct HTTP status code
                     std::string errorCode = result.get("error", "").asString();
-                    HttpStatus statusCode =
+                    drogon::HttpStatusCode statusCode =
                         getHttpStatusCodeForError(errorCode);
                     resp->setStatusCode(statusCode);
                     Metrics::incRequest("token", static_cast<int>(statusCode));
