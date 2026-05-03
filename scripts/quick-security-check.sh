@@ -1,6 +1,11 @@
 #!/bin/bash
 # Quick Security Check - 只检查关键的安全问题
 
+# 切换到项目根目录（scripts 目录的父目录）
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 echo "🔒 OAuth2 Project Quick Security Check"
 echo "========================================"
 echo ""

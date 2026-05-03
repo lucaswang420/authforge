@@ -2,6 +2,11 @@
 # Security Check Script
 # 检查是否有敏感文件被意外跟踪或包含敏感信息
 
+# 切换到项目根目录（scripts 目录的父目录）
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 set -e
 
 echo "🔒 OAuth2 Project Security Check"
