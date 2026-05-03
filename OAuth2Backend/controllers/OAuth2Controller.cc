@@ -36,51 +36,92 @@ struct OAuth2ControllerDocs
     OAuth2ControllerDocs()
     {
         // Token endpoint
-        OpenApiGenerator::addEndpoint(
-            {.path = "/oauth2/token",
-             .method = "POST",
-             .summary = "Exchange authorization code for access token",
-             .description = "OAuth2 token endpoint - exchanges authorization "
-                            "code or refresh token for access token",
-             .tags = {"OAuth2", "Token"},
-             .parameters =
-                 {{"grant_type",
-                   "Authorization code or refresh token (required)"},
-                  {"code",
-                   "Authorization code (required for "
-                   "grant_type=authorization_code)"},
-                  {"refresh_token",
-                   "Refresh token (required for grant_type=refresh_token)"},
-                  {"client_id", "Client identifier (required)"},
-                  {"client_secret",
-                   "Client secret (required for confidential clients)"},
-                  {"redirect_uri",
-                   "Redirect URI (required for authorization_code grant)"}},
-             .responses =
-                 {{200, "Token response with access_token and refresh_token"},
-                  {400, "Invalid request"},
-                  {401, "Authentication failed"}},
-             .requiresAuth = false});
+        common::documentation::EndpointInfo tokenEndpoint;
+        tokenEndpoint.path = "/oauth2/token";
+        tokenEndpoint.method = "POST";
+        tokenEndpoint.summary = "Exchange authorization code for access token";
+        tokenEndpoint.description =
+            "OAuth2 token endpoint - exchanges authorization "
+            "code or refresh token for access token";
+        tokenEndpoint.tags = {"OAuth2", "Token"};
+        tokenEndpoint.parameters = {
+            {"grant_type",
+             "Authorization code or refresh token (required)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"code",
+             "Authorization code (required for grant_type=authorization_code)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             false},
+            {"refresh_token",
+             "Refresh token (required for grant_type=refresh_token)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             false},
+            {"client_id",
+             "Client identifier (required)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"client_secret",
+             "Client secret (required for confidential clients)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"redirect_uri",
+             "Redirect URI (required for authorization_code grant)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true}};
+        tokenEndpoint.responses = {
+            {200, "Token response with access_token and refresh_token"},
+            {400, "Invalid request"},
+            {401, "Authentication failed"}};
+        tokenEndpoint.requiresAuth = false;
+        OpenApiGenerator::addEndpoint(tokenEndpoint);
 
         // Authorize endpoint
-        OpenApiGenerator::addEndpoint(
-            {.path = "/oauth2/authorize",
-             .method = "GET",
-             .summary = "Request authorization",
-             .description =
-                 "OAuth2 authorization endpoint - initiates authorization flow",
-             .tags = {"OAuth2", "Authorization"},
-             .parameters = {{"client_id", "Client identifier (required)"},
-                            {"redirect_uri", "Redirect URI (required)"},
-                            {"response_type",
-                             "Response type, must be 'code' (required)"},
-                            {"scope", "Requested scope (optional)"},
-                            {"state",
-                             "Opaque value to maintain state between request "
-                             "and callback (recommended)"}},
-             .responses = {{302, "Redirect to client with authorization code"},
-                           {400, "Invalid request"}},
-             .requiresAuth = false});
+        common::documentation::EndpointInfo authorizeEndpoint;
+        authorizeEndpoint.path = "/oauth2/authorize";
+        authorizeEndpoint.method = "GET";
+        authorizeEndpoint.summary = "Request authorization";
+        authorizeEndpoint.description =
+            "OAuth2 authorization endpoint - initiates authorization flow";
+        authorizeEndpoint.tags = {"OAuth2", "Authorization"};
+        authorizeEndpoint.parameters = {
+            {"client_id",
+             "Client identifier (required)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"redirect_uri",
+             "Redirect URI (required)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"response_type",
+             "Response type, must be 'code' (required)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             true},
+            {"scope",
+             "Requested scope (optional)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             false},
+            {"state",
+             "Opaque value to maintain state between request and callback "
+             "(recommended)",
+             common::documentation::ParameterType::STRING,
+             common::documentation::ParameterLocation::QUERY,
+             false}};
+        authorizeEndpoint.responses = {
+            {302, "Redirect to client with authorization code"},
+            {400, "Invalid request"}};
+        authorizeEndpoint.requiresAuth = false;
+        OpenApiGenerator::addEndpoint(authorizeEndpoint);
 
         // UserInfo endpoint
         {
@@ -95,71 +136,122 @@ struct OAuth2ControllerDocs
             Json::Value errorExample;
             errorExample["error"] = "User not found";
 
-            OpenApiGenerator::addEndpoint(
-                {.path = "/oauth2/userinfo",
-                 .method = "GET",
-                 .summary = "Get user information",
-                 .description =
-                     "Returns information about the authenticated user. "
-                     "Provides user profile data including username, email, "
-                     "and assigned roles according to OpenID Connect "
-                     "standards.",
-                 .tags = {"OAuth2", "User"},
-                 .parameters = {},
-                 .responses = {{200, "User information retrieved successfully"},
-                               {400, "Invalid User ID format"},
-                               {401, "Invalid or expired access token"},
-                               {404, "User not found"}},
-                 .responseExamples = {{200, successExample},
-                                      {404, errorExample}},
-                 .requiresAuth = true});
+            common::documentation::EndpointInfo userInfoEndpoint;
+            userInfoEndpoint.path = "/oauth2/userinfo";
+            userInfoEndpoint.method = "GET";
+            userInfoEndpoint.summary = "Get user information";
+            userInfoEndpoint.description =
+                "Returns information about the authenticated user. "
+                "Provides user profile data including username, email, "
+                "and assigned roles according to OpenID Connect "
+                "standards.";
+            userInfoEndpoint.tags = {"OAuth2", "User"};
+            userInfoEndpoint.parameters = {};
+            userInfoEndpoint.responses = {
+                {200, "User information retrieved successfully"},
+                {400, "Invalid User ID format"},
+                {401, "Invalid or expired access token"},
+                {404, "User not found"}};
+            userInfoEndpoint.responseExamples = {{200, successExample},
+                                                 {404, errorExample}};
+            userInfoEndpoint.requiresAuth = true;
+            OpenApiGenerator::addEndpoint(userInfoEndpoint);
         }
 
         // Health endpoint
-        OpenApiGenerator::addEndpoint(
-            {.path = "/health",
-             .method = "GET",
-             .summary = "Health check",
-             .description = "Returns the health status of the service",
-             .tags = {"System"},
-             .parameters = {},
-             .responses = {{200, "Service is healthy"}},
-             .requiresAuth = false});
+        {
+            common::documentation::EndpointInfo healthEndpoint;
+            healthEndpoint.path = "/health";
+            healthEndpoint.method = "GET";
+            healthEndpoint.summary = "Health check";
+            healthEndpoint.description =
+                "Returns the health status of the service";
+            healthEndpoint.tags = {"System"};
+            healthEndpoint.parameters = {};
+            healthEndpoint.responses = {{200, "Service is healthy"}};
+            healthEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(healthEndpoint);
+        }
 
         // Login endpoint
-        OpenApiGenerator::addEndpoint(
-            {.path = "/oauth2/login",
-             .method = "POST",
-             .summary = "Authenticate user",
-             .description = "Authenticates user credentials and generates "
-                            "authorization code",
-             .tags = {"OAuth2", "Authentication"},
-             .parameters = {{"username", "Username (required)"},
-                            {"password", "Password (required)"},
-                            {"client_id", "Client identifier (required)"},
-                            {"redirect_uri", "Redirect URI (required)"},
-                            {"scope", "Requested scope (optional)"},
-                            {"state",
-                             "Opaque value to maintain state (recommended)"}},
-             .responses = {{200, "Authentication successful"},
-                           {302, "Redirect with authorization code"},
-                           {401, "Authentication failed"}},
-             .requiresAuth = false});
+        {
+            common::documentation::EndpointInfo loginEndpoint;
+            loginEndpoint.path = "/oauth2/login";
+            loginEndpoint.method = "POST";
+            loginEndpoint.summary = "Authenticate user";
+            loginEndpoint.description =
+                "Authenticates user credentials and generates "
+                "authorization code";
+            loginEndpoint.tags = {"OAuth2", "Authentication"};
+            loginEndpoint.parameters = {
+                {"username",
+                 "Username (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"password",
+                 "Password (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"client_id",
+                 "Client identifier (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"redirect_uri",
+                 "Redirect URI (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"scope",
+                 "Requested scope (optional)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 false},
+                {"state",
+                 "Opaque value to maintain state (recommended)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 false}};
+            loginEndpoint.responses = {{200, "Authentication successful"},
+                                       {302,
+                                        "Redirect with authorization code"},
+                                       {401, "Authentication failed"}};
+            loginEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(loginEndpoint);
+        }
 
         // Register endpoint
-        OpenApiGenerator::addEndpoint(
-            {.path = "/api/register",
-             .method = "POST",
-             .summary = "Register new user",
-             .description =
-                 "Registers a new user account (for testing purposes)",
-             .tags = {"User", "Registration"},
-             .parameters = {{"username", "Username (required)"},
-                            {"password", "Password (required)"},
-                            {"email", "Email address (optional)"}},
-             .responses = {{200, "User registered successfully"},
-                           {400, "Invalid registration data"}},
-             .requiresAuth = false});
+        {
+            common::documentation::EndpointInfo registerEndpoint;
+            registerEndpoint.path = "/api/register";
+            registerEndpoint.method = "POST";
+            registerEndpoint.summary = "Register new user";
+            registerEndpoint.description =
+                "Registers a new user account (for testing purposes)";
+            registerEndpoint.tags = {"User", "Registration"};
+            registerEndpoint.parameters = {
+                {"username",
+                 "Username (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"password",
+                 "Password (required)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 true},
+                {"email",
+                 "Email address (optional)",
+                 common::documentation::ParameterType::STRING,
+                 common::documentation::ParameterLocation::QUERY,
+                 false}};
+            registerEndpoint.responses = {{200, "User registered successfully"},
+                                          {400, "Invalid registration data"}};
+            registerEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(registerEndpoint);
+        }
     }
 };
 

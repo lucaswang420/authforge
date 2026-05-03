@@ -36,27 +36,41 @@ struct GoogleControllerDocs
         Json::Value errorExample;
         errorExample["error"] = "Missing code parameter";
 
-        OpenApiGenerator::addEndpoint(
-            {.path = "/api/google/login",
-             .method = "POST",
-             .summary = "Google OAuth2 Login",
-             .description =
-                 "Exchange Google authorization code for user information. "
-                 "This endpoint handles the server-side OAuth2 flow with "
-                 "Google "
-                 "Identity Platform.",
-             .tags = {"External Auth", "Google"},
-             .parameters =
-                 {{"code",
-                   "Authorization code from Google OAuth2 callback (required)",
-                   ParameterType::STRING,
-                   ParameterLocation::QUERY,
-                   true}},
-             .responses = {{200, "Google user info retrieved successfully"},
-                           {400, "Invalid request (missing or invalid code)"},
-                           {502, "Failed to contact Google API"}},
-             .responseExamples = {{200, successExample}, {400, errorExample}},
-             .requiresAuth = false});
+        // C++17 compatible initialization (avoid designated initializers)
+        common::documentation::EndpointInfo googleEndpoint;
+        googleEndpoint.path = "/api/google/login";
+        googleEndpoint.method = "POST";
+        googleEndpoint.summary = "Google OAuth2 Login";
+        googleEndpoint.description =
+            "Exchange Google authorization code for user information. "
+            "This endpoint handles the server-side OAuth2 flow with "
+            "Google "
+            "Identity Platform.";
+        googleEndpoint.tags = {"External Auth", "Google"};
+
+        // Initialize parameters
+        common::documentation::ParameterInfo codeParam;
+        codeParam.name = "code";
+        codeParam.description =
+            "Authorization code from Google OAuth2 callback (required)";
+        codeParam.type = common::documentation::ParameterType::STRING;
+        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.required = true;
+        googleEndpoint.parameters = {codeParam};
+
+        // Initialize responses
+        googleEndpoint.responses = {
+            {200, "Google user info retrieved successfully"},
+            {400, "Invalid request (missing or invalid code)"},
+            {502, "Failed to contact Google API"}};
+
+        // Initialize response examples
+        googleEndpoint.responseExamples = {{200, successExample},
+                                           {400, errorExample}};
+
+        googleEndpoint.requiresAuth = false;
+
+        OpenApiGenerator::addEndpoint(googleEndpoint);
     }
 };
 

@@ -34,26 +34,40 @@ struct WeChatControllerDocs
         Json::Value errorExample;
         errorExample["error"] = "Missing code parameter";
 
-        OpenApiGenerator::addEndpoint(
-            {.path = "/api/wechat/login",
-             .method = "POST",
-             .summary = "WeChat OAuth2 Login",
-             .description =
-                 "Exchange WeChat authorization code for user information. "
-                 "This endpoint handles the server-side OAuth2 flow with "
-                 "WeChat Open Platform.",
-             .tags = {"External Auth", "WeChat"},
-             .parameters =
-                 {{"code",
-                   "Authorization code from WeChat OAuth2 callback (required)",
-                   ParameterType::STRING,
-                   ParameterLocation::QUERY,
-                   true}},
-             .responses = {{200, "WeChat user info retrieved successfully"},
-                           {400, "Invalid request (missing or invalid code)"},
-                           {502, "Failed to contact WeChat API"}},
-             .responseExamples = {{200, successExample}, {400, errorExample}},
-             .requiresAuth = false});
+        // C++17 compatible initialization (avoid designated initializers)
+        common::documentation::EndpointInfo weChatEndpoint;
+        weChatEndpoint.path = "/api/wechat/login";
+        weChatEndpoint.method = "POST";
+        weChatEndpoint.summary = "WeChat OAuth2 Login";
+        weChatEndpoint.description =
+            "Exchange WeChat authorization code for user information. "
+            "This endpoint handles the server-side OAuth2 flow with "
+            "WeChat Open Platform.";
+        weChatEndpoint.tags = {"External Auth", "WeChat"};
+
+        // Initialize parameters
+        common::documentation::ParameterInfo codeParam;
+        codeParam.name = "code";
+        codeParam.description =
+            "Authorization code from WeChat OAuth2 callback (required)";
+        codeParam.type = common::documentation::ParameterType::STRING;
+        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.required = true;
+        weChatEndpoint.parameters = {codeParam};
+
+        // Initialize responses
+        weChatEndpoint.responses = {
+            {200, "WeChat user info retrieved successfully"},
+            {400, "Invalid request (missing or invalid code)"},
+            {502, "Failed to contact WeChat API"}};
+
+        // Initialize response examples
+        weChatEndpoint.responseExamples = {{200, successExample},
+                                           {400, errorExample}};
+
+        weChatEndpoint.requiresAuth = false;
+
+        OpenApiGenerator::addEndpoint(weChatEndpoint);
     }
 };
 
