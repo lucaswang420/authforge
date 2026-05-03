@@ -91,8 +91,35 @@ std::string loadConfigWithEnv(const std::string &configPath)
         return configPath;
     }
 
-    // Override DB Settings (only if db_clients array is not empty)
-    if (root["db_clients"].isArray() && root["db_clients"].size() > 0)
+    // Check storage type to determine if database overrides should be applied
+    bool isMemoryStorage = false;
+    if (root.isMember("plugins") && root["plugins"].isArray())
+    {
+        for (const auto &plugin : root["plugins"])
+        {
+            if (plugin.isMember("name") &&
+                plugin["name"].asString() == "OAuth2Plugin" &&
+                plugin.isMember("config") &&
+                plugin["config"].isMember("storage_type"))
+            {
+                std::string storageType =
+                    plugin["config"]["storage_type"].asString();
+                if (storageType == "memory")
+                {
+                    isMemoryStorage = true;
+                    std::cout << "Memory storage detected: skipping database "
+                                 "environment variable overrides"
+                              << std::endl;
+                }
+                break;
+            }
+        }
+    }
+
+    // Override DB Settings (only if not memory storage and db_clients array is
+    // not empty)
+    if (!isMemoryStorage && root["db_clients"].isArray() &&
+        root["db_clients"].size() > 0)
     {
         if (const char *env = std::getenv("OAUTH2_DB_HOST"))
         {
@@ -112,8 +139,10 @@ std::string loadConfigWithEnv(const std::string &configPath)
         }
     }
 
-    // Override Redis Settings (only if redis_clients array is not empty)
-    if (root["redis_clients"].isArray() && root["redis_clients"].size() > 0)
+    // Override Redis Settings (only if not memory storage and redis_clients
+    // array is not empty)
+    if (!isMemoryStorage && root["redis_clients"].isArray() &&
+        root["redis_clients"].size() > 0)
     {
         if (const char *env = std::getenv("OAUTH2_REDIS_HOST"))
         {

@@ -1,12 +1,23 @@
 #include <drogon/drogon_test.h>
+#include <drogon/drogon.h>
 #include <json/json.h>
 #include <future>
 #include "services/AuthService.h"
+#include "../../plugins/OAuth2Plugin.h"
 
 using namespace services;
 
 DROGON_TEST(AuthService_GetUserInfo_Success)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_Success in memory "
+                    "storage mode";
+        return;
+    }
+
     // Test successful user info retrieval
     int testUserId = 1;  // Assuming user with ID 1 exists
 
@@ -44,6 +55,15 @@ DROGON_TEST(AuthService_GetUserInfo_Success)
 
 DROGON_TEST(AuthService_GetUserInfo_UserNotFound)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_UserNotFound in memory "
+                    "storage mode";
+        return;
+    }
+
     // Test with non-existent user ID
     int nonExistentUserId = 99999;
 
@@ -67,6 +87,15 @@ DROGON_TEST(AuthService_GetUserInfo_UserNotFound)
 
 DROGON_TEST(AuthService_GetUserInfo_InvalidUserId)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_InvalidUserId in memory "
+                    "storage mode";
+        return;
+    }
+
     // Test with invalid user ID (zero or negative)
     int invalidUserId = 0;
 
@@ -90,6 +119,15 @@ DROGON_TEST(AuthService_GetUserInfo_InvalidUserId)
 
 DROGON_TEST(AuthService_GetUserInfo_UserWithRoles)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_UserWithRoles in memory "
+                    "storage mode";
+        return;
+    }
+
     // Test user info retrieval with roles
     int testUserId = 1;  // Assuming this user has roles assigned
 
@@ -125,6 +163,15 @@ DROGON_TEST(AuthService_GetUserInfo_UserWithRoles)
 
 DROGON_TEST(AuthService_GetUserInfo_ResponseStructure)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_ResponseStructure in "
+                    "memory storage mode";
+        return;
+    }
+
     // Test complete response structure
     int testUserId = 1;
 
@@ -163,6 +210,15 @@ DROGON_TEST(AuthService_GetUserInfo_ResponseStructure)
 
 DROGON_TEST(AuthService_GetUserInfo_DatabaseErrorHandling)
 {
+    // Skip this test in memory storage mode (no database)
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        LOG_INFO << "Skipping AuthService_GetUserInfo_DatabaseErrorHandling in "
+                    "memory storage mode";
+        return;
+    }
+
     // Test error handling when database operations fail
     // This test verifies graceful degradation when roles query fails
 
