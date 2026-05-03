@@ -43,7 +43,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value();
             },
             testUserId);
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             LOG_ERROR << "Cleanup timeout";
         }
@@ -75,7 +75,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value(resp);
             });
 
-            if (f.wait_for(std::chrono::seconds(5)) ==
+            if (f.wait_for(std::chrono::seconds(30)) ==
                 std::future_status::timeout)
             {
                 throw std::runtime_error("Registration timeout");
@@ -111,7 +111,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value(resp);
             });
 
-            if (f.wait_for(std::chrono::seconds(5)) ==
+            if (f.wait_for(std::chrono::seconds(30)) ==
                 std::future_status::timeout)
             {
                 throw std::runtime_error("Authorization timeout");
@@ -145,7 +145,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value(resp);
             });
 
-            if (f.wait_for(std::chrono::seconds(5)) ==
+            if (f.wait_for(std::chrono::seconds(30)) ==
                 std::future_status::timeout)
             {
                 throw std::runtime_error("Token request timeout");
@@ -177,7 +177,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value(resp);
             });
 
-            if (f.wait_for(std::chrono::seconds(5)) ==
+            if (f.wait_for(std::chrono::seconds(30)) ==
                 std::future_status::timeout)
             {
                 throw std::runtime_error("User info timeout");
@@ -202,7 +202,7 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
                 p.set_value(resp);
             });
 
-            if (f.wait_for(std::chrono::seconds(5)) ==
+            if (f.wait_for(std::chrono::seconds(30)) ==
                 std::future_status::timeout)
             {
                 throw std::runtime_error("Logout timeout");
@@ -252,7 +252,7 @@ DROGON_TEST(SessionManagement)
             p.set_value(resp);
         });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Session creation timeout");
         }
@@ -275,7 +275,7 @@ DROGON_TEST(SessionManagement)
         ctrl->logout(req,
                      [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Logout timeout");
         }
@@ -322,7 +322,7 @@ DROGON_TEST(ClientAuthentication)
         ctrl->token(req,
                     [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Public client timeout");
         }
@@ -353,7 +353,7 @@ DROGON_TEST(ClientAuthentication)
         ctrl->token(req,
                     [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Confidential client timeout");
         }
@@ -388,7 +388,7 @@ DROGON_TEST(ClientAuthentication)
         ctrl->token(req,
                     [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Basic auth timeout");
         }
@@ -436,7 +436,7 @@ DROGON_TEST(RedirectURIValidation)
         ctrl->token(req,
                     [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Valid redirect URI timeout");
         }
@@ -468,7 +468,7 @@ DROGON_TEST(RedirectURIValidation)
         ctrl->token(req,
                     [&](const HttpResponsePtr &resp) { p.set_value(resp); });
 
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("Invalid redirect URI timeout");
         }

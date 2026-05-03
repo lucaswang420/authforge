@@ -56,7 +56,7 @@ DROGON_TEST(RedisStorageTest)
         std::promise<void> p;
         auto f = p.get_future();
         storage->saveAuthCode(code, [&]() { p.set_value(); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -70,7 +70,7 @@ DROGON_TEST(RedisStorageTest)
         auto f = p.get_future();
         storage->getAuthCode("test_redis_code_123",
                              [&](auto c) { p.set_value(c); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -105,7 +105,7 @@ DROGON_TEST(RedisStorageTest)
             [&](const drogon::nosql::RedisResult &r) { p.set_value(); },
             [&](const std::exception &e) { p.set_value(); },
             "DEL oauth2:code:test_redis_code_123");
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }

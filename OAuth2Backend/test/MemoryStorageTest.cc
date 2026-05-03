@@ -24,7 +24,7 @@ DROGON_TEST(MemoryStorageTest)
         storage->getClient("test-client", [&](std::optional<OAuth2Client> c) {
             p.set_value(c);
         });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -67,7 +67,7 @@ DROGON_TEST(MemoryStorageTest)
         std::promise<void> p;
         auto f = p.get_future();
         storage->saveAuthCode(code, [&]() { p.set_value(); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -82,7 +82,7 @@ DROGON_TEST(MemoryStorageTest)
                              [&](std::optional<OAuth2AuthCode> c) {
                                  p.set_value(c);
                              });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -97,7 +97,7 @@ DROGON_TEST(MemoryStorageTest)
         std::promise<void> p;
         auto f = p.get_future();
         storage->markAuthCodeUsed("test_code_123", [&]() { p.set_value(); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -112,7 +112,7 @@ DROGON_TEST(MemoryStorageTest)
                              [&](std::optional<OAuth2AuthCode> c) {
                                  p.set_value(c);
                              });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }

@@ -38,7 +38,7 @@ DROGON_TEST(RateLimiterTest)
             if (response && result == ReqResult::Ok)
             {
                 serverReady = true;
-                LOG_INFO << "‚úÖ Server is ready for testing";
+                LOG_INFO << "‚ú?Server is ready for testing";
                 break;
             }
         }
@@ -52,7 +52,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (!serverReady)
     {
-        LOG_ERROR << "‚ùå Server is not running, skipping rate limiter tests";
+        LOG_ERROR << "‚ù?Server is not running, skipping rate limiter tests";
         LOG_ERROR << "Please start OAuth2Server.exe before running tests";
         CHECK(false);  // Fail the test
         return;
@@ -103,7 +103,7 @@ DROGON_TEST(RateLimiterTest)
                 else if (response->statusCode() == k429TooManyRequests)
                 {
                     rateLimitedCount++;
-                    LOG_INFO << "Request " << i + 1 << ": Rate limited (429) ‚úì";
+                    LOG_INFO << "Request " << i + 1 << ": Rate limited (429) ‚ú?;
                 }
                 else
                 {
@@ -127,7 +127,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (rateLimitedCount > 0)
     {
-        LOG_INFO << "‚úÖ Rate limiting is working correctly";
+        LOG_INFO << "‚ú?Rate limiting is working correctly";
         CHECK(successCount <= 5);  // Should not exceed limit
         CHECK(rateLimitedCount >=
               1);  // At least some requests should be rate limited
@@ -172,7 +172,7 @@ DROGON_TEST(RateLimiterTest)
                 {
                     tokenRateLimitedCount++;
                     LOG_INFO << "Token request " << i + 1
-                             << ": Rate limited (429) ‚úì";
+                             << ": Rate limited (429) ‚ú?;
                 }
             }
 
@@ -189,7 +189,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (tokenRateLimitedCount > 0)
     {
-        LOG_INFO << "‚úÖ Token endpoint rate limiting working";
+        LOG_INFO << "‚ú?Token endpoint rate limiting working";
         CHECK(tokenSuccessCount <= 10);
     }
     else
@@ -231,7 +231,7 @@ DROGON_TEST(RateLimiterTest)
                 {
                     registerRateLimitedCount++;
                     LOG_INFO << "Register request " << i + 1
-                             << ": Rate limited (429) ‚úì";
+                             << ": Rate limited (429) ‚ú?;
                 }
             }
 
@@ -248,7 +248,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (registerRateLimitedCount > 0)
     {
-        LOG_INFO << "‚úÖ Register endpoint rate limiting working";
+        LOG_INFO << "‚ú?Register endpoint rate limiting working";
         CHECK(registerSuccessCount <= 5);
     }
     else
@@ -281,7 +281,7 @@ DROGON_TEST(RateLimiterTest)
             {
                 allSuccess = false;
                 LOG_INFO << "Whitelist test: Rate limiting is active "
-                            "(localhost not whitelisted) ‚úì";
+                            "(localhost not whitelisted) ‚ú?;
                 break;
             }
 
@@ -305,14 +305,14 @@ DROGON_TEST(RateLimiterTest)
     // Summary
     LOG_INFO << "";
     LOG_INFO << "=== Test Summary ===";
-    LOG_INFO << "Server running: ‚úÖ";
+    LOG_INFO << "Server running: ‚ú?;
     LOG_INFO << "Rate limiting active: "
-             << (rateLimitedCount > 0 ? "‚úÖ" : "‚ö†Ô∏è (localhost whitelisted)");
+             << (rateLimitedCount > 0 ? "‚ú? : "‚ö†Ô∏è (localhost whitelisted)");
     LOG_INFO << "Token limiting active: "
-             << (tokenRateLimitedCount > 0 ? "‚úÖ"
+             << (tokenRateLimitedCount > 0 ? "‚ú?
                                            : "‚ö†Ô∏è (localhost whitelisted)");
     LOG_INFO << "Register limiting active: "
-             << (registerRateLimitedCount > 0 ? "‚úÖ"
+             << (registerRateLimitedCount > 0 ? "‚ú?
                                               : "‚ö†Ô∏è (localhost whitelisted)");
 
     if (rateLimitedCount == 0 && tokenRateLimitedCount == 0 &&
@@ -330,7 +330,7 @@ DROGON_TEST(RateLimiterTest)
     else
     {
         LOG_INFO << "";
-        LOG_INFO << "‚úÖ Hodor rate limiter is working correctly!";
+        LOG_INFO << "‚ú?Hodor rate limiter is working correctly!";
     }
 
     CHECK(true);  // Test passed

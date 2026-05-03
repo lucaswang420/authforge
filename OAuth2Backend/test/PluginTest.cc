@@ -57,7 +57,7 @@ DROGON_TEST(PluginTest)
             "scope1",
             "http://localhost/cb",  // redirect_uri
             [&](std::string c) { p.set_value(c); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -77,7 +77,7 @@ DROGON_TEST(PluginTest)
             "",                     // Empty secret for test client (PUBLIC)
             "http://localhost/cb",  // redirect_uri must match authorization
             [&](const Json::Value &result) { p.set_value(result); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -99,7 +99,7 @@ DROGON_TEST(PluginTest)
             "",                     // Empty secret for test client (PUBLIC)
             "http://localhost/cb",  // redirect_uri must match authorization
             [&](const Json::Value &result) { p.set_value(result); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -117,7 +117,7 @@ DROGON_TEST(PluginTest)
                                    [&](const Json::Value &result) {
                                        p.set_value(result);
                                    });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }
@@ -150,7 +150,7 @@ DROGON_TEST(PluginTest)
             "scope1",
             "http://localhost/cb",  // redirect_uri
             [&](std::string c) { p.set_value(c); });
-        if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
         }

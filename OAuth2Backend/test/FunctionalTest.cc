@@ -67,7 +67,7 @@ static std::string makeRequest(const std::string &method,
 TEST(FunctionalOAuth2, CompleteAuthorizationCodeFlow)
 {
     // Test: Complete OAuth2 authorization code flow
-    // Expected: Login → Code → Token → Protected Resource Access
+    // Expected: Login �?Code �?Token �?Protected Resource Access
 
     // Step 1: User Login
     std::string loginResp =
@@ -164,7 +164,7 @@ TEST(FunctionalUtf8, ChineseCharacters)
     std::string response = makeRequest(
         "POST",
         "/oauth2/login",
-        "username=管理员&password=admin&"
+        "username=管理�?password=admin&"
         "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
 
     // Should not crash and should return some response
