@@ -30,7 +30,7 @@ Implement proper client authentication according to OAuth2 RFC 6749 by adding `c
 - Migration strategy: DROP and recreate (acceptable - not in production)
 
 **3. Client Classification**
-- **vue-client**: Currently has secret "123456" → Classified as **CONFIDENTIAL**
+- **vue-client**: Single-page application → Classified as **PUBLIC**
 - **Future clients**: Explicitly specify type during registration
 - **Default fallback**: CONFIDENTIAL (safer for security)
 
@@ -99,7 +99,7 @@ std::string clientId, clientSecret;
 std::string authHeader = req->getHeader("Authorization");
 if (!authHeader.empty() && authHeader.substr(0, 6) == "Basic ") {
     // Decode Basic Auth: base64(client_id:client_secret)
-    std::string decoded = base64_decode(authHeader.substr(6));
+    std::string decoded = drogon::utils::base64Decode(authHeader.substr(6));
     size_t colonPos = decoded.find(':');
     if (colonPos != std::string::npos) {
         clientId = decoded.substr(0, colonPos);
@@ -361,7 +361,7 @@ plugin->validateClient(clientId, clientSecret, [this, code, clientId, grantType,
    - Integration tests for token endpoint
 
 7. Verify backward compatibility with existing clients
-   - Test vue-client (CONFIDENTIAL) with secret
+   - Test vue-client (PUBLIC) without secret
    - Verify public clients work without secret
    - Test HTTP Basic Authentication
 
@@ -408,3 +408,4 @@ plugin->validateClient(clientId, clientSecret, [this, code, clientId, grantType,
 - Implement client credentials grant type
 - Add PKCE support for public clients
 - Implement client rotation/rekeying
+rekeying

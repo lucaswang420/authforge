@@ -1,12 +1,21 @@
 #include <drogon/drogon_test.h>
+#include <filesystem>
 #include "common/config/ConfigManager.h"
 #include <cstdlib>
 
 DROGON_TEST(ConfigMigrationTest_MainCcConfigLoadWorks)
 {
     // Test that main.cc can use ConfigManager
+    std::string configPath = "./config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../../config.json";
+
     Json::Value config;
-    CHECK(common::config::ConfigManager::load("config.json", config));
+    CHECK(common::config::ConfigManager::load(configPath, config));
 
     std::string errMsg;
     CHECK(common::config::ConfigManager::validate(config, errMsg));
@@ -27,8 +36,16 @@ DROGON_TEST(ConfigMigrationTest_EnvOverridesWorkAsBefore)
     setenv("OAUTH2_DB_PORT", "5433", 1);
 #endif
 
+    std::string configPath = "./config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../../config.json";
+
     Json::Value config;
-    common::config::ConfigManager::load("config.json", config);
+    common::config::ConfigManager::load(configPath, config);
 
     std::string host =
         common::config::ConfigManager::get<std::string>(config,

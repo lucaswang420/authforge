@@ -199,6 +199,7 @@
                 },
                 "clients": {
                     "vue-client": {
+                        "client_type": "PUBLIC",
                         "secret": "123456",
                         "redirect_uri": "http://localhost:5173/callback"
                     }

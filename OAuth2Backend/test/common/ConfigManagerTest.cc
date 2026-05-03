@@ -1,5 +1,6 @@
 #include <drogon/drogon_test.h>
 #include <drogon/drogon.h>
+#include <filesystem>
 #include "common/config/ConfigManager.h"
 
 #ifdef _WIN32
@@ -9,8 +10,16 @@
 
 DROGON_TEST(LoadValidConfig)
 {
+    std::string configPath = "./config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../../config.json";
+
     Json::Value config;
-    CHECK(common::config::ConfigManager::load("config.json", config) == true);
+    CHECK(common::config::ConfigManager::load(configPath, config) == true);
     CHECK(config.isNull() == false);
     CHECK(config.isMember("db_clients") == true);
 }
@@ -20,8 +29,16 @@ DROGON_TEST(EnvOverrideDbHost)
     // Set environment variable
     setenv("OAUTH2_DB_HOST", "test-host", 1);
 
+    std::string configPath = "./config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../config.json";
+    if (!std::filesystem::exists(configPath))
+        configPath = "../../../config.json";
+
     Json::Value config;
-    CHECK(common::config::ConfigManager::load("config.json", config) == true);
+    CHECK(common::config::ConfigManager::load(configPath, config) == true);
 
     auto dbHost =
         common::config::ConfigManager::get<std::string>(config,

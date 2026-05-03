@@ -293,9 +293,8 @@ std::string clientId, clientSecret;
 // Try HTTP Basic Authentication first
 std::string authHeader = req->getHeader("Authorization");
 if (!authHeader.empty() && authHeader.substr(0, 6) == "Basic ") {
-    std::string decoded = base64_decode(authHeader.substr(6));
-    size_t colonPos = decoded.find(':');
-    if (colonPos != std::string::npos) {
+    std::string decoded = drogon::utils::base64Decode(authHeader.substr(6));
+    size_t colonPos = decoded.find(':');    if (colonPos != std::string::npos) {
         clientId = decoded.substr(0, colonPos);
         clientSecret = decoded.substr(colonPos + 1);
     }
@@ -329,28 +328,10 @@ plugin->validateClient(clientId, clientSecret, [this, code, clientId, callback](
 });
 ```
 
-**C. Implement Base64 Decode Function:**
+**C. Use Framework's Base64 Decode Utility:**
 ```cpp
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-
-std::string base64_decode(const std::string &encoded) {
-    BIO *bio = BIO_new_mem_buf(encoded.c_str(), encoded.length());
-    BIO *b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_push(b64, bio);
-
-    std::string decoded;
-    char buffer[1024];
-    int len = BIO_read(bio, buffer, encoded.length());
-    if (len > 0) {
-        decoded.append(buffer, len);
-    }
-
-    BIO_free_all(bio);
-    return decoded;
-}
+// Use drogon::utils::base64Decode() instead of custom implementation
+// to reduce code redundancy and potential vulnerabilities.
 ```
 
 **D. Update Error Response HTTP Status Codes:**

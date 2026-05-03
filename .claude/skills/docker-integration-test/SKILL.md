@@ -115,7 +115,7 @@ curl -X GET "http://localhost:5555/oauth2/authorize?response_type=code&client_id
 
 # 2. 交换token
 curl -X POST "http://localhost:5555/oauth2/token" \
-  -d "grant_type=authorization_code&code=xxx&client_id=vue-client&client_secret=vue_secret_prod"
+  -d "grant_type=authorization_code&code=xxx&client_id=vue-client"
 
 # 3. 验证token
 curl -X GET "http://localhost:5555/oauth2/verify" \

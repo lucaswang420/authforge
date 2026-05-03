@@ -473,7 +473,8 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
 
             // Try null byte injection (should be rejected by string handling)
             std::string maliciousUri =
-                "http://localhost:5173/callback\0.evil.com";
+                std::string("http://localhost:5173/callback") + '\0' +
+                ".evil.com";
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
             storage->consumeAuthCode(testCode.code,

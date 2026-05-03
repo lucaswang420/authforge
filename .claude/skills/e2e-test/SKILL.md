@@ -86,7 +86,7 @@ CODE="<从上一步响应中提取的授权码>"
 
 curl -s -X POST "http://localhost:5555/oauth2/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=authorization_code&code=${CODE}&client_id=vue-client&client_secret=123456&redirect_uri=http://localhost:5173/callback"
+  -d "grant_type=authorization_code&code=${CODE}&client_id=vue-client&redirect_uri=http://localhost:5173/callback"
 ```
 
 **预期结果**: 返回access_token, refresh_token, roles数组
@@ -191,7 +191,7 @@ if ($LoginResp -match "code=([a-f0-9\-]+)") {
     Write-Host "Exchanging token..."
     $TokenResp = curl -s -X POST "http://localhost:5555/oauth2/token" `
       -H "Content-Type: application/x-www-form-urlencoded" `
-      -d "grant_type=authorization_code&code=$Code&client_id=vue-client&client_secret=123456&redirect_uri=http://localhost:5173/callback" | ConvertFrom-Json
+      -d "grant_type=authorization_code&code=$Code&client_id=vue-client&redirect_uri=http://localhost:5173/callback" | ConvertFrom-Json
     
     if ($TokenResp.access_token) {
         Write-Host "✅ Token obtained: $($TokenResp.access_token)"

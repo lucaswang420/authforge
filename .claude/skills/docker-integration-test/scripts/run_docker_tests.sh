@@ -148,7 +148,7 @@ curl -s "http://localhost:5555/oauth2/authorize?response_type=code&client_id=vue
 # 测试3: Token端点
 echo "测试3: Token端点"
 curl -s -X POST "http://localhost:5555/oauth2/token" \
-  -d "grant_type=client_credentials&client_id=vue-client&client_secret=vue_secret_prod" \
+  -d "grant_type=client_credentials&client_id=vue-client" \
   > "${RESULTS_DIR}/token_endpoint.txt" 2>&1 || echo "Token端点测试失败"
 
 # 步骤7: 生成测试结果JSON

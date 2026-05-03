@@ -16,39 +16,6 @@ using namespace common::documentation;
 namespace
 {
 /**
- * @brief Simple Base64 decode implementation
- */
-std::string base64_decode(const std::string &encoded)
-{
-    static const std::string chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    std::string decoded;
-    std::vector<int> T(256, -1);
-
-    for (size_t i = 0; i < 64; i++)
-        T[chars[i]] = i;
-
-    int val = 0, valb = -8;
-    for (unsigned char c : encoded)
-    {
-        if (T[c] == -1)
-            break;
-
-        val = (val << 6) + T[c];
-        valb += 6;
-
-        if (valb >= 0)
-        {
-            decoded.push_back(char((val >> valb) & 0xFF));
-            valb -= 8;
-        }
-    }
-
-    return decoded;
-}
-
-/**
  * @brief Get HTTP status code for OAuth2 error
  */
 drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
@@ -275,7 +242,11 @@ void OAuth2Controller::authorize(
                     }
 
                     // Check Session
-                    auto userId = req->session()->get<std::string>("userId");
+                    std::string userId;
+                    if (req->session())
+                    {
+                        userId = req->session()->get<std::string>("userId");
+                    }
                     if (!userId.empty())
                     {
                         // Generate Code (Async)
@@ -490,7 +461,8 @@ void OAuth2Controller::token(
         LOG_DEBUG << "Token endpoint: Attempting HTTP Basic Authentication";
         try
         {
-            std::string decoded = base64_decode(authHeader.substr(6));
+            std::string decoded =
+                drogon::utils::base64Decode(authHeader.substr(6));
             size_t colonPos = decoded.find(':');
             if (colonPos != std::string::npos)
             {
@@ -753,10 +725,11 @@ void OAuth2Controller::logout(
             revokedToken.revoked = true;
 
             storage->saveAccessToken(revokedToken, [userId, callback, req]() {
-                // CRITICAL: Clear session to prevent reuse
-                // This ensures user must re-authenticate after logout
-                req->session()->erase("userId");
-                req->session()->clear();
+                if (req->session())
+                {
+                    req->session()->erase("userId");
+                    req->session()->clear();
+                }
 
                 Json::Value json;
                 json["message"] = "Logged out successfully";

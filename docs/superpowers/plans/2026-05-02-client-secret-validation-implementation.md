@@ -72,14 +72,14 @@ Implement OAuth2 RFC 6749 compliant client authentication for the token endpoint
     allowed_scopes TEXT[] NOT NULL
   );
 
-  -- Restore vue-client as CONFIDENTIAL (has secret "123456")
+  -- Restore vue-client as PUBLIC (no secret required, existing hash ignored)
   INSERT INTO oauth2_clients (client_id, client_type, client_secret_hash, salt, redirect_uris, allowed_scopes)
-  VALUES ('vue-client', 'CONFIDENTIAL', '<existing_hash>', '<existing_salt>', ARRAY['http://localhost:5173/callback'], ARRAY['openid', 'profile']);
+  VALUES ('vue-client', 'PUBLIC', '<existing_hash>', '<existing_salt>', ARRAY['http://localhost:5173/callback'], ARRAY['openid', 'profile']);
   ```
 
 **Success Criteria:**
 - SQL script executes without errors
-- vue-client is properly classified as CONFIDENTIAL
+- vue-client is properly classified as PUBLIC
 - Default value is CONFIDENTIAL (safer for security)
 
 ---
@@ -168,14 +168,14 @@ Implement OAuth2 RFC 6749 compliant client authentication for the token endpoint
 **File:** `OAuth2Backend/controllers/OAuth2Controller.cc`
 
 **Requirements:**
-- Add HTTP Basic Authentication parsing in `token()` endpoint:
+- Implement HTTP Basic Authentication parsing in `token()` endpoint:
   ```cpp
   std::string clientId, clientSecret;
 
   // Try HTTP Basic Authentication first
   std::string authHeader = req->getHeader("Authorization");
   if (!authHeader.empty() && authHeader.substr(0, 6) == "Basic ") {
-      std::string decoded = base64_decode(authHeader.substr(6));
+      std::string decoded = drogon::utils::base64Decode(authHeader.substr(6));
       size_t colonPos = decoded.find(':');
       if (colonPos != std::string::npos) {
           clientId = decoded.substr(0, colonPos);
@@ -189,7 +189,7 @@ Implement OAuth2 RFC 6749 compliant client authentication for the token endpoint
       clientSecret = req->getParameter("client_secret");
   }
   ```
-- Implement Base64 decode function (use Drogon's utilities or implement)
+- Use Drogon's utility `drogon::utils::base64Decode` for Base64 decoding.
 - Add client validation before token exchange:
   ```cpp
   plugin->validateClient(clientId, clientSecret, [this, code, clientId, grantType, callback](bool isValid) {
@@ -287,16 +287,14 @@ Implement OAuth2 RFC 6749 compliant client authentication for the token endpoint
   1. Navigate to Login page
   2. Click "Sign in with Drogon"
   3. Complete authorization
-  4. Verify token endpoint receives client_secret
+  4. Verify token endpoint is called WITHOUT client_secret (as PUBLIC client)
   5. Verify user info displayed correctly
 - Test error cases:
-  - Invalid client_secret in frontend
-  - Missing client_secret
-  - Verify proper error messages displayed
+  - Attempting to pass invalid secret to PUBLIC client (should ignore or log warning but succeed)
+  - Verify proper error messages displayed if authorization fails
 
 **Success Criteria:**
-- vue-client successfully authenticates with client_secret
-- Invalid credentials show proper error message
+- vue-client successfully authenticates without client_secret
 - No regression in existing functionality
 
 ---
@@ -323,8 +321,8 @@ Implement OAuth2 RFC 6749 compliant client authentication for the token endpoint
 **File:** `config.json`, `README.md`
 
 **Requirements:**
-- Document vue-client as CONFIDENTIAL client
-- Document client_secret: "123456"
+- Document vue-client as PUBLIC client
+- Document client_secret requirement removed for vue-client
 - Document migration steps for existing deployments
 
 **Success Criteria:**

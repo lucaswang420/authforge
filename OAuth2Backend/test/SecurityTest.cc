@@ -44,7 +44,7 @@ static Json::Value makeTokenRequest(const std::string &code)
     req->setPath("/oauth2/token");
     req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
     req->setBody("grant_type=authorization_code&code=" + code +
-                 "&client_id=vue-client&client_secret=123456&redirect_uri=http:"
+                 "&client_id=vue-client&redirect_uri=http:"
                  "//localhost:5173/callback");
 
     auto resp = client->sendRequest(req);
@@ -233,7 +233,7 @@ TEST(SecurityToken, InvalidRefreshToken)
     req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
     req->setBody(
         "grant_type=refresh_token&refresh_token=invalid_token&"
-        "client_id=vue-client&client_secret=123456");
+        "client_id=vue-client");
 
     auto resp = client->sendRequest(req);
     Json::Value response;

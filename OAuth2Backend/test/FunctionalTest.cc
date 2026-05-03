@@ -94,11 +94,10 @@ TEST(FunctionalErrorHandling, InvalidGrantType)
 {
     // Test: Invalid grant_type parameter
     // Expected: Should return unsupported_grant_type error
-    std::string response =
-        makeRequest("POST",
-                    "/oauth2/token",
-                    "grant_type=invalid_grant&code=test&"
-                    "client_id=vue-client&client_secret=123456");
+    std::string response = makeRequest("POST",
+                                       "/oauth2/token",
+                                       "grant_type=invalid_grant&code=test&"
+                                       "client_id=vue-client");
 
     EXPECT_TRUE(response.find("unsupported_grant_type") != std::string::npos);
 }
@@ -282,7 +281,7 @@ TEST(FunctionalToken, InvalidAuthorizationCode)
                     "/oauth2/token",
                     "grant_type=authorization_code&"
                     "code=invalid_code_12345&"
-                    "client_id=vue-client&client_secret=123456&"
+                    "client_id=vue-client&"
                     "redirect_uri=http://localhost:5173/callback");
 
     EXPECT_TRUE(response.find("invalid_grant") != std::string::npos);
@@ -292,12 +291,11 @@ TEST(FunctionalToken, InvalidRefreshToken)
 {
     // Test: Refresh token with invalid/expired refresh token
     // Expected: Should return invalid_grant error
-    std::string response =
-        makeRequest("POST",
-                    "/oauth2/token",
-                    "grant_type=refresh_token&"
-                    "refresh_token=invalid_refresh_token&"
-                    "client_id=vue-client&client_secret=123456");
+    std::string response = makeRequest("POST",
+                                       "/oauth2/token",
+                                       "grant_type=refresh_token&"
+                                       "refresh_token=invalid_refresh_token&"
+                                       "client_id=vue-client");
 
     EXPECT_TRUE(response.find("invalid_grant") != std::string::npos);
 }
@@ -306,11 +304,10 @@ TEST(FunctionalToken, MissingRefreshToken)
 {
     // Test: Refresh without refresh_token parameter
     // Expected: Should return error
-    std::string response =
-        makeRequest("POST",
-                    "/oauth2/token",
-                    "grant_type=refresh_token&"
-                    "client_id=vue-client&client_secret=123456");
+    std::string response = makeRequest("POST",
+                                       "/oauth2/token",
+                                       "grant_type=refresh_token&"
+                                       "client_id=vue-client");
 
     EXPECT_TRUE(response.find("error") != std::string::npos);
 }

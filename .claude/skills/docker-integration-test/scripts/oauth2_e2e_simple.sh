@@ -35,7 +35,7 @@ if [ -n "$LOCATION" ]; then
         echo "🎫 步骤2: 使用授权码交换token..."
 
         TOKEN_RESPONSE=$(curl -s -X POST "http://localhost:5555/oauth2/token" \
-          -d "grant_type=authorization_code&code=$AUTH_CODE&client_id=vue-client&client_secret=123456&redirect_uri=http://localhost:5173/callback")
+          -d "grant_type=authorization_code&code=$AUTH_CODE&client_id=vue-client&redirect_uri=http://localhost:5173/callback")
 
         echo "   Token响应: $TOKEN_RESPONSE"
 
