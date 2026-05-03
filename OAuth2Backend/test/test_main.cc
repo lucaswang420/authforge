@@ -218,53 +218,9 @@ int main(int argc, char **argv)
         std::cout << "Initial config search found: " << configPath << std::endl;
         createLogDirFromConfig(configPath);
 
-        // Check if using memory storage mode
-        bool isMemoryStorage = false;
-        std::ifstream configFile(configPath);
-        if (configFile.is_open())
-        {
-            Json::Value root;
-            if (parseJsonString(configFile, root))
-            {
-                if (root.isMember("plugins") && root["plugins"].isArray())
-                {
-                    for (const auto &plugin : root["plugins"])
-                    {
-                        if (plugin.isMember("name") &&
-                            plugin["name"].asString() == "OAuth2Plugin" &&
-                            plugin.isMember("config") &&
-                            plugin["config"].isMember("storage_type"))
-                        {
-                            std::string storageType =
-                                plugin["config"]["storage_type"].asString();
-                            if (storageType == "memory")
-                            {
-                                isMemoryStorage = true;
-                                std::cout
-                                    << "Detected memory storage mode, loading "
-                                       "config directly without modifications"
-                                    << std::endl;
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (isMemoryStorage)
-        {
-            // In memory storage mode, load config directly without
-            // modifications This prevents Drogon from attempting to initialize
-            // database clients
-            drogon::app().loadConfigFile(configPath);
-        }
-        else
-        {
-            // In database storage modes, apply environment variable overrides
-            runtimeConfigPath = loadConfigWithEnv(configPath);
-            drogon::app().loadConfigFile(runtimeConfigPath);
-        }
+        // In database storage modes, apply environment variable overrides
+        runtimeConfigPath = loadConfigWithEnv(configPath);
+        drogon::app().loadConfigFile(runtimeConfigPath);
     }
     else
     {
