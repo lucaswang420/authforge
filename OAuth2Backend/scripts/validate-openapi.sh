@@ -38,6 +38,18 @@ check_result() {
     fi
 }
 
+# Function to convert Unix path to Windows path for Node.js in Git Bash
+convert_path_for_node() {
+    local unix_path="$1"
+    if [[ "$unix_path" =~ ^/([a-z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local path_rest="${BASH_REMATCH[2]}"
+        echo "${drive}:/${path_rest}"
+    else
+        echo "$unix_path"
+    fi
+}
+
 # 1. Build project (if needed)
 print_section "Building Project"
 cd "$PROJECT_ROOT"
@@ -63,16 +75,25 @@ OPENAPI_FILE="$PROJECT_ROOT/build/Release/docs/api/openapi.json"
 if [ -f "$OPENAPI_FILE" ]; then
     # Try multiple JSON validators (python3, jq, node) in order of preference
     JSON_VALID=0
+
+    # Try python3 first
     if command -v python3 &> /dev/null; then
         if python3 -m json.tool "$OPENAPI_FILE" > /dev/null 2>&1; then
             JSON_VALID=1
         fi
-    elif command -v jq &> /dev/null; then
+    fi
+
+    # Try jq if python3 failed or wasn't available
+    if [ $JSON_VALID -eq 0 ] && command -v jq &> /dev/null; then
         if jq . "$OPENAPI_FILE" > /dev/null 2>&1; then
             JSON_VALID=1
         fi
-    elif command -v node &> /dev/null; then
-        if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8'))" 2> /dev/null; then
+    fi
+
+    # Try node if both python3 and jq failed
+    if [ $JSON_VALID -eq 0 ] && command -v node &> /dev/null; then
+        WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+        if node -e "JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8'))" 2> /dev/null; then
             JSON_VALID=1
         fi
     fi
@@ -88,8 +109,9 @@ if [ -f "$OPENAPI_FILE" ]; then
         OPENAPI_VERSION=$(jq -r '.openapi' "$OPENAPI_FILE" 2>/dev/null || echo "unknown")
         ENDPOINT_COUNT=$(jq '.paths | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
     elif command -v node &> /dev/null; then
-        OPENAPI_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).openapi || 'unknown')" 2>/dev/null || echo "unknown")
-        ENDPOINT_COUNT=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
+        WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+        OPENAPI_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8')).openapi || 'unknown')" 2>/dev/null || echo "unknown")
+        ENDPOINT_COUNT=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
     else
         OPENAPI_VERSION="unknown"
         ENDPOINT_COUNT="0"
@@ -106,7 +128,8 @@ if [ -f "$OPENAPI_FILE" ]; then
                 FIELD_EXISTS=1
             fi
         elif command -v node &> /dev/null; then
-            if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).${field}" 2> /dev/null; then
+            WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+            if node -e "JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8')).${field}" 2> /dev/null; then
                 FIELD_EXISTS=1
             fi
         fi
@@ -130,7 +153,8 @@ if [ -f "$OPENAPI_FILE" ]; then
         ENDPOINTS_WITH_DESC=$(jq '[.paths[][] | select(.description != null and .description != "")] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
         ENDPOINTS_WITH_EXAMPLES=$(jq '[.paths[][] | select(.responseExamples != null and (.responseExamples | length) > 0)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
     elif command -v node &> /dev/null; then
-        TOTAL_ENDPOINTS=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
+        WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+        TOTAL_ENDPOINTS=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
         # For node, just count total endpoints and set examples to 0 for now
         ENDPOINTS_WITH_DESC=$TOTAL_ENDPOINTS
         ENDPOINTS_WITH_EXAMPLES=0
@@ -172,7 +196,8 @@ if [ -f "$OPENAPI_FILE" ]; then
             SECURITY_SCHEMES_EXISTS=1
         fi
     elif command -v node &> /dev/null; then
-        if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).components.securitySchemes" 2> /dev/null; then
+        WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+        if node -e "JSON.parse(require('fs').readFileSync('${WIN_FILE}', 'utf8')).components.securitySchemes" 2> /dev/null; then
             SECURITY_SCHEMES_EXISTS=1
         fi
     fi
@@ -187,7 +212,8 @@ if [ -f "$OPENAPI_FILE" ]; then
     if command -v jq &> /dev/null; then
         SECURED_ENDPOINTS=$(jq '[.paths[][] | select(.security != null)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
     elif command -v node &> /dev/null; then
-        SECURED_ENDPOINTS=$(node -e "const data=JSON.parse(require('fs').readFileSync('$OPENAPI_FILE','utf8'));let count=0;for(const path in data.paths){for(const method in data.paths[path]){if(data.paths[path][method].security)count++;}}console.log(count)" 2>/dev/null || echo "0")
+        WIN_FILE=$(convert_path_for_node "$OPENAPI_FILE")
+        SECURED_ENDPOINTS=$(node -e "const data=JSON.parse(require('fs').readFileSync('${WIN_FILE}','utf8'));let count=0;for(const path in data.paths){for(const method in data.paths[path]){if(data.paths[path][method].security)count++;}}console.log(count)" 2>/dev/null || echo "0")
     else
         SECURED_ENDPOINTS=0
     fi
