@@ -65,90 +65,78 @@ if not exist build (
 
 cd build
 
+REM Set test working directory
+set TEST_WORK_DIR=test\%BUILD_TYPE%
+
 REM ========================================
 REM First Test Run: Default Configuration
 REM ========================================
-echo Running ctest for %BUILD_TYPE% configuration (First run with default config)...
+echo Running first test with default configuration...
 echo.
 ctest -C %BUILD_TYPE% --output-on-failure %VERBOSE%
 
-set FIRST_TEST_RESULT=%errorlevel%
+set FIRST_RESULT=%errorlevel%
 
-if %FIRST_TEST_RESULT% equ 0 (
-    echo.
-    echo ========================================
-    echo First test run passed!
-    echo ========================================
+if %FIRST_RESULT% equ 0 (
+    echo First test: PASSED
 ) else (
-    echo.
-    echo ========================================
-    echo First test run failed!
-    echo ========================================
+    echo First test: FAILED
 )
 
-echo.
-echo ========================================
 REM ========================================
 REM Second Test Run: CI Configuration
 REM ========================================
-echo Preparing second test run with config.ci.json...
-echo.
+set CI_CONFIG_EXISTS=0
+if exist "%PROJECT_DIR%\config.ci.json" set CI_CONFIG_EXISTS=1
 
-REM Backup existing config.json if it exists
-set CONFIG_BACKUP=0
-if exist config.json (
-    echo Backing up existing config.json to config.json.backup...
-    copy /Y config.json config.json.backup >nul
-    set CONFIG_BACKUP=1
+if %CI_CONFIG_EXISTS% equ 0 (
+    echo config.ci.json not found, skipping CI test.
+    set SECOND_RESULT=0
+    goto skip_second_test
 )
 
-REM Copy config.ci.json from project root to build directory
-if exist "%PROJECT_DIR%\config.ci.json" (
-    echo Copying config.ci.json to config.json...
-    copy /Y "%PROJECT_DIR%\config.ci.json" config.json >nul
-    echo Second test run will use CI configuration.
-    echo.
-) else (
-    echo Warning: config.ci.json not found in project root!
-    echo Running second test with current configuration...
-    echo.
-)
-
-echo Running ctest for %BUILD_TYPE% configuration (Second run with CI config)...
 echo.
+echo Running second test with CI configuration...
+
+REM Backup and replace config
+move /Y "%TEST_WORK_DIR%\config.json" "%TEST_WORK_DIR%\config.json.bak" >nul 2>&1
+copy /Y "%PROJECT_DIR%\config.ci.json" "%TEST_WORK_DIR%\config.json" >nul 2>&1
+
 ctest -C %BUILD_TYPE% --output-on-failure %VERBOSE%
+set SECOND_RESULT=%errorlevel%
 
-set SECOND_TEST_RESULT=%errorlevel%
+REM Restore config
+move /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul 2>&1
 
-REM Restore original config.json if backup was created
-if %CONFIG_BACKUP% equ 1 (
-    echo.
-    echo Restoring original config.json...
-    copy /Y config.json.backup config.json >nul
-    del config.json.backup
+if %SECOND_RESULT% equ 0 (
+    echo Second test: PASSED
+) else (
+    echo Second test: FAILED
+)
+
+:skip_second_test
+
+echo.
+echo ========================================
+echo Test Results Summary
+echo ========================================
+echo First test (default config):  Status=%FIRST_RESULT%
+echo Second test (CI config):      Status=%SECOND_RESULT%
+echo ========================================
+
+REM Exit with error if any test failed
+if %FIRST_RESULT% neq 0 (
+    cd "%SCRIPT_DIR%"
+    exit /b 1
+)
+if %SECOND_RESULT% neq 0 (
+    cd "%SCRIPT_DIR%"
+    exit /b 1
 )
 
 echo.
 echo ========================================
-echo Test Summary
-echo ========================================
-echo First run (default config):  %FIRST_TEST_RESULT%
-echo Second run (CI config):       %SECOND_TEST_RESULT%
-echo ========================================
-
-REM Exit with error if either test failed
-if %FIRST_TEST_RESULT% neq 0 (
-    cd "%SCRIPT_DIR%"
-    exit /b 1
-)
-if %SECOND_TEST_RESULT% neq 0 (
-    cd "%SCRIPT_DIR%"
-    exit /b 1
-)
-
-echo.
-echo ========================================
-echo Both test runs passed!
+echo All tests passed!
 echo ========================================
 
 cd "%SCRIPT_DIR%"
