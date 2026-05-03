@@ -230,6 +230,10 @@
                 "https://editor.swagger.io"
             ]
         },
+        "frontend": {
+            "url": "https://your-production-domain.com",
+            "register_path": "/register"
+        },
         "external_auth": {
             "wechat": {
                 "appid": "YOUR_WECHAT_APPID",

@@ -370,6 +370,19 @@ void OAuth2Controller::authorize(
                     data.insert("scope", scope);
                     data.insert("state", state);
                     data.insert("response_type", responseType);
+
+                    // Get frontend configuration for register link
+                    auto &customConfig = drogon::app().getCustomConfig();
+                    std::string frontendUrl =
+                        customConfig.get("frontend", "url")
+                            .asString("http://localhost:5173");
+                    std::string registerPath =
+                        customConfig.get("frontend", "register_path")
+                            .asString("/register");
+                    std::string frontendRegisterUrl =
+                        frontendUrl + registerPath;
+                    data.insert("frontend_register_url", frontendRegisterUrl);
+
                     auto resp =
                         HttpResponse::newHttpViewResponse("login.csp", data);
                     callback(resp);

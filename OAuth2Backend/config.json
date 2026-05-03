@@ -188,6 +188,10 @@
                 "https://editor.swagger.io"
             ]
         },
+        "frontend": {
+            "url": "http://localhost:5173",
+            "register_path": "/register"
+        },
         "external_auth": {
             "wechat": {
                 "appid": "YOUR_WECHAT_APPID",

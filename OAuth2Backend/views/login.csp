@@ -219,7 +219,7 @@
         </form>
 
         <div class="register-link">
-            <p>Don't have an account? <a href="http://localhost:5173/register">Create one</a></p>
+            <p>Don't have an account? <a href="[[frontend_register_url]]">Create one</a></p>
         </div>
     </div>
 </body>
