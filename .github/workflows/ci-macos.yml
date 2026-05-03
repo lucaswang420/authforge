@@ -67,6 +67,9 @@ jobs:
       - name: Configure Project CMake
         working-directory: ${{github.workspace}}/OAuth2Backend
         run: |
+          # Use CI config which uses memory storage instead of Postgres/Redis
+          cp config.ci.json config.json
+          
           export PostgreSQL_ROOT="$(brew --prefix libpq)"
           cmake -S . -B build -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
