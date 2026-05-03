@@ -12,19 +12,16 @@ file(GLOB FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../filters/*.cc")
 file(GLOB MODEL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../models/*.cc") # Uncomment if models exist
 file(GLOB COMMON_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../common/config/*.cc" "${CMAKE_CURRENT_SOURCE_DIR}/../common/error/*.cc" "${CMAKE_CURRENT_SOURCE_DIR}/../common/validation/*.cc" "${CMAKE_CURRENT_SOURCE_DIR}/../common/documentation/*.cc") # Common utilities
 
+# Optional flag to restrict tests to memory-only (useful for environments without Postgres/Redis like macOS CI)
+option(OAUTH2_MEMORY_TESTS_ONLY "Build only tests that do not require external databases" OFF)
+
 # Explicitly list sources to avoid picking up broken UserTest.cc
 set(TEST_SRC
     "test_main.cc"
     "MemoryStorageTest.cc"
     "PluginTest.cc"
     "ConfigTest.cc"
-    "RedisStorageTest.cc"
-    "PostgresStorageTest.cc"
     "AdvancedStorageTest.cc"
-    "SchemaSetup.cc"
-    "UserTest.cc"
-    "IntegrationE2ETest.cc"
-    "OAuth2FlowE2ETest.cc"
     "RedirectUriValidationTest.cc"
     "PerformanceBenchmark.cc"
     "EnvConfigTest.cc"
@@ -39,6 +36,18 @@ set(TEST_SRC
     "services/AuthServiceGetUserInfoTest.cc"
     "SecurityValidationTest.cc"
 )
+
+# Only add database-dependent tests if we are not restricted to memory-only
+if(NOT OAUTH2_MEMORY_TESTS_ONLY)
+    list(APPEND TEST_SRC
+        "RedisStorageTest.cc"
+        "PostgresStorageTest.cc"
+        "SchemaSetup.cc"
+        "UserTest.cc"
+        "IntegrationE2ETest.cc"
+        "OAuth2FlowE2ETest.cc"
+    )
+endif()
 
 add_executable(${PROJECT_NAME} ${TEST_SRC} ${PLUGIN_SRC} ${STORAGE_SRC} ${SERVICE_SRC} ${MODEL_SRC} ${CTL_SRC} ${FILTER_SRC} ${COMMON_SRC})
 
