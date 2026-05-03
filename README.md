@@ -70,7 +70,8 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
   - CI-optimized configuration for faster builds
   
 - **macOS (14)**: Clang with Homebrew, ARM64 architecture
-  - Build-only verification (tests disabled due to framework compatibility)
+  - Full testing with memory storage (no database servers)
+  - CI-optimized configuration for faster builds
   - Pure C++17 enforcement to avoid codecvt_utf8_utf16 issues
 
 ### Features
@@ -83,7 +84,7 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 
 ### Known Issues
 
-- **macOS Runtime Issue**: Tests disabled due to Drogon framework compatibility issue with C++17/20 on macOS. Builds succeed but runtime crashes occur during test execution. This is a framework-level issue, not a code issue.
+- ~~**macOS Runtime Issue**: Tests disabled due to Drogon framework compatibility issue with C++17/20 on macOS.~~ **(RESOLVED 2026-05-03)**: macOS CI now passes all tests with memory storage configuration.
 
 ### Testing Coverage
 
@@ -293,9 +294,7 @@ This project provides **full cross-platform support** with platform-specific opt
 |----------|-------------|-----------------|---------|------------|--------|
 | **Linux** | CMake + Make | System (apt/yum) | Full (PostgreSQL + Redis) | Docker / Systemd | Stable |
 | **Windows** | CMake + MSBuild | Conan | Full (Memory Storage) | Service / EXE | Stable |
-| **macOS** | CMake + Make | Homebrew | Build-only | Development | Limited* |
-
-*macOS is recommended for development and build verification only. Runtime testing limited due to Drogon framework libc++ compatibility issues on ARM64.
+| **macOS** | CMake + Make | Homebrew | Full (Memory Storage) | Development | Stable |
 
 #### Platform-Specific Features
 
@@ -315,8 +314,10 @@ This project provides **full cross-platform support** with platform-specific opt
 **macOS**:
 - Apple Silicon (ARM64) support
 - Homebrew dependency management
+- Full testing with memory storage (no database servers required)
 - Build verification for cross-platform compatibility
 - Development and testing environment
+- CI-optimized configuration matching Windows/Linux
 
 #### Docker Support (All Platforms)
 
