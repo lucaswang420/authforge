@@ -304,7 +304,7 @@ make -j$(nproc)  # 手动并行编译
 - `Dockerfile.debug.proxy` - 代理镜像
 - `docker-quick-verify-debug.sh` - 快速验证脚本
 - `cleanup-docker.sh` - 清理脚本
-- `rebuild-debug-image.sh` - 重建镜像脚本
+- `OAuth2Backend/scripts/rebuild-debug-image.sh` - 重建镜像脚本
 
 ### 修改文件
 - `docker-compose.debug.yml` - 调试环境配置

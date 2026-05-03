@@ -225,7 +225,7 @@ cmake --build . --config Release --parallel $(nproc)
 ### 新增文件
 - `cleanup-docker.sh` - Docker 资源清理脚本
 - `docker-quick-verify-debug.sh` - 快速验证脚本
-- `rebuild-debug-image.sh` - Debug 镜像重建脚本
+- `OAuth2Backend/scripts/rebuild-debug-image.sh` - Debug 镜像重建脚本
 - `Dockerfile.debug` - 标准调试镜像定义
 - `Dockerfile.debug.cn` - 国内加速镜像定义
 - `Dockerfile.debug.proxy` - 代理支持镜像定义

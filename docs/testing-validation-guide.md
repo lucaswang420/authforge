@@ -18,7 +18,7 @@
 
 ### 🚀 快速开始
 
-项目提供了完整的 OAuth2 端点测试脚本：`test-oauth2-endpoints.ps1`
+项目提供了完整的 OAuth2 端点测试脚本：`OAuth2Backend/scripts/test-oauth2-endpoints.ps1`
 
 #### 使用方法
 
@@ -27,7 +27,7 @@
 cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
 
 # 运行测试脚本
-.\test-oauth2-endpoints.ps1
+.\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
 ```
 
 #### 测试流程
@@ -91,7 +91,7 @@ Get-ExecutionPolicy
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 # 或者临时绕过执行策略
-powershell -ExecutionPolicy Bypass -File test-oauth2-endpoints.ps1
+powershell -ExecutionPolicy Bypass -File OAuth2Backend\scripts\test-oauth2-endpoints.ps1
 ```
 
 ---
@@ -445,7 +445,7 @@ jobs:
     - name: Run API tests
       run: |
         cd $env:GITHUB_WORKSPACE
-        .\test-oauth2-endpoints.ps1
+        .\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
 
     - name: Validate OpenAPI spec
       run: |
@@ -511,7 +511,7 @@ wrk -t4 -c100 -d30s http://127.0.0.1:5555/health
 
 ```powershell
 # 运行测试
-.\test-oauth2-endpoints.ps1
+.\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
 
 # 启动服务器
 cd OAuth2Backend/build
