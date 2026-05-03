@@ -38,7 +38,7 @@ DROGON_TEST(RateLimiterTest)
             if (response && result == ReqResult::Ok)
             {
                 serverReady = true;
-                LOG_INFO << "‚ú?Server is ready for testing";
+                LOG_INFO << "ÔøΩ?Server is ready for testing";
                 break;
             }
         }
@@ -52,7 +52,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (!serverReady)
     {
-        LOG_ERROR << "‚ù?Server is not running, skipping rate limiter tests";
+        LOG_ERROR << "ÔøΩ?Server is not running, skipping rate limiter tests";
         LOG_ERROR << "Please start OAuth2Server.exe before running tests";
         CHECK(false);  // Fail the test
         return;
@@ -103,7 +103,8 @@ DROGON_TEST(RateLimiterTest)
                 else if (response->statusCode() == k429TooManyRequests)
                 {
                     rateLimitedCount++;
-                    LOG_INFO << "Request " << i + 1 << ": Rate limited (429) ‚ú?;
+                    LOG_INFO << "Request " << i + 1
+                             << ": Rate limited (429) [LIMITED]";
                 }
                 else
                 {
@@ -127,14 +128,15 @@ DROGON_TEST(RateLimiterTest)
 
     if (rateLimitedCount > 0)
     {
-        LOG_INFO << "‚ú?Rate limiting is working correctly";
+        LOG_INFO << "[SUCCESS] Rate limiting is working correctly";
         CHECK(successCount <= 5);  // Should not exceed limit
         CHECK(rateLimitedCount >=
               1);  // At least some requests should be rate limited
     }
     else
     {
-        LOG_WARN << "‚ö†Ô∏è All requests succeeded - localhost might be whitelisted";
+        LOG_WARN
+            << "[!] All requests succeeded - localhost might be whitelisted";
         LOG_WARN << "Remove 127.0.0.1 from trust_ips to test rate limiting";
     }
 
@@ -172,7 +174,7 @@ DROGON_TEST(RateLimiterTest)
                 {
                     tokenRateLimitedCount++;
                     LOG_INFO << "Token request " << i + 1
-                             << ": Rate limited (429) ‚ú?;
+                             << ": Rate limited (429) [LIMITED]";
                 }
             }
 
@@ -189,13 +191,13 @@ DROGON_TEST(RateLimiterTest)
 
     if (tokenRateLimitedCount > 0)
     {
-        LOG_INFO << "‚ú?Token endpoint rate limiting working";
+        LOG_INFO << "ÔøΩ?Token endpoint rate limiting working";
         CHECK(tokenSuccessCount <= 10);
     }
     else
     {
         LOG_WARN
-            << "‚ö†Ô∏è Token endpoint not rate limited (localhost whitelisted?)";
+            << "[!] Token endpoint not rate limited (localhost whitelisted?)";
     }
 
     // 4. Test register endpoint rate limiting
@@ -231,7 +233,7 @@ DROGON_TEST(RateLimiterTest)
                 {
                     registerRateLimitedCount++;
                     LOG_INFO << "Register request " << i + 1
-                             << ": Rate limited (429) ‚ú?;
+                             << ": Rate limited (429) [LIMITED]";
                 }
             }
 
@@ -248,13 +250,13 @@ DROGON_TEST(RateLimiterTest)
 
     if (registerRateLimitedCount > 0)
     {
-        LOG_INFO << "‚ú?Register endpoint rate limiting working";
+        LOG_INFO << "ÔøΩ?Register endpoint rate limiting working";
         CHECK(registerSuccessCount <= 5);
     }
     else
     {
-        LOG_WARN
-            << "‚ö†Ô∏è Register endpoint not rate limited (localhost whitelisted?)";
+        LOG_WARN << "[!] Register endpoint not rate limited (localhost "
+                    "whitelisted?)";
     }
 
     // 5. Test whitelist functionality
@@ -281,7 +283,7 @@ DROGON_TEST(RateLimiterTest)
             {
                 allSuccess = false;
                 LOG_INFO << "Whitelist test: Rate limiting is active "
-                            "(localhost not whitelisted) ‚ú?;
+                            "(localhost not whitelisted) [OK]";
                 break;
             }
 
@@ -296,7 +298,7 @@ DROGON_TEST(RateLimiterTest)
 
     if (allSuccess && whitelistTestCount >= 10)
     {
-        LOG_INFO << "‚ö†Ô∏è All " << whitelistTestCount
+        LOG_INFO << "[!] All " << whitelistTestCount
                  << " requests succeeded (localhost whitelisted)";
         LOG_INFO << "To test rate limiting, remove 127.0.0.1 from trust_ips in "
                     "config.json";
@@ -305,22 +307,24 @@ DROGON_TEST(RateLimiterTest)
     // Summary
     LOG_INFO << "";
     LOG_INFO << "=== Test Summary ===";
-    LOG_INFO << "Server running: ‚ú?;
+    LOG_INFO << "Server running: [OK]";
     LOG_INFO << "Rate limiting active: "
-             << (rateLimitedCount > 0 ? "‚ú? : "‚ö†Ô∏è (localhost whitelisted)");
+             << (rateLimitedCount > 0 ? "[ACTIVE]"
+                                      : "[!] (localhost whitelisted)");
     LOG_INFO << "Token limiting active: "
-             << (tokenRateLimitedCount > 0 ? "‚ú?
-                                           : "‚ö†Ô∏è (localhost whitelisted)");
+             << (tokenRateLimitedCount > 0 ? "[ACTIVE]"
+                                           : "[!] (localhost whitelisted)");
     LOG_INFO << "Register limiting active: "
-             << (registerRateLimitedCount > 0 ? "‚ú?
-                                              : "‚ö†Ô∏è (localhost whitelisted)");
+             << (registerRateLimitedCount > 0 ? "[ACTIVE]"
+                                              : "[!] (localhost whitelisted)");
 
     if (rateLimitedCount == 0 && tokenRateLimitedCount == 0 &&
         registerRateLimitedCount == 0)
     {
         LOG_WARN << "";
-        LOG_WARN << "‚ö†Ô∏è No rate limiting detected - likely because localhost is "
-                    "whitelisted";
+        LOG_WARN
+            << "[!] No rate limiting detected - likely because localhost is "
+               "whitelisted";
         LOG_WARN << "To enable rate limiting testing:";
         LOG_WARN << "1. Edit config.json";
         LOG_WARN << "2. Remove 127.0.0.1 from plugins[].config.trust_ips";
@@ -330,7 +334,7 @@ DROGON_TEST(RateLimiterTest)
     else
     {
         LOG_INFO << "";
-        LOG_INFO << "‚ú?Hodor rate limiter is working correctly!";
+        LOG_INFO << "[SUCCESS] OAuth2 rate limiter is working correctly!";
     }
 
     CHECK(true);  // Test passed
