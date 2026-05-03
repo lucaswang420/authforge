@@ -64,7 +64,8 @@ DROGON_TEST(TypeSafeAccessWithDefault)
 DROGON_TEST(ValidateMissingRequiredField)
 {
     Json::Value config;
-    config["db_clients"] = Json::Value(Json::arrayValue);
+    // Test completely missing db_clients field (not even empty array)
+    // Empty arrays are valid for memory storage mode
 
     std::string errMsg;
     CHECK(common::config::ConfigManager::validate(config, errMsg) == false);
