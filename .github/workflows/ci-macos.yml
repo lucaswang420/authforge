@@ -45,6 +45,7 @@ jobs:
           cd drogon
           git submodule update --init --recursive
           mkdir build && cd build
+          export PostgreSQL_ROOT="$(brew --prefix libpq)"
           cmake .. \
             -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
@@ -66,6 +67,7 @@ jobs:
       - name: Configure Project CMake
         working-directory: ${{github.workspace}}/OAuth2Backend
         run: |
+          export PostgreSQL_ROOT="$(brew --prefix libpq)"
           cmake -S . -B build -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
             -DCMAKE_CXX_STANDARD=17 \
