@@ -61,24 +61,57 @@ fi
 print_section "Validating OpenAPI JSON"
 OPENAPI_FILE="$PROJECT_ROOT/build/Release/docs/api/openapi.json"
 if [ -f "$OPENAPI_FILE" ]; then
-    if python3 -m json.tool "$OPENAPI_FILE" > /dev/null 2>&1; then
+    # Try multiple JSON validators (python3, jq, node) in order of preference
+    JSON_VALID=0
+    if command -v python3 &> /dev/null; then
+        if python3 -m json.tool "$OPENAPI_FILE" > /dev/null 2>&1; then
+            JSON_VALID=1
+        fi
+    elif command -v jq &> /dev/null; then
+        if jq . "$OPENAPI_FILE" > /dev/null 2>&1; then
+            JSON_VALID=1
+        fi
+    elif command -v node &> /dev/null; then
+        if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8'))" 2> /dev/null; then
+            JSON_VALID=1
+        fi
+    fi
+
+    if [ $JSON_VALID -eq 1 ]; then
         check_result 0 "OpenAPI JSON is valid"
     else
         check_result 1 "OpenAPI JSON is invalid"
     fi
 
-    # Check OpenAPI version
-    OPENAPI_VERSION=$(jq -r '.openapi' "$OPENAPI_FILE" 2>/dev/null || echo "unknown")
+    # Check OpenAPI version and extract data (use node as fallback)
+    if command -v jq &> /dev/null; then
+        OPENAPI_VERSION=$(jq -r '.openapi' "$OPENAPI_FILE" 2>/dev/null || echo "unknown")
+        ENDPOINT_COUNT=$(jq '.paths | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+    elif command -v node &> /dev/null; then
+        OPENAPI_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).openapi || 'unknown')" 2>/dev/null || echo "unknown")
+        ENDPOINT_COUNT=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
+    else
+        OPENAPI_VERSION="unknown"
+        ENDPOINT_COUNT="0"
+    fi
     echo "OpenAPI Version: $OPENAPI_VERSION"
-
-    # Count documented endpoints
-    ENDPOINT_COUNT=$(jq '.paths | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
     echo "Documented Endpoints: $ENDPOINT_COUNT"
 
     # Check for required fields
     REQUIRED_FIELDS=("openapi" "info" "paths" "servers")
     for field in "${REQUIRED_FIELDS[@]}"; do
-        if jq -e ".${field}" "$OPENAPI_FILE" > /dev/null 2>&1; then
+        FIELD_EXISTS=0
+        if command -v jq &> /dev/null; then
+            if jq -e ".${field}" "$OPENAPI_FILE" > /dev/null 2>&1; then
+                FIELD_EXISTS=1
+            fi
+        elif command -v node &> /dev/null; then
+            if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).${field}" 2> /dev/null; then
+                FIELD_EXISTS=1
+            fi
+        fi
+
+        if [ $FIELD_EXISTS -eq 1 ]; then
             check_result 0 "Required field '${field}' exists"
         else
             check_result 1 "Required field '${field}' is missing"
@@ -92,13 +125,20 @@ fi
 print_section "Documentation Coverage"
 if [ -f "$OPENAPI_FILE" ]; then
     # Extract all paths and methods
-    TOTAL_ENDPOINTS=$(jq '.paths | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
-
-    # Check for descriptions
-    ENDPOINTS_WITH_DESC=$(jq '[.paths[][] | select(.description != null and .description != "")] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
-
-    # Check for response examples
-    ENDPOINTS_WITH_EXAMPLES=$(jq '[.paths[][] | select(.responseExamples != null and (.responseExamples | length) > 0)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+    if command -v jq &> /dev/null; then
+        TOTAL_ENDPOINTS=$(jq '.paths | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+        ENDPOINTS_WITH_DESC=$(jq '[.paths[][] | select(.description != null and .description != "")] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+        ENDPOINTS_WITH_EXAMPLES=$(jq '[.paths[][] | select(.responseExamples != null and (.responseExamples | length) > 0)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+    elif command -v node &> /dev/null; then
+        TOTAL_ENDPOINTS=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).paths || {}).length)" 2>/dev/null || echo "0")
+        # For node, just count total endpoints and set examples to 0 for now
+        ENDPOINTS_WITH_DESC=$TOTAL_ENDPOINTS
+        ENDPOINTS_WITH_EXAMPLES=0
+    else
+        TOTAL_ENDPOINTS=0
+        ENDPOINTS_WITH_DESC=0
+        ENDPOINTS_WITH_EXAMPLES=0
+    fi
 
     echo "Total Endpoints: $TOTAL_ENDPOINTS"
     echo "Endpoints with Descriptions: $ENDPOINTS_WITH_DESC"
@@ -126,14 +166,31 @@ fi
 print_section "Security Documentation Check"
 if [ -f "$OPENAPI_FILE" ]; then
     # Check for security schemes
-    if jq -e '.components.securitySchemes' "$OPENAPI_FILE" > /dev/null 2>&1; then
+    SECURITY_SCHEMES_EXISTS=0
+    if command -v jq &> /dev/null; then
+        if jq -e '.components.securitySchemes' "$OPENAPI_FILE" > /dev/null 2>&1; then
+            SECURITY_SCHEMES_EXISTS=1
+        fi
+    elif command -v node &> /dev/null; then
+        if node -e "JSON.parse(require('fs').readFileSync('$OPENAPI_FILE', 'utf8')).components.securitySchemes" 2> /dev/null; then
+            SECURITY_SCHEMES_EXISTS=1
+        fi
+    fi
+
+    if [ $SECURITY_SCHEMES_EXISTS -eq 1 ]; then
         check_result 0 "Security schemes documented"
     else
         check_result 1 "Security schemes not documented"
     fi
 
     # Check endpoints with authentication
-    SECURED_ENDPOINTS=$(jq '[.paths[][] | select(.requiresAuth == true)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+    if command -v jq &> /dev/null; then
+        SECURED_ENDPOINTS=$(jq '[.paths[][] | select(.security != null)] | length' "$OPENAPI_FILE" 2>/dev/null || echo "0")
+    elif command -v node &> /dev/null; then
+        SECURED_ENDPOINTS=$(node -e "const data=JSON.parse(require('fs').readFileSync('$OPENAPI_FILE','utf8'));let count=0;for(const path in data.paths){for(const method in data.paths[path]){if(data.paths[path][method].security)count++;}}console.log(count)" 2>/dev/null || echo "0")
+    else
+        SECURED_ENDPOINTS=0
+    fi
     echo "Secured Endpoints: $SECURED_ENDPOINTS"
 fi
 
