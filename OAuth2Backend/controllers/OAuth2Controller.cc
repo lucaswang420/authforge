@@ -372,7 +372,7 @@ void OAuth2Controller::authorize(
                     data.insert("response_type", responseType);
 
                     // Get frontend configuration for register link
-                    auto &customConfig = drogon::app().getCustomConfig();
+                    auto customConfig = drogon::app().getCustomConfig();
                     std::string frontendUrl = "http://localhost:5173";
                     std::string registerPath = "/register";
 
