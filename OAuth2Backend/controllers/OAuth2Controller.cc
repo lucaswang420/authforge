@@ -373,12 +373,25 @@ void OAuth2Controller::authorize(
 
                     // Get frontend configuration for register link
                     auto &customConfig = drogon::app().getCustomConfig();
-                    std::string frontendUrl =
-                        customConfig.get("frontend", "url")
-                            .asString("http://localhost:5173");
-                    std::string registerPath =
-                        customConfig.get("frontend", "register_path")
-                            .asString("/register");
+                    std::string frontendUrl = "http://localhost:5173";
+                    std::string registerPath = "/register";
+
+                    if (customConfig.isMember("frontend") &&
+                        customConfig["frontend"].isMember("url") &&
+                        customConfig["frontend"]["url"].isString())
+                    {
+                        frontendUrl =
+                            customConfig["frontend"]["url"].asString();
+                    }
+
+                    if (customConfig.isMember("frontend") &&
+                        customConfig["frontend"].isMember("register_path") &&
+                        customConfig["frontend"]["register_path"].isString())
+                    {
+                        registerPath = customConfig["frontend"]["register_path"]
+                                           .asString();
+                    }
+
                     std::string frontendRegisterUrl =
                         frontendUrl + registerPath;
                     data.insert("frontend_register_url", frontendRegisterUrl);
