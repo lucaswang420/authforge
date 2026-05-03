@@ -118,25 +118,25 @@ int ConfigManager::parseInt(const std::string &str)
 bool ConfigManager::validate(const Json::Value &config,
                              std::string &errorMessage)
 {
-    // Check required db_clients section
-    if (!config.isMember("db_clients") || !config["db_clients"].isArray() ||
-        config["db_clients"].size() == 0)
+    // Check db_clients section exists and is an array (can be empty for memory
+    // storage)
+    if (!config.isMember("db_clients") || !config["db_clients"].isArray())
     {
         errorMessage = "Missing or invalid 'db_clients' configuration";
         return false;
     }
 
-    // Check redis_clients section
-    if (!config.isMember("redis_clients") ||
-        !config["redis_clients"].isArray() ||
-        config["redis_clients"].size() == 0)
+    // Check redis_clients section exists and is an array (can be empty for
+    // memory storage)
+    if (!config.isMember("redis_clients") || !config["redis_clients"].isArray())
     {
         errorMessage = "Missing or invalid 'redis_clients' configuration";
         return false;
     }
 
-    // Validate port ranges if present
-    if (config["db_clients"][0].isMember("port"))
+    // Validate port ranges if db_clients is not empty
+    if (config["db_clients"].size() > 0 &&
+        config["db_clients"][0].isMember("port"))
     {
         int port = config["db_clients"][0]["port"].asInt();
         if (port < 1 || port > 65535)
@@ -146,7 +146,9 @@ bool ConfigManager::validate(const Json::Value &config,
         }
     }
 
-    if (config["redis_clients"][0].isMember("port"))
+    // Validate port ranges if redis_clients is not empty
+    if (config["redis_clients"].size() > 0 &&
+        config["redis_clients"][0].isMember("port"))
     {
         int port = config["redis_clients"][0]["port"].asInt();
         if (port < 1 || port > 65535)
