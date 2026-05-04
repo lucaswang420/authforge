@@ -82,10 +82,6 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 - [x] Detailed platform diagnostics for debugging
 - [x] Memory storage testing on Windows for faster CI cycles
 
-### Known Issues
-
-- ~~**macOS Runtime Issue**: Tests disabled due to Drogon framework compatibility issue with C++17/20 on macOS.~~ **(RESOLVED 2026-05-03)**: macOS CI now passes all tests with memory storage configuration.
-
 ### Testing Coverage
 
 - [x] **18/18** Security tests (100%) - SQL injection, XSS, CORS, rate limiting, etc.
@@ -96,18 +92,6 @@ This project uses comprehensive multi-platform CI/CD to ensure code quality acro
 - Memory storage tests (Windows/Linux)
 - RBAC permission system tests
 - End-to-end OAuth2 authorization flow tests
-
-**Security & Quality Status**: **Production Ready**
-- All 10 critical security vulnerabilities fixed
-- 18 bugs resolved (51% completion rate)
-- 17 remaining bugs are low-priority technical debt
-- 1 bug confirmed as false positive (DB connection leak)
-
-See test reports (local documentation):
-- [Security Test Report](reports/bug-fix-2026-04-21/SECURITY_TEST_REPORT.md) - Comprehensive security testing results
-- [Functional Test Report](reports/bug-fix-2026-04-21/FUNCTIONAL_TEST_REPORT.md) - Complete functional testing results
-- [Remaining Bugs Analysis](reports/bug-fix-2026-04-21/REMAINING_BUGS_ANALYSIS.md) - Priority analysis for remaining bugs
-- [Remaining Bugs List](reports/bug-fix-2026-04-21/REMAINING_BUGS.md) - Detailed bug status and risk assessment
 
 See individual workflow files for detailed configuration:
 - [.github/workflows/ci-linux.yml](.github/workflows/ci-linux.yml)
@@ -329,23 +313,6 @@ docker-compose up -d
 docker build -t oauth2-backend:v1.9.12 .
 docker run -d -p 5555:5555 --name oauth2-server oauth2-backend:v1.9.12
 ```
-
-#### Platform-Specific Fixes
-
-**Linux Teardown Crash Fix** (2026-04-22):
-- [x] Fixed SegFault during program exit
-- `OAuth2CleanupService` with `stopped_` flag prevents duplicate cleanup
-- Tests exit cleanly without `std::_Exit(0)`
-
-**Windows Teardown Crash Fix** (2026-04-22):
-- [x] Fixed SegFault in `thr.join()` during teardown
-- Uses `std::_Exit(0)` for successful tests to bypass framework bugs
-- Proper `queueInLoop(quit())` handling
-
-**macOS Compatibility** (2026-04-15):
-- [x] Fixed C++17/20 compatibility issues
-- [x] ARM64 (Apple Silicon) support
-- [!] Tests disabled (build-only verification)
 
 **Verification**:
 ```bash

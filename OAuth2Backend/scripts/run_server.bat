@@ -2,8 +2,10 @@
 setlocal enabledelayedexpansion
 
 REM Store the script directory
-set CURRENT_DIR=%~dp0
-cd /d "%CURRENT_DIR%"
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%.."
+set PROJECT_DIR=%CD%
+echo Current work directory is "%PROJECT_DIR%"
 
 REM Check for Conan environment script
 if exist "build\conanrun.bat" (
@@ -14,7 +16,7 @@ if exist "build\conanrun.bat" (
 
 REM Try to run Release version first
 if exist "build\Release\OAuth2Server.exe" (
-    echo Starting OAuth2Server (Release)...
+    echo Starting OAuth2Server (Release)
     cd build\Release
     OAuth2Server.exe
     goto :eof
@@ -22,12 +24,12 @@ if exist "build\Release\OAuth2Server.exe" (
 
 REM Try Debug version
 if exist "build\Debug\OAuth2Server.exe" (
-    echo Starting OAuth2Server (Debug)...
+    echo Starting OAuth2Server (Debug)
     cd build\Debug
     OAuth2Server.exe
     goto :eof
 )
 
-echo Error: OAuth2Server.exe not found in build/Release or build/Debug.
+echo Error: OAuth2Server.exe not found in ../build/Release or ../build/Debug.
 echo Please run build.bat first.
 exit /b 1

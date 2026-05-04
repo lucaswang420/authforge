@@ -63,6 +63,9 @@ if not exist build (
     exit /b 1
 )
 
+REM Initialize cleanup flag
+set CONFIG_REPLACED=0
+
 cd build
 
 REM Set test working directory
@@ -87,6 +90,7 @@ REM ========================================
 REM Second Test Run: CI Configuration
 REM ========================================
 set CI_CONFIG_EXISTS=0
+set CONFIG_REPLACED=0
 if exist "%PROJECT_DIR%\config.ci.json" set CI_CONFIG_EXISTS=1
 
 if %CI_CONFIG_EXISTS% equ 0 (
@@ -101,17 +105,21 @@ echo Running second test with CI configuration...
 REM Backup and replace config
 move /Y "%TEST_WORK_DIR%\config.json" "%TEST_WORK_DIR%\config.json.bak" >nul 2>&1
 copy /Y "%PROJECT_DIR%\config.ci.json" "%TEST_WORK_DIR%\config.json" >nul 2>&1
+set CONFIG_REPLACED=1
 
 ctest -C %BUILD_TYPE% --output-on-failure %VERBOSE%
 set SECOND_RESULT=%errorlevel%
-
-REM Restore config
-move /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul 2>&1
 
 if %SECOND_RESULT% equ 0 (
     echo Second test: PASSED
 ) else (
     echo Second test: FAILED
+)
+
+REM Restore config immediately after test
+if %CONFIG_REPLACED% equ 1 (
+    move /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul 2>&1
+    set CONFIG_REPLACED=0
 )
 
 :skip_second_test
@@ -125,14 +133,8 @@ echo Second test (CI config):      Status=%SECOND_RESULT%
 echo ========================================
 
 REM Exit with error if any test failed
-if %FIRST_RESULT% neq 0 (
-    cd "%SCRIPT_DIR%"
-    exit /b 1
-)
-if %SECOND_RESULT% neq 0 (
-    cd "%SCRIPT_DIR%"
-    exit /b 1
-)
+if %FIRST_RESULT% neq 0 goto exit_with_error
+if %SECOND_RESULT% neq 0 goto exit_with_error
 
 echo.
 echo ========================================
@@ -141,3 +143,17 @@ echo ========================================
 
 cd "%SCRIPT_DIR%"
 endlocal
+exit /b 0
+
+:exit_with_error
+REM Ensure config is restored before exiting with error
+if %CONFIG_REPLACED% equ 1 (
+    if exist "%TEST_WORK_DIR%\config.json.bak" (
+        move /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul 2>&1
+        echo.
+        echo Restored config.json before exit
+    )
+)
+cd "%SCRIPT_DIR%"
+endlocal
+exit /b 1
