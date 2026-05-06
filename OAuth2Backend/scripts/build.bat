@@ -115,3 +115,5 @@ if %ERRORLEVEL% GEQ 8 (
 
 echo Build completed successfully!
 cd ..
+endlocal
+exit /b 0

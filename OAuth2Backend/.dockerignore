@@ -1,0 +1,65 @@
+# Build artifacts
+build/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.doc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+downloads/
+.eggs/
+.pytest_cache/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Test results
+Testing/
+tests/
+
+# Documentation (keep only essential)
+docs/
+!docs/*.md
+reports/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+
+# Docker files (don't copy into image)
+Dockerfile
+docker-compose.yml
+.dockerignore

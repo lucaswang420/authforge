@@ -97,3 +97,6 @@ echo   - plugins/*.cc
 echo.
 echo Please review the changes and rebuild the project.
 echo.
+
+endlocal
+exit /b 0
