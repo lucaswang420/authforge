@@ -61,7 +61,7 @@ OAuth2Backend/
 
 **回调接口优先**
 1. 优先使用异步回调接口 (`Mapper::findOne`, `execSqlAsync`)
-2. 其次使用同步接口 (`Mapper::findBy` with future)
+2. 非必要禁止使用同步接口 (`Mapper::findBy` with future)
 3. **禁止使用协程接口** (`CoroMapper`)
 
 **Lambda 捕获规范**
@@ -93,7 +93,6 @@ OAuth2Backend/
 
 以下示例展示了如何正确使用 ORM 替代 raw SQL，同时遵循异步回调规范：
 
-```cpp
 ```cpp
 // [+] 使用 ORM 替代 JOIN
 void getUserRoles(const std::string &userId, StringListCallback &&cb) {
@@ -154,16 +153,8 @@ void getUserRoles(const std::string &userId, StringListCallback &&cb) {
 
 ### [MUST] 敏感信息保护
 
-- [-] 禁止明文存储密码/密钥在配置文件中
+- [-] 禁止明文存储密码/密钥在配置文件中。测试环境密码除外。
 - [+] 使用环境变量覆盖: `OAUTH2_DB_PASSWORD`, `OAUTH2_REDIS_PASSWORD`
-- 示例:
-```json
-{
-  "db_client_name": "default",
-  "redis_host": "127.0.0.1",
-  "redis_password": "${OAUTH2_REDIS_PASSWORD}"  // 从环境变量读取
-}
-```
 
 ---
 
@@ -342,10 +333,6 @@ build.bat -debug
 **原因**: 连接池配置不当或数据库未启动
 **解决**: 检查 `config.json` 中的连接池配置，确保 PostgreSQL 服务运行
 
-### Issue: macOS 测试崩溃
-**原因**: Drogon 框架与 C++17/20 兼容性问题
-**解决**: macOS CI 仅验证构建，测试在 Linux/Windows 执行
-
 ---
 
 ## 十、项目特定注意事项
@@ -393,14 +380,6 @@ build.bat -debug
    4. 验证所有平台构建
    ```
 
-3. **性能优化**
-   ```
-   1. 使用性能分析工具 (perf, VTune)
-   2. 识别瓶颈 (数据库查询, 序列化)
-   3. 优化热点代码
-   4. 回归测试确保功能不变
-   ```
-
 ### 常用命令
 
 ```bash
@@ -408,7 +387,7 @@ build.bat -debug
 cmake -B build && cmake --build build
 
 # 运行测试
-cd build && ctest --output-on-failure
+cd build && ctest -V -C Release --output-on-failure
 
 # 代码格式化
 git ls-files 'OAuth2Backend/*.cc' 'OAuth2Backend/*.h' | grep -v '^OAuth2Backend/models/' | xargs clang-format -i
