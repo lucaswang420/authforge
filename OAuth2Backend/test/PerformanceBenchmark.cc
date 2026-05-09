@@ -375,19 +375,21 @@ DROGON_TEST(Performance_LatencyPercentiles)
 
         std::sort(latencies.begin(), latencies.end());
 
-        auto percentile = [&](int p) -> int64_t {
-            int idx = (SAMPLES * p) / 100;
+        auto percentile = [&](double p) -> int64_t {
+            int idx = static_cast<int>((SAMPLES * p) / 100.0);
+            if (idx < 0) idx = 0;
+            if (idx >= SAMPLES) idx = SAMPLES - 1;
             return latencies[idx];
         };
 
         LOG_INFO << "Latency Percentiles (microseconds):";
-        LOG_INFO << "  P50 (Median): " << percentile(50);
-        LOG_INFO << "  P90: " << percentile(90);
-        LOG_INFO << "  P95: " << percentile(95);
-        LOG_INFO << "  P99: " << percentile(99);
-        LOG_INFO << "  P99.9: " << percentile(999) / 10.0;
+        LOG_INFO << "  P50 (Median): " << percentile(50.0);
+        LOG_INFO << "  P90: " << percentile(90.0);
+        LOG_INFO << "  P95: " << percentile(95.0);
+        LOG_INFO << "  P99: " << percentile(99.0);
+        LOG_INFO << "  P99.9: " << percentile(99.9);
 
-        CHECK(percentile(99) < 1000);  // P99 should be < 1ms
+        CHECK(percentile(99.0) < 1000);  // P99 should be < 1ms
     }
     catch (const std::exception &e)
     {

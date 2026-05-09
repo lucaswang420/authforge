@@ -9,31 +9,52 @@
 namespace common::documentation
 {
 
-std::vector<EndpointInfo> OpenApiGenerator::endpoints_;
-Json::Value OpenApiGenerator::apiInfo_;
-bool OpenApiGenerator::initialized_ = false;
-Json::Value OpenApiGenerator::serverConfig_;
+std::vector<EndpointInfo> &OpenApiGenerator::getEndpoints()
+{
+    static std::vector<EndpointInfo> endpoints;
+    return endpoints;
+}
+
+Json::Value &OpenApiGenerator::getApiInfo()
+{
+    static Json::Value apiInfo;
+    return apiInfo;
+}
+
+bool &OpenApiGenerator::getInitialized()
+{
+    static bool initialized = false;
+    return initialized;
+}
+
+Json::Value &OpenApiGenerator::getServerConfig()
+{
+    static Json::Value serverConfig;
+    return serverConfig;
+}
 
 void OpenApiGenerator::setApiInfo(const std::string &title,
                                   const std::string &version,
                                   const std::string &description)
 {
-    apiInfo_["title"] = title;
-    apiInfo_["version"] = version;
-    apiInfo_["description"] = description;
-    initialized_ = true;
+    auto &apiInfo = getApiInfo();
+    apiInfo["title"] = title;
+    apiInfo["version"] = version;
+    apiInfo["description"] = description;
+    getInitialized() = true;
 }
 
 void OpenApiGenerator::setServerConfig(const std::string &url,
                                        const std::string &description)
 {
-    serverConfig_["url"] = url;
-    serverConfig_["description"] = description;
+    auto &serverConfig = getServerConfig();
+    serverConfig["url"] = url;
+    serverConfig["description"] = description;
 }
 
 void OpenApiGenerator::addEndpoint(const EndpointInfo &endpoint)
 {
-    endpoints_.push_back(endpoint);
+    getEndpoints().push_back(endpoint);
 }
 
 Json::Value OpenApiGenerator::generateOpenApiSpec()
@@ -42,20 +63,21 @@ Json::Value OpenApiGenerator::generateOpenApiSpec()
     spec["openapi"] = "3.0.0";
 
     // Info section
-    if (!initialized_)
+    if (!getInitialized())
     {
         setApiInfo("OAuth2 Authorization Server API",
                    "1.0.0",
                    "OAuth2.0 authorization server with token management");
     }
-    spec["info"] = apiInfo_;
+    spec["info"] = getApiInfo();
 
     // Servers
     Json::Value servers(Json::arrayValue);
-    if (!serverConfig_.empty() && serverConfig_.isMember("url"))
+    auto &serverConfig = getServerConfig();
+    if (!serverConfig.empty() && serverConfig.isMember("url"))
     {
         // Use configured server
-        servers.append(serverConfig_);
+        servers.append(serverConfig);
     }
     else
     {
@@ -69,7 +91,7 @@ Json::Value OpenApiGenerator::generateOpenApiSpec()
 
     // Paths
     Json::Value paths;
-    for (const auto &endpoint : endpoints_)
+    for (const auto &endpoint : getEndpoints())
     {
         std::string pathKey = endpoint.path;
         Json::Value pathItem = generatePathItem(endpoint);

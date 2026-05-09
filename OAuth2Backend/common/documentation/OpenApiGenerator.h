@@ -75,10 +75,10 @@ class OpenApiGenerator
     static std::string parameterLocationToString(ParameterLocation location);
 
   private:
-    static std::vector<EndpointInfo> endpoints_;
-    static Json::Value apiInfo_;
-    static bool initialized_;
-    static Json::Value serverConfig_;
+    static std::vector<EndpointInfo> &getEndpoints();
+    static Json::Value &getApiInfo();
+    static bool &getInitialized();
+    static Json::Value &getServerConfig();
 
     static Json::Value generatePathItem(const EndpointInfo &endpoint);
     static Json::Value generateParameter(const ParameterInfo &param);

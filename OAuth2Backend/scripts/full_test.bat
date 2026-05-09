@@ -29,6 +29,23 @@ echo.
 
 REM Track server PID for cleanup
 set SERVER_PID=0
+set BUILD_TYPE=-release
+
+REM Parse command line arguments
+:parse_args
+if "%1"=="" goto end_parse
+if /i "%1"=="-debug" (
+    set BUILD_TYPE=-debug
+    shift
+    goto parse_args
+)
+if /i "%1"=="-release" (
+    set BUILD_TYPE=-release
+    shift
+    goto parse_args
+)
+
+:end_parse
 
 REM ========================================
 REM Step 1: Reinitialize Database
@@ -66,7 +83,7 @@ REM ========================================
 echo ========================================
 echo Step 3: Rebuilding project
 echo ========================================
-call "%SCRIPT_DIR%build.bat"
+call "%SCRIPT_DIR%build.bat" %BUILD_TYPE%
 if %ERRORLEVEL% neq 0 (
     echo.
     echo [FAILED] Build failed
@@ -81,7 +98,7 @@ REM ========================================
 echo ========================================
 echo Step 4: Running tests
 echo ========================================
-call "%SCRIPT_DIR%test.bat"
+call "%SCRIPT_DIR%test.bat" %BUILD_TYPE%
 if %ERRORLEVEL% neq 0 (
     echo.
     echo [FAILED] Tests failed
