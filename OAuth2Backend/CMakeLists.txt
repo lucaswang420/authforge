@@ -114,20 +114,18 @@ target_sources(${PROJECT_NAME}
 	# Copy Swagger UI files to executable directory (cross-platform)
 	# For multi-config generators (like Visual Studio), copy to both Debug and Release
 	if(MSVC OR XCODE)
-		# Multi-config generators: copy to each configuration directory
-		foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES})
-			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/docs/api/swagger-ui
-			    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/docs/api/swagger-ui
-			    COMMAND ${CMAKE_COMMAND} -E echo "Swagger UI files copied to ${CONFIG_TYPE} directory"
-			    COMMENT "Copying Swagger UI files to ${CONFIG_TYPE} directory"
-			)
-		endforeach()
+		# Multi-config generators: copy to current configuration directory using generator expressions
+		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/docs/api/swagger-ui
+		    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/$<CONFIG>/docs/api/swagger-ui
+		    COMMAND ${CMAKE_COMMAND} -E echo "Swagger UI files copied to $<CONFIG> directory"
+		    COMMENT "Copying Swagger UI files to $<CONFIG> directory"
+		)
 	else()
 		# Single-config generators: copy to build directory
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 		    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/docs/api/swagger-ui
-		    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/docs/api/swagger-ui
+		    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/docs/api/swagger-ui ${CMAKE_BINARY_DIR}/docs/api/swagger-ui
 		    COMMAND ${CMAKE_COMMAND} -E echo "Swagger UI files copied successfully"
 		    COMMENT "Copying Swagger UI files to build directory"
 		)
