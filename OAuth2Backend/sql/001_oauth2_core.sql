@@ -38,7 +38,15 @@ CREATE TABLE oauth2_access_tokens (
     user_id VARCHAR(50),
     scope TEXT,
     expires_at BIGINT NOT NULL,
-    revoked BOOLEAN DEFAULT FALSE
+    revoked BOOLEAN DEFAULT FALSE,
+    -- P1: RFC 7662 Token Introspection fields
+    issued_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP),
+    issuer VARCHAR(255) NOT NULL DEFAULT 'https://oauth.example.com',
+    audience VARCHAR(255),
+    not_before BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP),
+    introspect_count INTEGER DEFAULT 0,
+    revoked_at BIGINT,
+    revoked_by VARCHAR(50)
 );
 
 -- Refresh Tokens Table
@@ -49,7 +57,10 @@ CREATE TABLE oauth2_refresh_tokens (
     user_id VARCHAR(50),
     scope TEXT,
     expires_at BIGINT NOT NULL,
-    revoked BOOLEAN DEFAULT FALSE
+    revoked BOOLEAN DEFAULT FALSE,
+    -- P1: RFC 7009 Token Revocation audit fields
+    revoked_at BIGINT,
+    revoked_by VARCHAR(50)
 );
 
 -- Sample Data: vue-client (PUBLIC Client - no secret required for authentication)
@@ -63,3 +74,35 @@ VALUES (
     'http://localhost:5173/callback,http://localhost:8080/callback',
     'authorization_code,refresh_token'
 );
+
+-- ============================================================================
+-- P1: Token Introspection (RFC 7662) & Token Revocation (RFC 7009) Indexes
+-- ============================================================================
+
+-- Token lookup by token string (for introspection)
+CREATE INDEX idx_access_tokens_token ON oauth2_access_tokens(token);
+
+-- Token lookup by client_id (for client-specific queries)
+CREATE INDEX idx_access_tokens_client_id ON oauth2_access_tokens(client_id);
+
+-- Token expiration cleanup (for token cleanup jobs)
+CREATE INDEX idx_access_tokens_expires_at ON oauth2_access_tokens(expires_at);
+
+-- Revoked token cleanup (for cleanup jobs)
+CREATE INDEX idx_access_tokens_revoked ON oauth2_access_tokens(revoked, expires_at);
+
+-- Refresh token indexes
+CREATE INDEX idx_refresh_tokens_token ON oauth2_refresh_tokens(token);
+CREATE INDEX idx_refresh_tokens_revoked ON oauth2_refresh_tokens(revoked, expires_at);
+
+-- Column comments for documentation
+COMMENT ON COLUMN oauth2_access_tokens.issued_at IS 'Unix timestamp when token was issued (RFC 7662 iat field)';
+COMMENT ON COLUMN oauth2_access_tokens.issuer IS 'Issuer identifier (RFC 7662 iss field)';
+COMMENT ON COLUMN oauth2_access_tokens.audience IS 'Audience identifier (RFC 7662 aud field)';
+COMMENT ON COLUMN oauth2_access_tokens.not_before IS 'Token not valid before this time (RFC 7662 nbf field)';
+COMMENT ON COLUMN oauth2_access_tokens.introspect_count IS 'Number of introspection requests for monitoring';
+COMMENT ON COLUMN oauth2_access_tokens.revoked_at IS 'Unix timestamp when token was revoked';
+COMMENT ON COLUMN oauth2_access_tokens.revoked_by IS 'Client ID that revoked the token';
+
+COMMENT ON COLUMN oauth2_refresh_tokens.revoked_at IS 'Unix timestamp when refresh token was revoked';
+COMMENT ON COLUMN oauth2_refresh_tokens.revoked_by IS 'Client ID that revoked the refresh token';

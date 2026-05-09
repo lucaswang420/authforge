@@ -52,6 +52,8 @@ class Oauth2RefreshTokens
         static const std::string _scope;
         static const std::string _expires_at;
         static const std::string _revoked;
+        static const std::string _revoked_at;
+        static const std::string _revoked_by;
     };
 
     static const int primaryKeyNumber;
@@ -167,8 +169,27 @@ class Oauth2RefreshTokens
     void setRevoked(const bool &pRevoked) noexcept;
     void setRevokedToNull() noexcept;
 
+    /**  For column revoked_at  */
+    ///Get the value of the column revoked_at, returns the default value if the column is null
+    const int64_t &getValueOfRevokedAt() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int64_t> &getRevokedAt() const noexcept;
+    ///Set the value of the column revoked_at
+    void setRevokedAt(const int64_t &pRevokedAt) noexcept;
+    void setRevokedAtToNull() noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 7;  }
+    /**  For column revoked_by  */
+    ///Get the value of the column revoked_by, returns the default value if the column is null
+    const std::string &getValueOfRevokedBy() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getRevokedBy() const noexcept;
+    ///Set the value of the column revoked_by
+    void setRevokedBy(const std::string &pRevokedBy) noexcept;
+    void setRevokedBy(std::string &&pRevokedBy) noexcept;
+    void setRevokedByToNull() noexcept;
+
+
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -201,6 +222,8 @@ class Oauth2RefreshTokens
     std::shared_ptr<std::string> scope_;
     std::shared_ptr<int64_t> expiresAt_;
     std::shared_ptr<bool> revoked_;
+    std::shared_ptr<int64_t> revokedAt_;
+    std::shared_ptr<std::string> revokedBy_;
     struct MetaData
     {
         const std::string colName_;
@@ -212,7 +235,7 @@ class Oauth2RefreshTokens
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[7]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -266,6 +289,16 @@ class Oauth2RefreshTokens
         {
             needSelection=true;
         }
+        if(dirtyFlag_[7])
+        {
+            sql += "revoked_at,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[8])
+        {
+            sql += "revoked_by,";
+            ++parametersCount;
+        }
         if(parametersCount > 0)
         {
             sql[sql.length()-1]=')';
@@ -315,6 +348,16 @@ class Oauth2RefreshTokens
         else
         {
             sql +="default,";
+        }
+        if(dirtyFlag_[7])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        if(dirtyFlag_[8])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
         }
         if(parametersCount > 0)
         {

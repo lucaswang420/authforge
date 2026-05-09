@@ -21,6 +21,8 @@ const std::string Oauth2RefreshTokens::Cols::_user_id = "\"user_id\"";
 const std::string Oauth2RefreshTokens::Cols::_scope = "\"scope\"";
 const std::string Oauth2RefreshTokens::Cols::_expires_at = "\"expires_at\"";
 const std::string Oauth2RefreshTokens::Cols::_revoked = "\"revoked\"";
+const std::string Oauth2RefreshTokens::Cols::_revoked_at = "\"revoked_at\"";
+const std::string Oauth2RefreshTokens::Cols::_revoked_by = "\"revoked_by\"";
 const std::string Oauth2RefreshTokens::primaryKeyName = "token";
 const bool Oauth2RefreshTokens::hasPrimaryKey = true;
 const std::string Oauth2RefreshTokens::tableName = "\"oauth2_refresh_tokens\"";
@@ -32,7 +34,9 @@ const std::vector<typename Oauth2RefreshTokens::MetaData> Oauth2RefreshTokens::m
 {"user_id","std::string","character varying",50,0,0,0},
 {"scope","std::string","text",0,0,0,0},
 {"expires_at","int64_t","bigint",8,0,0,1},
-{"revoked","bool","boolean",1,0,0,0}
+{"revoked","bool","boolean",1,0,0,0},
+{"revoked_at","int64_t","bigint",8,0,0,0},
+{"revoked_by","std::string","character varying",50,0,0,0}
 };
 const std::string &Oauth2RefreshTokens::getColumnName(size_t index) noexcept(false)
 {
@@ -71,11 +75,19 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Row &r, const ssize_t indexOffset
         {
             revoked_=std::make_shared<bool>(r["revoked"].as<bool>());
         }
+        if(!r["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>(r["revoked_at"].as<int64_t>());
+        }
+        if(!r["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(r["revoked_by"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 9 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -116,13 +128,23 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Row &r, const ssize_t indexOffset
         {
             revoked_=std::make_shared<bool>(r[index].as<bool>());
         }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -181,6 +203,22 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson, const std::ve
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
             revoked_=std::make_shared<bool>(pJson[pMasqueradingVector[6]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[7]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
@@ -243,12 +281,28 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson) noexcept(fals
             revoked_=std::make_shared<bool>(pJson["revoked"].asBool());
         }
     }
+    if(pJson.isMember("revoked_at"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson["revoked_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
+        }
+    }
 }
 
 void Oauth2RefreshTokens::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -308,6 +362,22 @@ void Oauth2RefreshTokens::updateByMasqueradedJson(const Json::Value &pJson,
             revoked_=std::make_shared<bool>(pJson[pMasqueradingVector[6]].asBool());
         }
     }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[7]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
 }
 
 void Oauth2RefreshTokens::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -365,6 +435,22 @@ void Oauth2RefreshTokens::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["revoked"].isNull())
         {
             revoked_=std::make_shared<bool>(pJson["revoked"].asBool());
+        }
+    }
+    if(pJson.isMember("revoked_at"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson["revoked_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
         }
     }
 }
@@ -533,6 +619,55 @@ void Oauth2RefreshTokens::setRevokedToNull() noexcept
     dirtyFlag_[6] = true;
 }
 
+const int64_t &Oauth2RefreshTokens::getValueOfRevokedAt() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(revokedAt_)
+        return *revokedAt_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Oauth2RefreshTokens::getRevokedAt() const noexcept
+{
+    return revokedAt_;
+}
+void Oauth2RefreshTokens::setRevokedAt(const int64_t &pRevokedAt) noexcept
+{
+    revokedAt_ = std::make_shared<int64_t>(pRevokedAt);
+    dirtyFlag_[7] = true;
+}
+void Oauth2RefreshTokens::setRevokedAtToNull() noexcept
+{
+    revokedAt_.reset();
+    dirtyFlag_[7] = true;
+}
+
+const std::string &Oauth2RefreshTokens::getValueOfRevokedBy() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(revokedBy_)
+        return *revokedBy_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2RefreshTokens::getRevokedBy() const noexcept
+{
+    return revokedBy_;
+}
+void Oauth2RefreshTokens::setRevokedBy(const std::string &pRevokedBy) noexcept
+{
+    revokedBy_ = std::make_shared<std::string>(pRevokedBy);
+    dirtyFlag_[8] = true;
+}
+void Oauth2RefreshTokens::setRevokedBy(std::string &&pRevokedBy) noexcept
+{
+    revokedBy_ = std::make_shared<std::string>(std::move(pRevokedBy));
+    dirtyFlag_[8] = true;
+}
+void Oauth2RefreshTokens::setRevokedByToNull() noexcept
+{
+    revokedBy_.reset();
+    dirtyFlag_[8] = true;
+}
+
 void Oauth2RefreshTokens::updateId(const uint64_t id)
 {
 }
@@ -546,7 +681,9 @@ const std::vector<std::string> &Oauth2RefreshTokens::insertColumns() noexcept
         "user_id",
         "scope",
         "expires_at",
-        "revoked"
+        "revoked",
+        "revoked_at",
+        "revoked_by"
     };
     return inCols;
 }
@@ -630,6 +767,28 @@ void Oauth2RefreshTokens::outputArgs(drogon::orm::internal::SqlBinder &binder) c
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getRevokedAt())
+        {
+            binder << getValueOfRevokedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getRevokedBy())
+        {
+            binder << getValueOfRevokedBy();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Oauth2RefreshTokens::updateColumns() const
@@ -662,6 +821,14 @@ const std::vector<std::string> Oauth2RefreshTokens::updateColumns() const
     if(dirtyFlag_[6])
     {
         ret.push_back(getColumnName(6));
+    }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
     }
     return ret;
 }
@@ -745,6 +912,28 @@ void Oauth2RefreshTokens::updateArgs(drogon::orm::internal::SqlBinder &binder) c
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getRevokedAt())
+        {
+            binder << getValueOfRevokedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getRevokedBy())
+        {
+            binder << getValueOfRevokedBy();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Oauth2RefreshTokens::toJson() const
 {
@@ -805,6 +994,22 @@ Json::Value Oauth2RefreshTokens::toJson() const
     {
         ret["revoked"]=Json::Value();
     }
+    if(getRevokedAt())
+    {
+        ret["revoked_at"]=(Json::Int64)getValueOfRevokedAt();
+    }
+    else
+    {
+        ret["revoked_at"]=Json::Value();
+    }
+    if(getRevokedBy())
+    {
+        ret["revoked_by"]=getValueOfRevokedBy();
+    }
+    else
+    {
+        ret["revoked_by"]=Json::Value();
+    }
     return ret;
 }
 
@@ -817,7 +1022,7 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 9)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -896,6 +1101,28 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
                 ret[pMasqueradingVector[6]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getRevokedAt())
+            {
+                ret[pMasqueradingVector[7]]=(Json::Int64)getValueOfRevokedAt();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getRevokedBy())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfRevokedBy();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -954,6 +1181,22 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
     else
     {
         ret["revoked"]=Json::Value();
+    }
+    if(getRevokedAt())
+    {
+        ret["revoked_at"]=(Json::Int64)getValueOfRevokedAt();
+    }
+    else
+    {
+        ret["revoked_at"]=Json::Value();
+    }
+    if(getRevokedBy())
+    {
+        ret["revoked_by"]=getValueOfRevokedBy();
+    }
+    else
+    {
+        ret["revoked_by"]=Json::Value();
     }
     return ret;
 }
@@ -1015,13 +1258,23 @@ bool Oauth2RefreshTokens::validateJsonForCreation(const Json::Value &pJson, std:
         if(!validJsonOfField(6, "revoked", pJson["revoked"], err, true))
             return false;
     }
+    if(pJson.isMember("revoked_at"))
+    {
+        if(!validJsonOfField(7, "revoked_at", pJson["revoked_at"], err, true))
+            return false;
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        if(!validJsonOfField(8, "revoked_by", pJson["revoked_by"], err, true))
+            return false;
+    }
     return true;
 }
 bool Oauth2RefreshTokens::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                              const std::vector<std::string> &pMasqueradingVector,
                                                              std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1103,6 +1356,22 @@ bool Oauth2RefreshTokens::validateMasqueradedJsonForCreation(const Json::Value &
                   return false;
           }
       }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1153,13 +1422,23 @@ bool Oauth2RefreshTokens::validateJsonForUpdate(const Json::Value &pJson, std::s
         if(!validJsonOfField(6, "revoked", pJson["revoked"], err, false))
             return false;
     }
+    if(pJson.isMember("revoked_at"))
+    {
+        if(!validJsonOfField(7, "revoked_at", pJson["revoked_at"], err, false))
+            return false;
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        if(!validJsonOfField(8, "revoked_by", pJson["revoked_by"], err, false))
+            return false;
+    }
     return true;
 }
 bool Oauth2RefreshTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                            const std::vector<std::string> &pMasqueradingVector,
                                                            std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1203,6 +1482,16 @@ bool Oauth2RefreshTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJ
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
               return false;
       }
     }
@@ -1331,6 +1620,36 @@ bool Oauth2RefreshTokens::validJsonOfField(size_t index,
             if(!pJson.isBool())
             {
                 err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt64())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 50)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 50)";
                 return false;
             }
             break;

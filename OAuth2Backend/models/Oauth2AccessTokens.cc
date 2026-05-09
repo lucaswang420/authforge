@@ -20,6 +20,13 @@ const std::string Oauth2AccessTokens::Cols::_user_id = "\"user_id\"";
 const std::string Oauth2AccessTokens::Cols::_scope = "\"scope\"";
 const std::string Oauth2AccessTokens::Cols::_expires_at = "\"expires_at\"";
 const std::string Oauth2AccessTokens::Cols::_revoked = "\"revoked\"";
+const std::string Oauth2AccessTokens::Cols::_issued_at = "\"issued_at\"";
+const std::string Oauth2AccessTokens::Cols::_issuer = "\"issuer\"";
+const std::string Oauth2AccessTokens::Cols::_audience = "\"audience\"";
+const std::string Oauth2AccessTokens::Cols::_not_before = "\"not_before\"";
+const std::string Oauth2AccessTokens::Cols::_introspect_count = "\"introspect_count\"";
+const std::string Oauth2AccessTokens::Cols::_revoked_at = "\"revoked_at\"";
+const std::string Oauth2AccessTokens::Cols::_revoked_by = "\"revoked_by\"";
 const std::string Oauth2AccessTokens::primaryKeyName = "token";
 const bool Oauth2AccessTokens::hasPrimaryKey = true;
 const std::string Oauth2AccessTokens::tableName = "\"oauth2_access_tokens\"";
@@ -30,7 +37,14 @@ const std::vector<typename Oauth2AccessTokens::MetaData> Oauth2AccessTokens::met
 {"user_id","std::string","character varying",50,0,0,0},
 {"scope","std::string","text",0,0,0,0},
 {"expires_at","int64_t","bigint",8,0,0,1},
-{"revoked","bool","boolean",1,0,0,0}
+{"revoked","bool","boolean",1,0,0,0},
+{"issued_at","int64_t","bigint",8,0,0,1},
+{"issuer","std::string","character varying",255,0,0,1},
+{"audience","std::string","character varying",255,0,0,0},
+{"not_before","int64_t","bigint",8,0,0,0},
+{"introspect_count","int32_t","integer",4,0,0,0},
+{"revoked_at","int64_t","bigint",8,0,0,0},
+{"revoked_by","std::string","character varying",50,0,0,0}
 };
 const std::string &Oauth2AccessTokens::getColumnName(size_t index) noexcept(false)
 {
@@ -65,11 +79,39 @@ Oauth2AccessTokens::Oauth2AccessTokens(const Row &r, const ssize_t indexOffset) 
         {
             revoked_=std::make_shared<bool>(r["revoked"].as<bool>());
         }
+        if(!r["issued_at"].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>(r["issued_at"].as<int64_t>());
+        }
+        if(!r["issuer"].isNull())
+        {
+            issuer_=std::make_shared<std::string>(r["issuer"].as<std::string>());
+        }
+        if(!r["audience"].isNull())
+        {
+            audience_=std::make_shared<std::string>(r["audience"].as<std::string>());
+        }
+        if(!r["not_before"].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>(r["not_before"].as<int64_t>());
+        }
+        if(!r["introspect_count"].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>(r["introspect_count"].as<int32_t>());
+        }
+        if(!r["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>(r["revoked_at"].as<int64_t>());
+        }
+        if(!r["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(r["revoked_by"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 6 > r.size())
+        if(offset + 13 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -105,13 +147,48 @@ Oauth2AccessTokens::Oauth2AccessTokens(const Row &r, const ssize_t indexOffset) 
         {
             revoked_=std::make_shared<bool>(r[index].as<bool>());
         }
+        index = offset + 6;
+        if(!r[index].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            issuer_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            audience_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 9;
+        if(!r[index].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
+        index = offset + 10;
+        if(!r[index].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>(r[index].as<int32_t>());
+        }
+        index = offset + 11;
+        if(!r[index].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
+        index = offset + 12;
+        if(!r[index].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Oauth2AccessTokens::Oauth2AccessTokens(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 6)
+    if(pMasqueradingVector.size() != 13)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -162,6 +239,62 @@ Oauth2AccessTokens::Oauth2AccessTokens(const Json::Value &pJson, const std::vect
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
             revoked_=std::make_shared<bool>(pJson[pMasqueradingVector[5]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[6]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            issuer_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            audience_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[9]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[10]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[12]].asString());
         }
     }
 }
@@ -216,12 +349,68 @@ Oauth2AccessTokens::Oauth2AccessTokens(const Json::Value &pJson) noexcept(false)
             revoked_=std::make_shared<bool>(pJson["revoked"].asBool());
         }
     }
+    if(pJson.isMember("issued_at"))
+    {
+        dirtyFlag_[6]=true;
+        if(!pJson["issued_at"].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>((int64_t)pJson["issued_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("issuer"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["issuer"].isNull())
+        {
+            issuer_=std::make_shared<std::string>(pJson["issuer"].asString());
+        }
+    }
+    if(pJson.isMember("audience"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["audience"].isNull())
+        {
+            audience_=std::make_shared<std::string>(pJson["audience"].asString());
+        }
+    }
+    if(pJson.isMember("not_before"))
+    {
+        dirtyFlag_[9]=true;
+        if(!pJson["not_before"].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>((int64_t)pJson["not_before"].asInt64());
+        }
+    }
+    if(pJson.isMember("introspect_count"))
+    {
+        dirtyFlag_[10]=true;
+        if(!pJson["introspect_count"].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>((int32_t)pJson["introspect_count"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_at"))
+    {
+        dirtyFlag_[11]=true;
+        if(!pJson["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson["revoked_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        dirtyFlag_[12]=true;
+        if(!pJson["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
+        }
+    }
 }
 
 void Oauth2AccessTokens::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 6)
+    if(pMasqueradingVector.size() != 13)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -273,6 +462,62 @@ void Oauth2AccessTokens::updateByMasqueradedJson(const Json::Value &pJson,
             revoked_=std::make_shared<bool>(pJson[pMasqueradingVector[5]].asBool());
         }
     }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[6]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            issuer_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            audience_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[9]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[10]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[12]].asString());
+        }
+    }
 }
 
 void Oauth2AccessTokens::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -322,6 +567,62 @@ void Oauth2AccessTokens::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["revoked"].isNull())
         {
             revoked_=std::make_shared<bool>(pJson["revoked"].asBool());
+        }
+    }
+    if(pJson.isMember("issued_at"))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson["issued_at"].isNull())
+        {
+            issuedAt_=std::make_shared<int64_t>((int64_t)pJson["issued_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("issuer"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["issuer"].isNull())
+        {
+            issuer_=std::make_shared<std::string>(pJson["issuer"].asString());
+        }
+    }
+    if(pJson.isMember("audience"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["audience"].isNull())
+        {
+            audience_=std::make_shared<std::string>(pJson["audience"].asString());
+        }
+    }
+    if(pJson.isMember("not_before"))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson["not_before"].isNull())
+        {
+            notBefore_=std::make_shared<int64_t>((int64_t)pJson["not_before"].asInt64());
+        }
+    }
+    if(pJson.isMember("introspect_count"))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson["introspect_count"].isNull())
+        {
+            introspectCount_=std::make_shared<int32_t>((int32_t)pJson["introspect_count"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_at"))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson["revoked_at"].isNull())
+        {
+            revokedAt_=std::make_shared<int64_t>((int64_t)pJson["revoked_at"].asInt64());
+        }
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson["revoked_by"].isNull())
+        {
+            revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
         }
     }
 }
@@ -468,6 +769,165 @@ void Oauth2AccessTokens::setRevokedToNull() noexcept
     dirtyFlag_[5] = true;
 }
 
+const int64_t &Oauth2AccessTokens::getValueOfIssuedAt() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(issuedAt_)
+        return *issuedAt_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Oauth2AccessTokens::getIssuedAt() const noexcept
+{
+    return issuedAt_;
+}
+void Oauth2AccessTokens::setIssuedAt(const int64_t &pIssuedAt) noexcept
+{
+    issuedAt_ = std::make_shared<int64_t>(pIssuedAt);
+    dirtyFlag_[6] = true;
+}
+
+const std::string &Oauth2AccessTokens::getValueOfIssuer() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(issuer_)
+        return *issuer_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2AccessTokens::getIssuer() const noexcept
+{
+    return issuer_;
+}
+void Oauth2AccessTokens::setIssuer(const std::string &pIssuer) noexcept
+{
+    issuer_ = std::make_shared<std::string>(pIssuer);
+    dirtyFlag_[7] = true;
+}
+void Oauth2AccessTokens::setIssuer(std::string &&pIssuer) noexcept
+{
+    issuer_ = std::make_shared<std::string>(std::move(pIssuer));
+    dirtyFlag_[7] = true;
+}
+
+const std::string &Oauth2AccessTokens::getValueOfAudience() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(audience_)
+        return *audience_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2AccessTokens::getAudience() const noexcept
+{
+    return audience_;
+}
+void Oauth2AccessTokens::setAudience(const std::string &pAudience) noexcept
+{
+    audience_ = std::make_shared<std::string>(pAudience);
+    dirtyFlag_[8] = true;
+}
+void Oauth2AccessTokens::setAudience(std::string &&pAudience) noexcept
+{
+    audience_ = std::make_shared<std::string>(std::move(pAudience));
+    dirtyFlag_[8] = true;
+}
+void Oauth2AccessTokens::setAudienceToNull() noexcept
+{
+    audience_.reset();
+    dirtyFlag_[8] = true;
+}
+
+const int64_t &Oauth2AccessTokens::getValueOfNotBefore() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(notBefore_)
+        return *notBefore_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Oauth2AccessTokens::getNotBefore() const noexcept
+{
+    return notBefore_;
+}
+void Oauth2AccessTokens::setNotBefore(const int64_t &pNotBefore) noexcept
+{
+    notBefore_ = std::make_shared<int64_t>(pNotBefore);
+    dirtyFlag_[9] = true;
+}
+void Oauth2AccessTokens::setNotBeforeToNull() noexcept
+{
+    notBefore_.reset();
+    dirtyFlag_[9] = true;
+}
+
+const int32_t &Oauth2AccessTokens::getValueOfIntrospectCount() const noexcept
+{
+    static const int32_t defaultValue = int32_t();
+    if(introspectCount_)
+        return *introspectCount_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Oauth2AccessTokens::getIntrospectCount() const noexcept
+{
+    return introspectCount_;
+}
+void Oauth2AccessTokens::setIntrospectCount(const int32_t &pIntrospectCount) noexcept
+{
+    introspectCount_ = std::make_shared<int32_t>(pIntrospectCount);
+    dirtyFlag_[10] = true;
+}
+void Oauth2AccessTokens::setIntrospectCountToNull() noexcept
+{
+    introspectCount_.reset();
+    dirtyFlag_[10] = true;
+}
+
+const int64_t &Oauth2AccessTokens::getValueOfRevokedAt() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(revokedAt_)
+        return *revokedAt_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Oauth2AccessTokens::getRevokedAt() const noexcept
+{
+    return revokedAt_;
+}
+void Oauth2AccessTokens::setRevokedAt(const int64_t &pRevokedAt) noexcept
+{
+    revokedAt_ = std::make_shared<int64_t>(pRevokedAt);
+    dirtyFlag_[11] = true;
+}
+void Oauth2AccessTokens::setRevokedAtToNull() noexcept
+{
+    revokedAt_.reset();
+    dirtyFlag_[11] = true;
+}
+
+const std::string &Oauth2AccessTokens::getValueOfRevokedBy() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(revokedBy_)
+        return *revokedBy_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2AccessTokens::getRevokedBy() const noexcept
+{
+    return revokedBy_;
+}
+void Oauth2AccessTokens::setRevokedBy(const std::string &pRevokedBy) noexcept
+{
+    revokedBy_ = std::make_shared<std::string>(pRevokedBy);
+    dirtyFlag_[12] = true;
+}
+void Oauth2AccessTokens::setRevokedBy(std::string &&pRevokedBy) noexcept
+{
+    revokedBy_ = std::make_shared<std::string>(std::move(pRevokedBy));
+    dirtyFlag_[12] = true;
+}
+void Oauth2AccessTokens::setRevokedByToNull() noexcept
+{
+    revokedBy_.reset();
+    dirtyFlag_[12] = true;
+}
+
 void Oauth2AccessTokens::updateId(const uint64_t id)
 {
 }
@@ -480,7 +940,14 @@ const std::vector<std::string> &Oauth2AccessTokens::insertColumns() noexcept
         "user_id",
         "scope",
         "expires_at",
-        "revoked"
+        "revoked",
+        "issued_at",
+        "issuer",
+        "audience",
+        "not_before",
+        "introspect_count",
+        "revoked_at",
+        "revoked_by"
     };
     return inCols;
 }
@@ -553,6 +1020,83 @@ void Oauth2AccessTokens::outputArgs(drogon::orm::internal::SqlBinder &binder) co
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[6])
+    {
+        if(getIssuedAt())
+        {
+            binder << getValueOfIssuedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getIssuer())
+        {
+            binder << getValueOfIssuer();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getAudience())
+        {
+            binder << getValueOfAudience();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getNotBefore())
+        {
+            binder << getValueOfNotBefore();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getIntrospectCount())
+        {
+            binder << getValueOfIntrospectCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[11])
+    {
+        if(getRevokedAt())
+        {
+            binder << getValueOfRevokedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[12])
+    {
+        if(getRevokedBy())
+        {
+            binder << getValueOfRevokedBy();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Oauth2AccessTokens::updateColumns() const
@@ -581,6 +1125,34 @@ const std::vector<std::string> Oauth2AccessTokens::updateColumns() const
     if(dirtyFlag_[5])
     {
         ret.push_back(getColumnName(5));
+    }
+    if(dirtyFlag_[6])
+    {
+        ret.push_back(getColumnName(6));
+    }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
+    }
+    if(dirtyFlag_[10])
+    {
+        ret.push_back(getColumnName(10));
+    }
+    if(dirtyFlag_[11])
+    {
+        ret.push_back(getColumnName(11));
+    }
+    if(dirtyFlag_[12])
+    {
+        ret.push_back(getColumnName(12));
     }
     return ret;
 }
@@ -653,6 +1225,83 @@ void Oauth2AccessTokens::updateArgs(drogon::orm::internal::SqlBinder &binder) co
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[6])
+    {
+        if(getIssuedAt())
+        {
+            binder << getValueOfIssuedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getIssuer())
+        {
+            binder << getValueOfIssuer();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getAudience())
+        {
+            binder << getValueOfAudience();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getNotBefore())
+        {
+            binder << getValueOfNotBefore();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getIntrospectCount())
+        {
+            binder << getValueOfIntrospectCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[11])
+    {
+        if(getRevokedAt())
+        {
+            binder << getValueOfRevokedAt();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[12])
+    {
+        if(getRevokedBy())
+        {
+            binder << getValueOfRevokedBy();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Oauth2AccessTokens::toJson() const
 {
@@ -705,6 +1354,62 @@ Json::Value Oauth2AccessTokens::toJson() const
     {
         ret["revoked"]=Json::Value();
     }
+    if(getIssuedAt())
+    {
+        ret["issued_at"]=(Json::Int64)getValueOfIssuedAt();
+    }
+    else
+    {
+        ret["issued_at"]=Json::Value();
+    }
+    if(getIssuer())
+    {
+        ret["issuer"]=getValueOfIssuer();
+    }
+    else
+    {
+        ret["issuer"]=Json::Value();
+    }
+    if(getAudience())
+    {
+        ret["audience"]=getValueOfAudience();
+    }
+    else
+    {
+        ret["audience"]=Json::Value();
+    }
+    if(getNotBefore())
+    {
+        ret["not_before"]=(Json::Int64)getValueOfNotBefore();
+    }
+    else
+    {
+        ret["not_before"]=Json::Value();
+    }
+    if(getIntrospectCount())
+    {
+        ret["introspect_count"]=getValueOfIntrospectCount();
+    }
+    else
+    {
+        ret["introspect_count"]=Json::Value();
+    }
+    if(getRevokedAt())
+    {
+        ret["revoked_at"]=(Json::Int64)getValueOfRevokedAt();
+    }
+    else
+    {
+        ret["revoked_at"]=Json::Value();
+    }
+    if(getRevokedBy())
+    {
+        ret["revoked_by"]=getValueOfRevokedBy();
+    }
+    else
+    {
+        ret["revoked_by"]=Json::Value();
+    }
     return ret;
 }
 
@@ -717,7 +1422,7 @@ Json::Value Oauth2AccessTokens::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 6)
+    if(pMasqueradingVector.size() == 13)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -785,6 +1490,83 @@ Json::Value Oauth2AccessTokens::toMasqueradedJson(
                 ret[pMasqueradingVector[5]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[6].empty())
+        {
+            if(getIssuedAt())
+            {
+                ret[pMasqueradingVector[6]]=(Json::Int64)getValueOfIssuedAt();
+            }
+            else
+            {
+                ret[pMasqueradingVector[6]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getIssuer())
+            {
+                ret[pMasqueradingVector[7]]=getValueOfIssuer();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getAudience())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfAudience();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getNotBefore())
+            {
+                ret[pMasqueradingVector[9]]=(Json::Int64)getValueOfNotBefore();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[10].empty())
+        {
+            if(getIntrospectCount())
+            {
+                ret[pMasqueradingVector[10]]=getValueOfIntrospectCount();
+            }
+            else
+            {
+                ret[pMasqueradingVector[10]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[11].empty())
+        {
+            if(getRevokedAt())
+            {
+                ret[pMasqueradingVector[11]]=(Json::Int64)getValueOfRevokedAt();
+            }
+            else
+            {
+                ret[pMasqueradingVector[11]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[12].empty())
+        {
+            if(getRevokedBy())
+            {
+                ret[pMasqueradingVector[12]]=getValueOfRevokedBy();
+            }
+            else
+            {
+                ret[pMasqueradingVector[12]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -836,6 +1618,62 @@ Json::Value Oauth2AccessTokens::toMasqueradedJson(
     {
         ret["revoked"]=Json::Value();
     }
+    if(getIssuedAt())
+    {
+        ret["issued_at"]=(Json::Int64)getValueOfIssuedAt();
+    }
+    else
+    {
+        ret["issued_at"]=Json::Value();
+    }
+    if(getIssuer())
+    {
+        ret["issuer"]=getValueOfIssuer();
+    }
+    else
+    {
+        ret["issuer"]=Json::Value();
+    }
+    if(getAudience())
+    {
+        ret["audience"]=getValueOfAudience();
+    }
+    else
+    {
+        ret["audience"]=Json::Value();
+    }
+    if(getNotBefore())
+    {
+        ret["not_before"]=(Json::Int64)getValueOfNotBefore();
+    }
+    else
+    {
+        ret["not_before"]=Json::Value();
+    }
+    if(getIntrospectCount())
+    {
+        ret["introspect_count"]=getValueOfIntrospectCount();
+    }
+    else
+    {
+        ret["introspect_count"]=Json::Value();
+    }
+    if(getRevokedAt())
+    {
+        ret["revoked_at"]=(Json::Int64)getValueOfRevokedAt();
+    }
+    else
+    {
+        ret["revoked_at"]=Json::Value();
+    }
+    if(getRevokedBy())
+    {
+        ret["revoked_by"]=getValueOfRevokedBy();
+    }
+    else
+    {
+        ret["revoked_by"]=Json::Value();
+    }
     return ret;
 }
 
@@ -886,13 +1724,48 @@ bool Oauth2AccessTokens::validateJsonForCreation(const Json::Value &pJson, std::
         if(!validJsonOfField(5, "revoked", pJson["revoked"], err, true))
             return false;
     }
+    if(pJson.isMember("issued_at"))
+    {
+        if(!validJsonOfField(6, "issued_at", pJson["issued_at"], err, true))
+            return false;
+    }
+    if(pJson.isMember("issuer"))
+    {
+        if(!validJsonOfField(7, "issuer", pJson["issuer"], err, true))
+            return false;
+    }
+    if(pJson.isMember("audience"))
+    {
+        if(!validJsonOfField(8, "audience", pJson["audience"], err, true))
+            return false;
+    }
+    if(pJson.isMember("not_before"))
+    {
+        if(!validJsonOfField(9, "not_before", pJson["not_before"], err, true))
+            return false;
+    }
+    if(pJson.isMember("introspect_count"))
+    {
+        if(!validJsonOfField(10, "introspect_count", pJson["introspect_count"], err, true))
+            return false;
+    }
+    if(pJson.isMember("revoked_at"))
+    {
+        if(!validJsonOfField(11, "revoked_at", pJson["revoked_at"], err, true))
+            return false;
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        if(!validJsonOfField(12, "revoked_by", pJson["revoked_by"], err, true))
+            return false;
+    }
     return true;
 }
 bool Oauth2AccessTokens::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                             const std::vector<std::string> &pMasqueradingVector,
                                                             std::string &err)
 {
-    if(pMasqueradingVector.size() != 6)
+    if(pMasqueradingVector.size() != 13)
     {
         err = "Bad masquerading vector";
         return false;
@@ -961,6 +1834,62 @@ bool Oauth2AccessTokens::validateMasqueradedJsonForCreation(const Json::Value &p
                   return false;
           }
       }
+      if(!pMasqueradingVector[6].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[6]))
+          {
+              if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[10].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[10]))
+          {
+              if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[11].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[11]))
+          {
+              if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[12].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[12]))
+          {
+              if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1006,13 +1935,48 @@ bool Oauth2AccessTokens::validateJsonForUpdate(const Json::Value &pJson, std::st
         if(!validJsonOfField(5, "revoked", pJson["revoked"], err, false))
             return false;
     }
+    if(pJson.isMember("issued_at"))
+    {
+        if(!validJsonOfField(6, "issued_at", pJson["issued_at"], err, false))
+            return false;
+    }
+    if(pJson.isMember("issuer"))
+    {
+        if(!validJsonOfField(7, "issuer", pJson["issuer"], err, false))
+            return false;
+    }
+    if(pJson.isMember("audience"))
+    {
+        if(!validJsonOfField(8, "audience", pJson["audience"], err, false))
+            return false;
+    }
+    if(pJson.isMember("not_before"))
+    {
+        if(!validJsonOfField(9, "not_before", pJson["not_before"], err, false))
+            return false;
+    }
+    if(pJson.isMember("introspect_count"))
+    {
+        if(!validJsonOfField(10, "introspect_count", pJson["introspect_count"], err, false))
+            return false;
+    }
+    if(pJson.isMember("revoked_at"))
+    {
+        if(!validJsonOfField(11, "revoked_at", pJson["revoked_at"], err, false))
+            return false;
+    }
+    if(pJson.isMember("revoked_by"))
+    {
+        if(!validJsonOfField(12, "revoked_by", pJson["revoked_by"], err, false))
+            return false;
+    }
     return true;
 }
 bool Oauth2AccessTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                           const std::vector<std::string> &pMasqueradingVector,
                                                           std::string &err)
 {
-    if(pMasqueradingVector.size() != 6)
+    if(pMasqueradingVector.size() != 13)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1051,6 +2015,41 @@ bool Oauth2AccessTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJs
       if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
       {
           if(!validJsonOfField(5, pMasqueradingVector[5], pJson[pMasqueradingVector[5]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+      {
+          if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+      {
+          if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+      {
+          if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+      {
+          if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, false))
               return false;
       }
     }
@@ -1159,6 +2158,109 @@ bool Oauth2AccessTokens::validJsonOfField(size_t index,
             if(!pJson.isBool())
             {
                 err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 6:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isInt64())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 255)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 255)";
+                return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 255)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 255)";
+                return false;
+            }
+            break;
+        case 9:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt64())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 10:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 11:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt64())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 12:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 50)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 50)";
                 return false;
             }
             break;
