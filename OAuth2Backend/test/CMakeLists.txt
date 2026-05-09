@@ -86,23 +86,20 @@ endif()
 # ParseAndAddDrogonTests(${PROJECT_NAME})
 add_test(NAME OAuth2Tests COMMAND ${PROJECT_NAME} WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 
-# For CI, copy config to build directory so tests can find it
-configure_file(
-    ${CMAKE_SOURCE_DIR}/config.json
-    ${CMAKE_BINARY_DIR}/config.json
-    COPYONLY
-)
-
-# Also copy config to test executable directory for runtime access
-configure_file(
-    ${CMAKE_SOURCE_DIR}/config.json
-    ${CMAKE_CURRENT_BINARY_DIR}/Release/config.json
-    COPYONLY
-)
-
-# Copy config to test directory as well
-configure_file(
-    ${CMAKE_SOURCE_DIR}/config.json
-    ${CMAKE_CURRENT_BINARY_DIR}/config.json
-    COPYONLY
-)
+# Copy config to the test executable directory for runtime access using generator expressions
+# This replaces hardcoded configure_file paths to support multi-config generators (like MSVC)
+if(MSVC OR XCODE)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/../config.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/config.json
+        COMMENT "Copying config.json to test executable directory ($<CONFIG>)"
+    )
+else()
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/../config.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/config.json
+        COMMENT "Copying config.json to test executable directory"
+    )
+endif()
