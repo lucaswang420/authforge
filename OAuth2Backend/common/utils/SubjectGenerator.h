@@ -10,8 +10,9 @@ namespace oauth2::utils
 /**
  * @brief Subject Generator for OAuth2/OpenID Connect
  *
- * This utility class handles the generation and parsing of OAuth2 subject identifiers
- * that include provider information to avoid conflicts across different identity providers.
+ * This utility class handles the generation and parsing of OAuth2 subject
+ * identifiers that include provider information to avoid conflicts across
+ * different identity providers.
  *
  * Subject format: "provider:subject"
  * - local: "local:username"
@@ -25,9 +26,9 @@ class SubjectGenerator
 {
   public:
     // Default providers
-    static constexpr const char* LOCAL = "local";
-    static constexpr const char* GOOGLE = "google";
-    static constexpr const char* WECHAT = "wechat";
+    static constexpr const char *LOCAL = "local";
+    static constexpr const char *GOOGLE = "google";
+    static constexpr const char *WECHAT = "wechat";
 
     /**
      * @brief Generate subject for local login
@@ -65,9 +66,11 @@ class SubjectGenerator
      * @return Pair of (provider, subject)
      *
      * If no colon is found, returns ("local", fullSubject) as default.
-     * If provider is not in the whitelist, logs a warning and returns ("local", fullSubject).
+     * If provider is not in the whitelist, logs a warning and returns ("local",
+     * fullSubject).
      */
-    static std::pair<std::string, std::string> parse(const std::string &fullSubject)
+    static std::pair<std::string, std::string> parse(
+        const std::string &fullSubject)
     {
         size_t colonPos = fullSubject.find(':');
         if (colonPos == std::string::npos)
@@ -79,10 +82,11 @@ class SubjectGenerator
         std::string provider = fullSubject.substr(0, colonPos);
         std::string subject = fullSubject.substr(colonPos + 1);
 
-        // Whitelist validation to prevent parsing errors with subjects containing ":"
-        static const std::set<std::string> VALID_PROVIDERS = {
-            LOCAL, GOOGLE, WECHAT
-        };
+        // Whitelist validation to prevent parsing errors with subjects
+        // containing ":"
+        static const std::set<std::string> VALID_PROVIDERS = {LOCAL,
+                                                              GOOGLE,
+                                                              WECHAT};
 
         if (VALID_PROVIDERS.find(provider) == VALID_PROVIDERS.end())
         {
@@ -102,7 +106,7 @@ class SubjectGenerator
      * @return Subject in format "provider:subject"
      */
     static std::string forProvider(const std::string &provider,
-                                    const std::string &subject)
+                                   const std::string &subject)
     {
         return provider + ":" + subject;
     }
@@ -121,7 +125,8 @@ class SubjectGenerator
 
         // Check if subject contains at least one colon
         size_t colonPos = subject.find(':');
-        if (colonPos == std::string::npos || colonPos == 0 || colonPos == subject.length() - 1)
+        if (colonPos == std::string::npos || colonPos == 0 ||
+            colonPos == subject.length() - 1)
         {
             return false;
         }

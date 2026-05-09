@@ -96,6 +96,41 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     void getUserRoles(const std::string &userId,
                       std::function<void(std::vector<std::string>)> &&callback);
 
+    // ========== P0-2: Consent Management Methods ==========
+
+    /**
+     * @brief Get internal user ID from subject (Async)
+     * @param subject OAuth2 subject (e.g., "local:alice", "google:sub123")
+     * @param callback Callback with optional internal user ID
+     */
+    void getInternalUserId(
+        const std::string &subject,
+        std::function<void(std::optional<int32_t>)> &&callback);
+
+    /**
+     * @brief Check if user has consented to a scope for a client (Async)
+     * @param internalUserId Internal user ID
+     * @param clientId Client identifier
+     * @param scope Scope to check consent for
+     * @param callback Callback with consent status
+     */
+    void hasUserConsent(int32_t internalUserId,
+                        const std::string &clientId,
+                        const std::string &scope,
+                        std::function<void(bool)> &&callback);
+
+    /**
+     * @brief Save user consent for a scope (Async)
+     * @param internalUserId Internal user ID
+     * @param clientId Client identifier
+     * @param scope Scope to save consent for
+     * @param callback Callback with success status
+     */
+    void saveUserConsent(int32_t internalUserId,
+                         const std::string &clientId,
+                         const std::string &scope,
+                         std::function<void(bool)> &&callback);
+
     // ========== Storage Access ==========
     oauth2::IOAuth2Storage *getStorage()
     {

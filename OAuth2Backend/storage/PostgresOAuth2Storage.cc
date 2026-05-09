@@ -823,6 +823,7 @@ void PostgresOAuth2Storage::createSubjectMapping(const std::string &subject,
         mapping.setProvider(provider);
 
         mapper.insert(
+            mapping,
             [sharedCb](const Oauth2SubjectMappings &insertedMapping) {
                 LOG_INFO << "Created subject mapping: "
                          << insertedMapping.getValueOfProvider() << ":"
@@ -986,6 +987,7 @@ void PostgresOAuth2Storage::saveUserConsent(int32_t internalUserId,
         consent.setScopeName(scope);
 
         mapper.insert(
+            consent,
             [sharedCb](const Oauth2UserConsents &insertedConsent) {
                 LOG_DEBUG << "Saved user consent: user_id="
                           << insertedConsent.getValueOfInternalUserId()

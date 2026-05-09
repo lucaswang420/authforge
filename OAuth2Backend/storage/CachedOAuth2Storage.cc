@@ -236,4 +236,86 @@ void CachedOAuth2Storage::getUserRoles(const std::string &userId,
     impl_->getUserRoles(userId, std::move(cb));
 }
 
+void CachedOAuth2Storage::getUserRoles(int32_t internalUserId,
+                                       StringListCallback &&cb)
+{
+    impl_->getUserRoles(internalUserId, std::move(cb));
+}
+
+// ========== Subject Mapping Operations (Pass Through) ==========
+
+void CachedOAuth2Storage::getInternalUserId(const std::string &subject,
+                                            const std::string &provider,
+                                            OptionalIntCallback &&cb)
+{
+    impl_->getInternalUserId(subject, provider, std::move(cb));
+}
+
+void CachedOAuth2Storage::createSubjectMapping(const std::string &subject,
+                                               int32_t internalUserId,
+                                               const std::string &provider,
+                                               BoolCallback &&cb)
+{
+    impl_->createSubjectMapping(subject,
+                                internalUserId,
+                                provider,
+                                std::move(cb));
+}
+
+// ========== Authorization Transaction Operations (Pass Through) ==========
+
+void CachedOAuth2Storage::saveAuthorizationTransaction(
+    const AuthorizationTransaction &transaction,
+    BoolCallback &&cb)
+{
+    impl_->saveAuthorizationTransaction(transaction, std::move(cb));
+}
+
+void CachedOAuth2Storage::getAuthorizationTransaction(
+    const std::string &transactionId,
+    TransactionCallback &&cb)
+{
+    impl_->getAuthorizationTransaction(transactionId, std::move(cb));
+}
+
+void CachedOAuth2Storage::deleteAuthorizationTransaction(
+    const std::string &transactionId,
+    VoidCallback &&cb)
+{
+    impl_->deleteAuthorizationTransaction(transactionId, std::move(cb));
+}
+
+void CachedOAuth2Storage::markTransactionConsumed(
+    const std::string &transactionId,
+    BoolCallback &&cb)
+{
+    impl_->markTransactionConsumed(transactionId, std::move(cb));
+}
+
+// ========== Scope Management Operations (Pass Through) ==========
+
+void CachedOAuth2Storage::hasUserConsent(int32_t internalUserId,
+                                         const std::string &clientId,
+                                         const std::string &scope,
+                                         BoolCallback &&cb)
+{
+    impl_->hasUserConsent(internalUserId, clientId, scope, std::move(cb));
+}
+
+void CachedOAuth2Storage::saveUserConsent(int32_t internalUserId,
+                                          const std::string &clientId,
+                                          const std::string &scope,
+                                          BoolCallback &&cb)
+{
+    impl_->saveUserConsent(internalUserId, clientId, scope, std::move(cb));
+}
+
+void CachedOAuth2Storage::revokeUserConsent(int32_t internalUserId,
+                                            const std::string &clientId,
+                                            const std::string &scope,
+                                            VoidCallback &&cb)
+{
+    impl_->revokeUserConsent(internalUserId, clientId, scope, std::move(cb));
+}
+
 }  // namespace oauth2

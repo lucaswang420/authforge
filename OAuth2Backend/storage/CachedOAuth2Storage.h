@@ -50,6 +50,41 @@ class CachedOAuth2Storage : public IOAuth2Storage
     // RBAC
     void getUserRoles(const std::string &userId,
                       StringListCallback &&cb) override;
+    void getUserRoles(int32_t internalUserId, StringListCallback &&cb) override;
+
+    // Subject Mapping Operations - Pass through
+    void getInternalUserId(const std::string &subject,
+                           const std::string &provider,
+                           OptionalIntCallback &&cb) override;
+    void createSubjectMapping(const std::string &subject,
+                              int32_t internalUserId,
+                              const std::string &provider,
+                              BoolCallback &&cb) override;
+
+    // Authorization Transaction Operations - Pass through
+    void saveAuthorizationTransaction(
+        const AuthorizationTransaction &transaction,
+        BoolCallback &&cb) override;
+    void getAuthorizationTransaction(const std::string &transactionId,
+                                     TransactionCallback &&cb) override;
+    void deleteAuthorizationTransaction(const std::string &transactionId,
+                                        VoidCallback &&cb) override;
+    void markTransactionConsumed(const std::string &transactionId,
+                                 BoolCallback &&cb) override;
+
+    // Scope Management Operations - Pass through
+    void hasUserConsent(int32_t internalUserId,
+                        const std::string &clientId,
+                        const std::string &scope,
+                        BoolCallback &&cb) override;
+    void saveUserConsent(int32_t internalUserId,
+                         const std::string &clientId,
+                         const std::string &scope,
+                         BoolCallback &&cb) override;
+    void revokeUserConsent(int32_t internalUserId,
+                           const std::string &clientId,
+                           const std::string &scope,
+                           VoidCallback &&cb) override;
 
   private:
     std::unique_ptr<IOAuth2Storage> impl_;

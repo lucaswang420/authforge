@@ -93,19 +93,20 @@ TEST(SubjectMapping, CreateAndGetMapping)
     bool getCalled = false;
 
     // Create mapping
-    storage.createSubjectMapping("alice", 1, "local",
-        [&createCalled](bool success) {
-            createCalled = true;
-            EXPECT_TRUE(success);
-        });
+    storage.createSubjectMapping("alice",
+                                 1,
+                                 "local",
+                                 [&createCalled](bool success) {
+                                     createCalled = true;
+                                     EXPECT_TRUE(success);
+                                 });
 
     // Get mapping
-    storage.getInternalUserId("alice", "local",
-        [&getCalled](auto userIdOpt) {
-            getCalled = true;
-            ASSERT_TRUE(userIdOpt);
-            EXPECT_EQ(*userIdOpt, 1);
-        });
+    storage.getInternalUserId("alice", "local", [&getCalled](auto userIdOpt) {
+        getCalled = true;
+        ASSERT_TRUE(userIdOpt);
+        EXPECT_EQ(*userIdOpt, 1);
+    });
 
     EXPECT_TRUE(createCalled);
     EXPECT_TRUE(getCalled);
@@ -141,10 +142,9 @@ TEST(SubjectMapping, GetNonExistentMapping)
     Json::Value adminConfig;
     storage.initFromConfig(clientsConfig, adminConfig);
 
-    storage.getInternalUserId("nonexistent", "local",
-        [](auto userIdOpt) {
-            EXPECT_FALSE(userIdOpt);
-        });
+    storage.getInternalUserId("nonexistent", "local", [](auto userIdOpt) {
+        EXPECT_FALSE(userIdOpt);
+    });
 }
 
 TEST(SubjectMapping, UpdateExistingMapping)
@@ -157,7 +157,8 @@ TEST(SubjectMapping, UpdateExistingMapping)
     // Create initial mapping
     storage.createSubjectMapping("alice", 1, "local", [](bool) {});
 
-    // Try to create same mapping again (should be idempotent in real implementation)
+    // Try to create same mapping again (should be idempotent in real
+    // implementation)
     storage.createSubjectMapping("alice", 1, "local", [](bool success) {
         EXPECT_TRUE(success);  // Should succeed even if already exists
     });
@@ -179,22 +180,19 @@ TEST(UserConsent, SaveAndCheckConsent)
     storage.initFromConfig(clientsConfig, adminConfig);
 
     // Save consent
-    storage.saveUserConsent(1, "vue-client", "openid",
-        [](bool success) {
-            EXPECT_TRUE(success);
-        });
+    storage.saveUserConsent(1, "vue-client", "openid", [](bool success) {
+        EXPECT_TRUE(success);
+    });
 
     // Check consent exists
-    storage.hasUserConsent(1, "vue-client", "openid",
-        [](bool hasConsent) {
-            EXPECT_TRUE(hasConsent);
-        });
+    storage.hasUserConsent(1, "vue-client", "openid", [](bool hasConsent) {
+        EXPECT_TRUE(hasConsent);
+    });
 
     // Check non-existent consent
-    storage.hasUserConsent(1, "vue-client", "admin",
-        [](bool hasConsent) {
-            EXPECT_FALSE(hasConsent);
-        });
+    storage.hasUserConsent(1, "vue-client", "admin", [](bool hasConsent) {
+        EXPECT_FALSE(hasConsent);
+    });
 }
 
 TEST(UserConsent, RevokeConsent)
@@ -208,19 +206,17 @@ TEST(UserConsent, RevokeConsent)
     storage.saveUserConsent(1, "vue-client", "profile", [](bool) {});
 
     // Verify it exists
-    storage.hasUserConsent(1, "vue-client", "profile",
-        [](bool hasConsent) {
-            EXPECT_TRUE(hasConsent);
-        });
+    storage.hasUserConsent(1, "vue-client", "profile", [](bool hasConsent) {
+        EXPECT_TRUE(hasConsent);
+    });
 
     // Revoke consent
     storage.revokeUserConsent(1, "vue-client", "profile", []() {});
 
     // Verify it's removed
-    storage.hasUserConsent(1, "vue-client", "profile",
-        [](bool hasConsent) {
-            EXPECT_FALSE(hasConsent);
-        });
+    storage.hasUserConsent(1, "vue-client", "profile", [](bool hasConsent) {
+        EXPECT_FALSE(hasConsent);
+    });
 }
 
 // ========== Authorization Transaction Tests ==========
@@ -238,26 +234,25 @@ TEST(AuthorizationTransaction, SaveAndGetTransaction)
     transaction.subject = "local:alice";
     transaction.redirectUri = "http://localhost:5173/callback";
     transaction.state = "state123";
-    transaction.expiresAt = std::chrono::duration_cast<std::chrono::seconds>(
-                               std::chrono::system_clock::now().time_since_epoch())
-                               .count() +
-                           600;  // 10 minutes from now
+    transaction.expiresAt =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count() +
+        600;  // 10 minutes from now
 
     // Save transaction
-    storage.saveAuthorizationTransaction(transaction,
-        [](bool success) {
-            EXPECT_TRUE(success);
-        });
+    storage.saveAuthorizationTransaction(transaction, [](bool success) {
+        EXPECT_TRUE(success);
+    });
 
     // Get transaction
-    storage.getAuthorizationTransaction("txn123",
-        [](auto txnOpt) {
-            ASSERT_TRUE(txnOpt);
-            EXPECT_EQ(txnOpt->transactionId, "txn123");
-            EXPECT_EQ(txnOpt->clientId, "vue-client");
-            EXPECT_EQ(txnOpt->subject, "local:alice");
-            EXPECT_FALSE(txnOpt->consumed);
-        });
+    storage.getAuthorizationTransaction("txn123", [](auto txnOpt) {
+        ASSERT_TRUE(txnOpt);
+        EXPECT_EQ(txnOpt->transactionId, "txn123");
+        EXPECT_EQ(txnOpt->clientId, "vue-client");
+        EXPECT_EQ(txnOpt->subject, "local:alice");
+        EXPECT_FALSE(txnOpt->consumed);
+    });
 }
 
 TEST(AuthorizationTransaction, MarkConsumed)
@@ -273,32 +268,29 @@ TEST(AuthorizationTransaction, MarkConsumed)
     transaction.subject = "local:bob";
     transaction.redirectUri = "http://localhost:5173/callback";
     transaction.state = "state456";
-    transaction.expiresAt = std::chrono::duration_cast<std::chrono::seconds>(
-                               std::chrono::system_clock::now().time_since_epoch())
-                               .count() +
-                           600;
+    transaction.expiresAt =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count() +
+        600;
 
     // Save transaction
     storage.saveAuthorizationTransaction(transaction, [](bool) {});
 
     // Mark as consumed
     storage.markTransactionConsumed("txn456",
-        [](bool success) {
-            EXPECT_TRUE(success);
-        });
+                                    [](bool success) { EXPECT_TRUE(success); });
 
     // Try to mark again (should fail)
-    storage.markTransactionConsumed("txn456",
-        [](bool success) {
-            EXPECT_FALSE(success);  // Already consumed
-        });
+    storage.markTransactionConsumed("txn456", [](bool success) {
+        EXPECT_FALSE(success);  // Already consumed
+    });
 
     // Verify consumed status
-    storage.getAuthorizationTransaction("txn456",
-        [](auto txnOpt) {
-            ASSERT_TRUE(txnOpt);
-            EXPECT_TRUE(txnOpt->consumed);
-        });
+    storage.getAuthorizationTransaction("txn456", [](auto txnOpt) {
+        ASSERT_TRUE(txnOpt);
+        EXPECT_TRUE(txnOpt->consumed);
+    });
 }
 
 TEST(AuthorizationTransaction, DeleteTransaction)
@@ -314,10 +306,11 @@ TEST(AuthorizationTransaction, DeleteTransaction)
     transaction.subject = "local:charlie";
     transaction.redirectUri = "http://localhost:5173/callback";
     transaction.state = "state789";
-    transaction.expiresAt = std::chrono::duration_cast<std::chrono::seconds>(
-                               std::chrono::system_clock::now().time_since_epoch())
-                               .count() +
-                           600;
+    transaction.expiresAt =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count() +
+        600;
 
     // Save transaction
     storage.saveAuthorizationTransaction(transaction, [](bool) {});
@@ -326,8 +319,7 @@ TEST(AuthorizationTransaction, DeleteTransaction)
     storage.deleteAuthorizationTransaction("txn789", []() {});
 
     // Try to get deleted transaction
-    storage.getAuthorizationTransaction("txn789",
-        [](auto txnOpt) {
-            EXPECT_FALSE(txnOpt);
-        });
+    storage.getAuthorizationTransaction("txn789", [](auto txnOpt) {
+        EXPECT_FALSE(txnOpt);
+    });
 }

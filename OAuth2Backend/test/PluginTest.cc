@@ -56,7 +56,18 @@ DROGON_TEST(PluginTest)
             "user1",
             "scope1",
             "http://localhost/cb",  // redirect_uri
-            [&](std::string c) { p.set_value(c); });
+            "",                     // codeChallenge (empty for non-PKCE test)
+            "",  // codeChallengeMethod (empty for non-PKCE test)
+            [&](bool success, std::string code, std::string error) {
+                if (success)
+                {
+                    p.set_value(code);
+                }
+                else
+                {
+                    p.set_value("");
+                }
+            });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -149,7 +160,18 @@ DROGON_TEST(PluginTest)
             "admin",
             "scope1",
             "http://localhost/cb",  // redirect_uri
-            [&](std::string c) { p.set_value(c); });
+            "",                     // codeChallenge (empty for non-PKCE test)
+            "",  // codeChallengeMethod (empty for non-PKCE test)
+            [&](bool success, std::string code, std::string error) {
+                if (success)
+                {
+                    p.set_value(code);
+                }
+                else
+                {
+                    p.set_value("");
+                }
+            });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");

@@ -341,37 +341,88 @@ void OAuth2Controller::authorize(
                     }
                     if (!userId.empty())
                     {
-                        // Generate Code (Async)
-                        plugin->generateAuthorizationCode(
-                            clientId,
-                            userId,  // Subject (can be "local:username" or just "username")
-                            scope,
-                            redirectUri,  // CRITICAL: Pass redirect_uri for RFC
-                                          // 6749 Section 4.1.3 validation
-                            "",  // codeChallenge (empty for now)
-                            "",  // codeChallengeMethod (empty for now)
-                            [=, callback = std::move(callback)](bool success, std::string code, std::string error) {
-                                if (!success)
+                        // P0-2: Check user consent for requested scopes
+                        // Parse requested scopes
+                        std::vector<std::string> requestedScopes;
+                        std::stringstream ss(scope);
+                        std::string scopeItem;
+                        while (std::getline(ss, scopeItem, ' '))
+                        {
+                            if (!scopeItem.empty())
+                            {
+                                requestedScopes.push_back(scopeItem);
+                            }
+                        }
+
+                        // Get internal user ID for consent checking
+                        plugin->getInternalUserId(
+                            userId,
+                            [=, callback = std::move(callback)](
+                                std::optional<int32_t> internalUserId) mutable {
+                                if (!internalUserId)
                                 {
-                                    LOG_ERROR << "Failed to generate authorization code: " << error;
-                                    Json::Value jsonErr;
-                                    jsonErr["error"] = "server_error";
-                                    jsonErr["error_description"] = "Failed to generate authorization code";
-                                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                                    resp->setStatusCode(k500InternalServerError);
-                                    callback(resp);
+                                    // User mapping not found, this might be a first-time login
+                                    // For now, we'll proceed without consent checking for unmapped users
+                                    // In production, you would want to handle this differently
+                                    LOG_WARN
+                                        << "No internal user ID found for subject: "
+                                        << userId << ", proceeding without consent check";
+
+                                    // Proceed with authorization code generation
+                                    plugin->generateAuthorizationCode(
+                                        clientId,
+                                        userId,
+                                        scope,
+                                        redirectUri,
+                                        "",  // codeChallenge (empty for now)
+                                        "",  // codeChallengeMethod (empty for now)
+                                        [=,
+                                         callback =
+                                             std::move(callback)](bool success,
+                                                                  std::string code,
+                                                                  std::string error) {
+                                            if (!success)
+                                            {
+                                                LOG_ERROR
+                                                    << "Failed to generate authorization code: "
+                                                    << error;
+                                                Json::Value jsonErr;
+                                                jsonErr["error"] = "server_error";
+                                                jsonErr["error_description"] =
+                                                    "Failed to generate authorization code";
+                                                auto resp =
+                                                    HttpResponse::newHttpJsonResponse(
+                                                        jsonErr);
+                                                resp->setStatusCode(
+                                                    k500InternalServerError);
+                                                callback(resp);
+                                                return;
+                                            }
+
+                                            std::string location =
+                                                redirectUri + "?code=" + code;
+                                            if (!state.empty())
+                                                location += "&state=" + state;
+                                            auto resp =
+                                                HttpResponse::newRedirectionResponse(
+                                                    location);
+                                            Metrics::incRequest("authorize", 302);
+                                            callback(resp);
+                                        });
                                     return;
                                 }
 
-                                std::string location =
-                                    redirectUri + "?code=" + code;
-                                if (!state.empty())
-                                    location += "&state=" + state;
-                                auto resp =
-                                    HttpResponse::newRedirectionResponse(
-                                        location);
-                                Metrics::incRequest("authorize", 302);
-                                callback(resp);
+                                // Check consent for all requested scopes
+                                checkUserConsentAndProceed(
+                                    plugin,
+                                    clientId,
+                                    userId,
+                                    *internalUserId,
+                                    requestedScopes,
+                                    scope,
+                                    redirectUri,
+                                    state,
+                                    std::move(callback));
                             });
                         return;
                     }
@@ -485,16 +536,22 @@ void OAuth2Controller::login(
                     scope,
                     redirectUri,  // CRITICAL: Pass redirect_uri for RFC 6749
                                   // Section 4.1.3 validation
-                    "",  // codeChallenge (empty for now)
-                    "",  // codeChallengeMethod (empty for now)
-                    [=, callback = std::move(callback)](bool success, std::string code, std::string error) {
+                    "",           // codeChallenge (empty for now)
+                    "",           // codeChallengeMethod (empty for now)
+                    [=, callback = std::move(callback)](bool success,
+                                                        std::string code,
+                                                        std::string error) {
                         if (!success)
                         {
-                            LOG_ERROR << "Failed to generate authorization code: " << error;
+                            LOG_ERROR
+                                << "Failed to generate authorization code: "
+                                << error;
                             Json::Value jsonErr;
                             jsonErr["error"] = "server_error";
-                            jsonErr["error_description"] = "Failed to generate authorization code";
-                            auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                            jsonErr["error_description"] =
+                                "Failed to generate authorization code";
+                            auto resp =
+                                HttpResponse::newHttpJsonResponse(jsonErr);
                             resp->setStatusCode(k500InternalServerError);
                             callback(resp);
                             return;
@@ -927,4 +984,269 @@ void OAuth2Controller::health(
     auto resp = HttpResponse::newHttpJsonResponse(json);
     resp->setStatusCode(statusCode);
     callback(resp);
+}
+
+// P0-2: Helper function to check user consent and proceed with authorization
+void OAuth2Controller::checkUserConsentAndProceed(
+    OAuth2Plugin *plugin,
+    const std::string &clientId,
+    const std::string &userId,
+    int32_t internalUserId,
+    const std::vector<std::string> &requestedScopes,
+    const std::string &scope,
+    const std::string &redirectUri,
+    const std::string &state,
+    std::function<void(const HttpResponsePtr &)> &&callback)
+{
+    if (requestedScopes.empty())
+    {
+        // No scopes requested, proceed with authorization
+        plugin->generateAuthorizationCode(
+            clientId,
+            userId,
+            scope,
+            redirectUri,
+            "",  // codeChallenge (empty for now)
+            "",  // codeChallengeMethod (empty for now)
+            [=, callback = std::move(callback)](bool success,
+                                                std::string code,
+                                                std::string error) {
+                if (!success)
+                {
+                    LOG_ERROR << "Failed to generate authorization code: "
+                              << error;
+                    Json::Value jsonErr;
+                    jsonErr["error"] = "server_error";
+                    jsonErr["error_description"] =
+                        "Failed to generate authorization code";
+                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                    resp->setStatusCode(k500InternalServerError);
+                    callback(resp);
+                    return;
+                }
+
+                std::string location = redirectUri + "?code=" + code;
+                if (!state.empty())
+                    location += "&state=" + state;
+                auto resp = HttpResponse::newRedirectionResponse(location);
+                Metrics::incRequest("authorize", 302);
+                callback(resp);
+            });
+        return;
+    }
+
+    // Check consent for the first scope, then recursively check the rest
+    std::string currentScope = requestedScopes[0];
+    std::vector<std::string> remainingScopes(requestedScopes.begin() + 1,
+                                             requestedScopes.end());
+
+    plugin->hasUserConsent(
+        internalUserId,
+        clientId,
+        currentScope,
+        [=, callback = std::move(callback)](bool hasConsent) mutable {
+            if (!hasConsent)
+            {
+                // User hasn't consented to this scope, redirect to consent page
+                LOG_INFO << "User " << userId << " hasn't consented to scope "
+                         << currentScope << " for client " << clientId;
+
+                // Store authorization request parameters in session for consent
+                // approval
+                auto req = HttpRequest::newHttpRequest();
+                // Note: In a real implementation, you would store these in the
+                // user session or a temporary transaction
+
+                HttpViewData data;
+                data.insert("client_id", clientId);
+                data.insert("user_id", userId);
+                data.insert("requested_scope", scope);
+                data.insert("redirect_uri", redirectUri);
+                data.insert("state", state);
+
+                auto resp = HttpResponse::newHttpViewResponse("consent.csp",
+                                                              data);
+                callback(resp);
+                return;
+            }
+
+            // User has consented to this scope, check the remaining scopes
+            checkUserConsentAndProceed(plugin,
+                                       clientId,
+                                       userId,
+                                       internalUserId,
+                                       remainingScopes,
+                                       scope,
+                                       redirectUri,
+                                       state,
+                                       std::move(callback));
+        });
+}
+
+void OAuth2Controller::consent(
+    const HttpRequestPtr &req,
+    std::function<void(const HttpResponsePtr &)> &&callback)
+{
+    // P0-2: Handle user consent approval
+    auto params = req->getParameters();
+    std::string clientId = params["client_id"];
+    std::string userId = params["user_id"];
+    std::string scope = params["scope"];
+    std::string redirectUri = params["redirect_uri"];
+    std::string state = params["state"];
+    std::string action = params["action"];  // "approve" or "deny"
+
+    if (action == "deny")
+    {
+        // User denied consent, redirect back with error
+        std::string location =
+            redirectUri + "?error=access_denied&error_description=User+denied+consent";
+        if (!state.empty())
+            location += "&state=" + state;
+        auto resp = HttpResponse::newRedirectionResponse(location);
+        callback(resp);
+        return;
+    }
+
+    // User approved consent, save it and proceed with authorization
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("OAuth2Plugin not loaded");
+        callback(resp);
+        return;
+    }
+
+    // Get internal user ID
+    plugin->getInternalUserId(
+        userId,
+        [=, callback = std::move(callback)](
+            std::optional<int32_t> internalUserId) mutable {
+            if (!internalUserId)
+            {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody("Failed to get user mapping");
+                callback(resp);
+                return;
+            }
+
+            // Parse scopes and save consent for each
+            std::vector<std::string> scopes;
+            std::stringstream ss(scope);
+            std::string scopeItem;
+            while (std::getline(ss, scopeItem, ' '))
+            {
+                if (!scopeItem.empty())
+                {
+                    scopes.push_back(scopeItem);
+                }
+            }
+
+            // Save consent for all scopes (use first scope as callback trigger)
+            if (!scopes.empty())
+            {
+                std::string firstScope = scopes[0];
+                plugin->saveUserConsent(
+                    *internalUserId,
+                    clientId,
+                    firstScope,
+                    [=, callback = std::move(callback)](bool success) mutable {
+                        if (!success)
+                        {
+                            LOG_ERROR << "Failed to save user consent for scope: "
+                                      << firstScope;
+                            auto resp = HttpResponse::newHttpResponse();
+                            resp->setStatusCode(k500InternalServerError);
+                            resp->setBody("Failed to save consent");
+                            callback(resp);
+                            return;
+                        }
+
+                        // Save consent for remaining scopes (fire and forget for
+                        // simplicity)
+                        for (size_t i = 1; i < scopes.size(); ++i)
+                        {
+                            plugin->saveUserConsent(
+                                *internalUserId, clientId, scopes[i], [](bool) {
+                                });
+                        }
+
+                        // Proceed with authorization code generation
+                        plugin->generateAuthorizationCode(
+                            clientId,
+                            userId,
+                            scope,
+                            redirectUri,
+                            "",  // codeChallenge (empty for now)
+                            "",  // codeChallengeMethod (empty for now)
+                            [=, callback = std::move(callback)](
+                                bool success,
+                                std::string code,
+                                std::string error) mutable {
+                                if (!success)
+                                {
+                                    LOG_ERROR
+                                        << "Failed to generate authorization code: "
+                                        << error;
+                                    Json::Value jsonErr;
+                                    jsonErr["error"] = "server_error";
+                                    jsonErr["error_description"] =
+                                        "Failed to generate authorization code";
+                                    auto resp =
+                                        HttpResponse::newHttpJsonResponse(jsonErr);
+                                    resp->setStatusCode(k500InternalServerError);
+                                    callback(resp);
+                                    return;
+                                }
+
+                                std::string location =
+                                    redirectUri + "?code=" + code;
+                                if (!state.empty())
+                                    location += "&state=" + state;
+                                auto resp =
+                                    HttpResponse::newRedirectionResponse(location);
+                                Metrics::incRequest("authorize", 302);
+                                callback(resp);
+                            });
+                    });
+            }
+            else
+            {
+                // No scopes to save consent for, proceed directly
+                plugin->generateAuthorizationCode(
+                    clientId,
+                    userId,
+                    scope,
+                    redirectUri,
+                    "",  // codeChallenge
+                    "",  // codeChallengeMethod
+                    [=, callback = std::move(callback)](bool success,
+                                                        std::string code,
+                                                        std::string error) {
+                        if (!success)
+                        {
+                            LOG_ERROR << "Failed to generate authorization code: "
+                                      << error;
+                            Json::Value jsonErr;
+                            jsonErr["error"] = "server_error";
+                            jsonErr["error_description"] =
+                                "Failed to generate authorization code";
+                            auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                            resp->setStatusCode(k500InternalServerError);
+                            callback(resp);
+                            return;
+                        }
+
+                        std::string location = redirectUri + "?code=" + code;
+                        if (!state.empty())
+                            location += "&state=" + state;
+                        auto resp = HttpResponse::newRedirectionResponse(location);
+                        Metrics::incRequest("authorize", 302);
+                        callback(resp);
+                    });
+            }
+        });
 }

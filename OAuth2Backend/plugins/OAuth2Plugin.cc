@@ -657,3 +657,60 @@ void OAuth2Plugin::handleFirstTimeLogin(const std::string &subject,
             callback(newUserId);
         });
 }
+
+// ========== P0-2: Consent Management Method Implementations ==========
+
+void OAuth2Plugin::getInternalUserId(
+    const std::string &subject,
+    std::function<void(std::optional<int32_t>)> &&callback)
+{
+    using namespace oauth2::utils;
+
+    if (!storage_)
+    {
+        LOG_ERROR << "Storage not initialized in getInternalUserId";
+        callback(std::nullopt);
+        return;
+    }
+
+    // Parse subject to get provider and subject
+    auto [provider, sub] = SubjectGenerator::parse(subject);
+
+    // Get internal user ID from storage
+    storage_->getInternalUserId(
+        sub,
+        provider,
+        [callback = std::move(callback)](std::optional<int32_t> internalUserId) {
+            callback(internalUserId);
+        });
+}
+
+void OAuth2Plugin::hasUserConsent(int32_t internalUserId,
+                                  const std::string &clientId,
+                                  const std::string &scope,
+                                  std::function<void(bool)> &&callback)
+{
+    if (!storage_)
+    {
+        LOG_ERROR << "Storage not initialized in hasUserConsent";
+        callback(false);
+        return;
+    }
+
+    storage_->hasUserConsent(internalUserId, clientId, scope, std::move(callback));
+}
+
+void OAuth2Plugin::saveUserConsent(int32_t internalUserId,
+                                   const std::string &clientId,
+                                   const std::string &scope,
+                                   std::function<void(bool)> &&callback)
+{
+    if (!storage_)
+    {
+        LOG_ERROR << "Storage not initialized in saveUserConsent";
+        callback(false);
+        return;
+    }
+
+    storage_->saveUserConsent(internalUserId, clientId, scope, std::move(callback));
+}

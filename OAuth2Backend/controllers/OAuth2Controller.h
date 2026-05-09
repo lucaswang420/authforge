@@ -43,6 +43,10 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
                   Post,
                   "OAuth2Middleware");
 
+    // Consent Approval Endpoint (Internal)
+    // POST /oauth2/consent
+    ADD_METHOD_TO(OAuth2Controller::consent, "/oauth2/consent", Post);
+
     // Health Check Endpoint (for monitoring/orchestration)
     // GET /health
     ADD_METHOD_TO(OAuth2Controller::health, "/health", Get);
@@ -67,6 +71,9 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     void logout(const HttpRequestPtr &req,
                 std::function<void(const HttpResponsePtr &)> &&callback);
 
+    void consent(const HttpRequestPtr &req,
+                 std::function<void(const HttpResponsePtr &)> &&callback);
+
     void health(const HttpRequestPtr &req,
                 std::function<void(const HttpResponsePtr &)> &&callback);
 
@@ -74,4 +81,16 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     void errorResponse(std::function<void(const HttpResponsePtr &)> &&callback,
                        const std::string &message,
                        int statusCode = 400);
+
+    // P0-2: Helper function to check user consent and proceed with authorization
+    static void checkUserConsentAndProceed(
+        OAuth2Plugin *plugin,
+        const std::string &clientId,
+        const std::string &userId,
+        int32_t internalUserId,
+        const std::vector<std::string> &requestedScopes,
+        const std::string &scope,
+        const std::string &redirectUri,
+        const std::string &state,
+        std::function<void(const HttpResponsePtr &)> &&callback);
 };
