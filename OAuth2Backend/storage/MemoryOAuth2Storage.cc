@@ -31,13 +31,13 @@ namespace oauth2
 int64_t MemoryOAuth2Storage::getCurrentTimestamp() const
 {
     auto now = std::chrono::system_clock::now();
-    return std::chrono::duration_cast<std::chrono::seconds>(
-               now.time_since_epoch())
-        .count();
+    return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
 }
 
-void MemoryOAuth2Storage::initFromConfig(const Json::Value &clientsConfig,
-                                         const Json::Value &adminConfig)
+void MemoryOAuth2Storage::initFromConfig(
+  const Json::Value &clientsConfig,
+  const Json::Value &adminConfig
+)
 {
     if (clientsConfig.isNull() || !clientsConfig.isObject())
     {
@@ -53,17 +53,15 @@ void MemoryOAuth2Storage::initFromConfig(const Json::Value &clientsConfig,
 
         // Parse client type (default to CONFIDENTIAL for backward
         // compatibility)
-        std::string clientTypeStr =
-            clientData.get("type", "CONFIDENTIAL").asString();
+        std::string clientTypeStr = clientData.get("type", "CONFIDENTIAL").asString();
         try
         {
             client.clientType = stringToClientType(clientTypeStr);
         }
         catch (const std::exception &e)
         {
-            LOG_WARN << "MemoryOAuth2Storage: Invalid client type '"
-                     << clientTypeStr << "' for " << clientId
-                     << ", defaulting to CONFIDENTIAL";
+            LOG_WARN << "MemoryOAuth2Storage: Invalid client type '" << clientTypeStr << "' for "
+                     << clientId << ", defaulting to CONFIDENTIAL";
             client.clientType = ClientType::CONFIDENTIAL;
         }
 
@@ -82,8 +80,7 @@ void MemoryOAuth2Storage::initFromConfig(const Json::Value &clientsConfig,
         }
         else if (clientData["redirect_uri"].isString())
         {
-            client.redirectUris.push_back(
-                clientData["redirect_uri"].asString());
+            client.redirectUris.push_back(clientData["redirect_uri"].asString());
         }
 
         clients_[clientId] = client;
@@ -104,8 +101,7 @@ void MemoryOAuth2Storage::initFromConfig(const Json::Value &clientsConfig,
                 }
                 userRoles_[userId] = roles;
                 LOG_DEBUG << "MemoryOAuth2Storage: User " << userId
-                          << " assigned roles: "
-                          << (roles.empty() ? 0 : roles.size());
+                          << " assigned roles: " << (roles.empty() ? 0 : roles.size());
             }
             else if (rolesData.isString())
             {
@@ -126,8 +122,7 @@ void MemoryOAuth2Storage::initFromConfig(const Json::Value &clientsConfig,
     }
 }
 
-void MemoryOAuth2Storage::getClient(const std::string &clientId,
-                                    ClientCallback &&cb)
+void MemoryOAuth2Storage::getClient(const std::string &clientId, ClientCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = clients_.find(clientId);
@@ -141,16 +136,17 @@ void MemoryOAuth2Storage::getClient(const std::string &clientId,
     }
 }
 
-void MemoryOAuth2Storage::validateClient(const std::string &clientId,
-                                         const std::string &clientSecret,
-                                         BoolCallback &&cb)
+void MemoryOAuth2Storage::validateClient(
+  const std::string &clientId,
+  const std::string &clientSecret,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = clients_.find(clientId);
     if (it == clients_.end())
     {
-        LOG_DEBUG << "MemoryOAuth2Storage validateClient: Client not found - "
-                  << clientId;
+        LOG_DEBUG << "MemoryOAuth2Storage validateClient: Client not found - " << clientId;
         cb(false);
         return;
     }
@@ -160,8 +156,8 @@ void MemoryOAuth2Storage::validateClient(const std::string &clientId,
     // PUBLIC clients skip secret validation
     if (client.clientType == ClientType::PUBLIC)
     {
-        LOG_DEBUG << "MemoryOAuth2Storage validateClient: PUBLIC client "
-                  << clientId << " accepted without secret";
+        LOG_DEBUG << "MemoryOAuth2Storage validateClient: PUBLIC client " << clientId
+                  << " accepted without secret";
         cb(true);
         return;
     }
@@ -169,29 +165,25 @@ void MemoryOAuth2Storage::validateClient(const std::string &clientId,
     // CONFIDENTIAL clients MUST validate secret
     if (clientSecret.empty())
     {
-        LOG_WARN << "MemoryOAuth2Storage validateClient: CONFIDENTIAL client "
-                 << clientId << " missing secret";
+        LOG_WARN << "MemoryOAuth2Storage validateClient: CONFIDENTIAL client " << clientId
+                 << " missing secret";
         cb(false);
         return;
     }
 
     // Constant-time comparison to prevent timing attacks
     const std::string &storedHash = client.clientSecretHash;
-    size_t cmpLen = (clientSecret.length() < storedHash.length())
-                        ? clientSecret.length()
-                        : storedHash.length();
-    bool valid =
-        (constantTimeMemcmp(clientSecret.c_str(), storedHash.c_str(), cmpLen) ==
-         0) &&
-        clientSecret.length() == storedHash.length();
+    size_t cmpLen =
+      (clientSecret.length() < storedHash.length()) ? clientSecret.length() : storedHash.length();
+    bool valid = (constantTimeMemcmp(clientSecret.c_str(), storedHash.c_str(), cmpLen) == 0) &&
+                 clientSecret.length() == storedHash.length();
 
     LOG_DEBUG << "MemoryOAuth2Storage validateClient: Secret validation "
               << (valid ? "PASSED" : "FAILED");
     cb(valid);
 }
 
-void MemoryOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code,
-                                       VoidCallback &&cb)
+void MemoryOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     authCodes_[code.code] = code;
@@ -199,8 +191,7 @@ void MemoryOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code,
         cb();
 }
 
-void MemoryOAuth2Storage::getAuthCode(const std::string &code,
-                                      AuthCodeCallback &&cb)
+void MemoryOAuth2Storage::getAuthCode(const std::string &code, AuthCodeCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // Clean up expired codes lazily or just check expiry
@@ -220,8 +211,7 @@ void MemoryOAuth2Storage::getAuthCode(const std::string &code,
     cb(std::nullopt);
 }
 
-void MemoryOAuth2Storage::markAuthCodeUsed(const std::string &code,
-                                           VoidCallback &&cb)
+void MemoryOAuth2Storage::markAuthCodeUsed(const std::string &code, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = authCodes_.find(code);
@@ -233,9 +223,11 @@ void MemoryOAuth2Storage::markAuthCodeUsed(const std::string &code,
         cb();
 }
 
-void MemoryOAuth2Storage::consumeAuthCode(const std::string &code,
-                                          const std::string &redirectUri,
-                                          AuthCodeCallback &&cb)
+void MemoryOAuth2Storage::consumeAuthCode(
+  const std::string &code,
+  const std::string &redirectUri,
+  AuthCodeCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = authCodes_.find(code);
@@ -247,10 +239,9 @@ void MemoryOAuth2Storage::consumeAuthCode(const std::string &code,
             // Per OAuth2 RFC 6749 Section 4.1.3
             if (!redirectUri.empty() && redirectUri != it->second.redirectUri)
             {
-                LOG_WARN
-                    << "[SECURITY] redirect_uri mismatch in token exchange. "
-                    << "Expected: " << it->second.redirectUri
-                    << ", Got: " << redirectUri << ", Code: " << code;
+                LOG_WARN << "[SECURITY] redirect_uri mismatch in token exchange. "
+                         << "Expected: " << it->second.redirectUri << ", Got: " << redirectUri
+                         << ", Code: " << code;
                 cb(std::nullopt);
                 return;
             }
@@ -263,8 +254,7 @@ void MemoryOAuth2Storage::consumeAuthCode(const std::string &code,
     cb(std::nullopt);
 }
 
-void MemoryOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token,
-                                          VoidCallback &&cb)
+void MemoryOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     accessTokens_[token.token] = token;
@@ -272,8 +262,7 @@ void MemoryOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token,
         cb();
 }
 
-void MemoryOAuth2Storage::getAccessToken(const std::string &token,
-                                         AccessTokenCallback &&cb)
+void MemoryOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = accessTokens_.find(token);
@@ -288,8 +277,7 @@ void MemoryOAuth2Storage::getAccessToken(const std::string &token,
     cb(std::nullopt);
 }
 
-void MemoryOAuth2Storage::saveRefreshToken(const OAuth2RefreshToken &token,
-                                           VoidCallback &&cb)
+void MemoryOAuth2Storage::saveRefreshToken(const OAuth2RefreshToken &token, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     refreshTokens_[token.token] = token;
@@ -297,8 +285,7 @@ void MemoryOAuth2Storage::saveRefreshToken(const OAuth2RefreshToken &token,
         cb();
 }
 
-void MemoryOAuth2Storage::getRefreshToken(const std::string &token,
-                                          RefreshTokenCallback &&cb)
+void MemoryOAuth2Storage::getRefreshToken(const std::string &token, RefreshTokenCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = refreshTokens_.find(token);
@@ -313,8 +300,7 @@ void MemoryOAuth2Storage::getRefreshToken(const std::string &token,
     cb(std::nullopt);
 }
 
-void MemoryOAuth2Storage::revokeRefreshToken(const std::string &token,
-                                             VoidCallback &&cb)
+void MemoryOAuth2Storage::revokeRefreshToken(const std::string &token, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = refreshTokens_.find(token);
@@ -376,8 +362,7 @@ void MemoryOAuth2Storage::deleteExpiredData()
     }
 }
 
-void MemoryOAuth2Storage::getUserRoles(const std::string &userId,
-                                       StringListCallback &&cb)
+void MemoryOAuth2Storage::getUserRoles(const std::string &userId, StringListCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = userRoles_.find(userId);
@@ -394,9 +379,11 @@ void MemoryOAuth2Storage::getUserRoles(const std::string &userId,
 
 // ========== Subject Mapping Operations ==========
 
-void MemoryOAuth2Storage::getInternalUserId(const std::string &subject,
-                                            const std::string &provider,
-                                            OptionalIntCallback &&cb)
+void MemoryOAuth2Storage::getInternalUserId(
+  const std::string &subject,
+  const std::string &provider,
+  OptionalIntCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::string key = provider + ":" + subject;
@@ -411,10 +398,12 @@ void MemoryOAuth2Storage::getInternalUserId(const std::string &subject,
     }
 }
 
-void MemoryOAuth2Storage::createSubjectMapping(const std::string &subject,
-                                               int32_t internalUserId,
-                                               const std::string &provider,
-                                               BoolCallback &&cb)
+void MemoryOAuth2Storage::createSubjectMapping(
+  const std::string &subject,
+  int32_t internalUserId,
+  const std::string &provider,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::string key = provider + ":" + subject;
@@ -426,19 +415,20 @@ void MemoryOAuth2Storage::createSubjectMapping(const std::string &subject,
 // ========== Authorization Transaction Operations ==========
 
 void MemoryOAuth2Storage::saveAuthorizationTransaction(
-    const AuthorizationTransaction &transaction,
-    BoolCallback &&cb)
+  const AuthorizationTransaction &transaction,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     transactions_[transaction.transactionId] = transaction;
-    LOG_DEBUG << "Saved authorization transaction: "
-              << transaction.transactionId;
+    LOG_DEBUG << "Saved authorization transaction: " << transaction.transactionId;
     cb(true);
 }
 
 void MemoryOAuth2Storage::getAuthorizationTransaction(
-    const std::string &transactionId,
-    TransactionCallback &&cb)
+  const std::string &transactionId,
+  TransactionCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = transactions_.find(transactionId);
@@ -462,8 +452,9 @@ void MemoryOAuth2Storage::getAuthorizationTransaction(
 }
 
 void MemoryOAuth2Storage::deleteAuthorizationTransaction(
-    const std::string &transactionId,
-    VoidCallback &&cb)
+  const std::string &transactionId,
+  VoidCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     transactions_.erase(transactionId);
@@ -472,8 +463,9 @@ void MemoryOAuth2Storage::deleteAuthorizationTransaction(
 }
 
 void MemoryOAuth2Storage::markTransactionConsumed(
-    const std::string &transactionId,
-    BoolCallback &&cb)
+  const std::string &transactionId,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = transactions_.find(transactionId);
@@ -485,57 +477,57 @@ void MemoryOAuth2Storage::markTransactionConsumed(
     }
     else
     {
-        LOG_DEBUG << "Transaction already consumed or not found: "
-                  << transactionId;
+        LOG_DEBUG << "Transaction already consumed or not found: " << transactionId;
         cb(false);
     }
 }
 
 // ========== Scope Management Operations ==========
 
-void MemoryOAuth2Storage::hasUserConsent(int32_t internalUserId,
-                                         const std::string &clientId,
-                                         const std::string &scope,
-                                         BoolCallback &&cb)
+void MemoryOAuth2Storage::hasUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::string key =
-        std::to_string(internalUserId) + ":" + clientId + ":" + scope;
+    std::string key = std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     auto it = userConsents_.find(key);
     cb(it != userConsents_.end());
 }
 
-void MemoryOAuth2Storage::saveUserConsent(int32_t internalUserId,
-                                          const std::string &clientId,
-                                          const std::string &scope,
-                                          BoolCallback &&cb)
+void MemoryOAuth2Storage::saveUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  BoolCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::string key =
-        std::to_string(internalUserId) + ":" + clientId + ":" + scope;
+    std::string key = std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     userConsents_[key] = getCurrentTimestamp();
     LOG_DEBUG << "Saved user consent: " << key;
     cb(true);
 }
 
-void MemoryOAuth2Storage::revokeUserConsent(int32_t internalUserId,
-                                            const std::string &clientId,
-                                            const std::string &scope,
-                                            VoidCallback &&cb)
+void MemoryOAuth2Storage::revokeUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  VoidCallback &&cb
+)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::string key =
-        std::to_string(internalUserId) + ":" + clientId + ":" + scope;
+    std::string key = std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     size_t erased = userConsents_.erase(key);
-    LOG_DEBUG << "Revoked user consent: " << key << " (erased: " << erased
-              << ")";
+    LOG_DEBUG << "Revoked user consent: " << key << " (erased: " << erased << ")";
     cb();
 }
 
 // ========== Additional getUserRoles overload ==========
 
-void MemoryOAuth2Storage::getUserRoles(int32_t internalUserId,
-                                       StringListCallback &&cb)
+void MemoryOAuth2Storage::getUserRoles(int32_t internalUserId, StringListCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::string userIdStr = std::to_string(internalUserId);

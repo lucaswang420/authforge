@@ -70,8 +70,7 @@ DROGON_TEST(PostgresStorageTest)
     {
         std::promise<std::optional<OAuth2AuthCode>> p;
         auto f = p.get_future();
-        storage->getAuthCode("test_pg_code_123",
-                             [&](auto c) { p.set_value(c); });
+        storage->getAuthCode("test_pg_code_123", [&](auto c) { p.set_value(c); });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -96,13 +95,14 @@ DROGON_TEST(PostgresStorageTest)
         std::promise<void> p;
         auto f = p.get_future();
         client->execSqlAsync(
-            "DELETE FROM oauth2_codes WHERE code = $1",
-            [&](const drogon::orm::Result &) { p.set_value(); },
-            [&](const drogon::orm::DrogonDbException &e) {
-                LOG_ERROR << "Postgres Cleanup Failed: " << e.base().what();
-                p.set_value();
-            },
-            "test_pg_code_123");
+          "DELETE FROM oauth2_codes WHERE code = $1",
+          [&](const drogon::orm::Result &) { p.set_value(); },
+          [&](const drogon::orm::DrogonDbException &e) {
+              LOG_ERROR << "Postgres Cleanup Failed: " << e.base().what();
+              p.set_value();
+          },
+          "test_pg_code_123"
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");

@@ -18,9 +18,7 @@ class ApiDocController : public drogon::HttpController<ApiDocController>
   public:
     METHOD_LIST_BEGIN
     // Serve OpenAPI JSON specification
-    ADD_METHOD_TO(ApiDocController::openApiSpec,
-                  "/docs/api/openapi.json",
-                  drogon::Get);
+    ADD_METHOD_TO(ApiDocController::openApiSpec, "/docs/api/openapi.json", drogon::Get);
 
     // Serve Swagger UI main page
     ADD_METHOD_TO(ApiDocController::swaggerUi, "/docs/api", drogon::Get);
@@ -33,8 +31,9 @@ class ApiDocController : public drogon::HttpController<ApiDocController>
      * @param callback Response callback
      */
     void openApiSpec(
-        const drogon::HttpRequestPtr &req,
-        std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+      const drogon::HttpRequestPtr &req,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
 
     /**
      * @brief Serve Swagger UI HTML page
@@ -42,8 +41,9 @@ class ApiDocController : public drogon::HttpController<ApiDocController>
      * @param callback Response callback
      */
     void swaggerUi(
-        const drogon::HttpRequestPtr &req,
-        std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+      const drogon::HttpRequestPtr &req,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
 };
 
 }  // namespace api

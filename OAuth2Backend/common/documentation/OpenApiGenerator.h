@@ -38,7 +38,7 @@ struct ParameterInfo
     bool required = true;
     std::string defaultValue;  // Optional default value
     std::string enumValues;    // Comma-separated enum values (optional)
-    std::string format;  // OpenAPI format (e.g., "int64", "email", "uuid")
+    std::string format;        // OpenAPI format (e.g., "int64", "email", "uuid")
 };
 
 struct EndpointInfo
@@ -60,13 +60,14 @@ class OpenApiGenerator
     static void addEndpoint(const EndpointInfo &endpoint);
     static Json::Value generateOpenApiSpec();
     static bool writeToFile(const std::string &outputPath);
-    static void setApiInfo(const std::string &title,
-                           const std::string &version,
-                           const std::string &description);
+    static void setApiInfo(
+      const std::string &title,
+      const std::string &version,
+      const std::string &description
+    );
 
     // Server configuration
-    static void setServerConfig(const std::string &url,
-                                const std::string &description = "");
+    static void setServerConfig(const std::string &url, const std::string &description = "");
 
     // Helper function to convert ParameterType to string
     static std::string parameterTypeToString(ParameterType type);

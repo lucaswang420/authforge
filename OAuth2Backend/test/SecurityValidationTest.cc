@@ -23,15 +23,13 @@ DROGON_TEST(SecurityValidationTest_AcceptValidClientId)
 
 DROGON_TEST(SecurityValidationTest_AcceptValidHttpsRedirectUri)
 {
-    auto result =
-        Validator::validateRedirectUri("https://example.com/callback");
+    auto result = Validator::validateRedirectUri("https://example.com/callback");
     CHECK(result.isValid);
 }
 
 DROGON_TEST(SecurityValidationTest_AcceptValidHttpRedirectUri)
 {
-    auto result =
-        Validator::validateRedirectUri("http://localhost:8080/callback");
+    auto result = Validator::validateRedirectUri("http://localhost:8080/callback");
     CHECK(result.isValid);
 }
 

@@ -68,8 +68,7 @@ DROGON_TEST(RedisStorageTest)
     {
         std::promise<std::optional<OAuth2AuthCode>> p;
         auto f = p.get_future();
-        storage->getAuthCode("test_redis_code_123",
-                             [&](auto c) { p.set_value(c); });
+        storage->getAuthCode("test_redis_code_123", [&](auto c) { p.set_value(c); });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -92,9 +91,11 @@ DROGON_TEST(RedisStorageTest)
     {
         std::promise<void> p;
         auto f = p.get_future();
-        client->execCommandAsync([](const drogon::nosql::RedisResult &r) {},
-                                 [&](const std::exception &e) {},
-                                 "DEL oauth2:code:test_redis_code_123");
+        client->execCommandAsync(
+          [](const drogon::nosql::RedisResult &r) {},
+          [&](const std::exception &e) {},
+          "DEL oauth2:code:test_redis_code_123"
+        );
         // We don't strictly wait here because Redis is fast, but better to
         // wait? Actually execCommandAsync doesn't block. Let's rely on fast
         // execution or just fire and forget if acceptable, BUT strict cleanup
@@ -102,9 +103,10 @@ DROGON_TEST(RedisStorageTest)
         // the simple signature above (wait, I need callback signature)
 
         client->execCommandAsync(
-            [&](const drogon::nosql::RedisResult &r) { p.set_value(); },
-            [&](const std::exception &e) { p.set_value(); },
-            "DEL oauth2:code:test_redis_code_123");
+          [&](const drogon::nosql::RedisResult &r) { p.set_value(); },
+          [&](const std::exception &e) { p.set_value(); },
+          "DEL oauth2:code:test_redis_code_123"
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");

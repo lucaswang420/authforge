@@ -61,14 +61,15 @@ TEST(DbLeakVerification, AuthServiceConnectionManagement)
         std::string password = "test_pass";
 
         // Register
-        auto client1 =
-            drogon::HttpClient::newHttpClient("http://localhost:5555");
+        auto client1 = drogon::HttpClient::newHttpClient("http://localhost:5555");
         auto req1 = drogon::HttpRequest::newHttpRequest();
         req1->setMethod(drogon::Post);
         req1->setPath("/api/register");
         req1->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
-        req1->setBody("username=" + username + "&password=" + password +
-                      "&email=test" + std::to_string(i) + "@example.com");
+        req1->setBody(
+          "username=" + username + "&password=" + password + "&email=test" + std::to_string(i) +
+          "@example.com"
+        );
 
         // Send request asynchronously
         client1->sendRequest(req1);
@@ -108,17 +109,17 @@ TEST(DbLeakVerification, ConnectionPoolBehavior)
     for (int i = 0; i < 20; ++i)
     {
         // Make login request (triggers DB query)
-        auto client =
-            drogon::HttpClient::newHttpClient("http://localhost:5555");
+        auto client = drogon::HttpClient::newHttpClient("http://localhost:5555");
         auto req = drogon::HttpRequest::newHttpRequest();
         req->setMethod(drogon::Post);
         req->setPath("/oauth2/login");
         req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
         req->setBody(
-            "username=admin&password=admin&"
-            "client_id=vue-client&redirect_uri=http://localhost:5173/callback&"
-            "scope=openid&state=test" +
-            std::to_string(i));
+          "username=admin&password=admin&"
+          "client_id=vue-client&redirect_uri=http://localhost:5173/callback&"
+          "scope=openid&state=test" +
+          std::to_string(i)
+        );
 
         auto resp = client->sendRequest(req);
 

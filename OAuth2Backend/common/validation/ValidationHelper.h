@@ -15,23 +15,27 @@ class ValidationHelper
   public:
     // 创建标准验证错误响应
     static drogon::HttpResponsePtr createValidationErrorResponse(
-        const std::vector<std::string> &errors);
+      const std::vector<std::string> &errors
+    );
 
     // 快速返回单个验证错误
     static void returnValidationError(
-        const std::string &field,
-        const std::string &reason,
-        std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+      const std::string &field,
+      const std::string &reason,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
 
     // 快速返回多个验证错误
     static void returnValidationErrors(
-        const std::vector<std::string> &errors,
-        std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+      const std::vector<std::string> &errors,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
 
     // 检查验证结果并返回错误（如果有）
     static bool returnValidationErrorsIfAny(
-        const std::vector<std::string> &errors,
-        std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+      const std::vector<std::string> &errors,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
 
   private:
     // 创建标准错误JSON

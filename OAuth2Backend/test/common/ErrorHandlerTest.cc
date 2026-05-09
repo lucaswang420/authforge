@@ -8,19 +8,13 @@ using namespace common::error;
 
 DROGON_TEST(ErrorCodeToHttpMapping)
 {
-    Error authError{ErrorCode::INVALID_CREDENTIALS,
-                    ErrorCategory::AUTHENTICATION,
-                    "",
-                    "",
-                    ""};
+    Error authError{ErrorCode::INVALID_CREDENTIALS, ErrorCategory::AUTHENTICATION, "", "", ""};
     CHECK(authError.toHttpStatusCode() == 401);
 
-    Error accessError{
-        ErrorCode::ACCESS_DENIED, ErrorCategory::AUTHORIZATION, "", "", ""};
+    Error accessError{ErrorCode::ACCESS_DENIED, ErrorCategory::AUTHORIZATION, "", "", ""};
     CHECK(accessError.toHttpStatusCode() == 403);
 
-    Error notFoundError{
-        ErrorCode::INVALID_INPUT, ErrorCategory::VALIDATION, "", "", ""};
+    Error notFoundError{ErrorCode::INVALID_INPUT, ErrorCategory::VALIDATION, "", "", ""};
     CHECK(notFoundError.toHttpStatusCode() == 400);
 }
 
@@ -33,11 +27,13 @@ DROGON_TEST(ConvertDbExceptionToError)
 
 DROGON_TEST(ErrorToJsonFormat)
 {
-    Error error{ErrorCode::MISSING_REQUIRED_FIELD,
-                ErrorCategory::VALIDATION,
-                "Field is required",
-                "field: client_id",
-                "req_123"};
+    Error error{
+      ErrorCode::MISSING_REQUIRED_FIELD,
+      ErrorCategory::VALIDATION,
+      "Field is required",
+      "field: client_id",
+      "req_123"
+    };
 
     Json::Value json = error.toJson();
     CHECK(json["error"]["code"].asInt() == 3002);
@@ -49,8 +45,7 @@ DROGON_TEST(ErrorToJsonFormat)
 
 DROGON_TEST(HandleValidationError)
 {
-    auto error =
-        ErrorHandler::handleValidationError("client_id", "is required");
+    auto error = ErrorHandler::handleValidationError("client_id", "is required");
     CHECK(error.category == ErrorCategory::VALIDATION);
     CHECK(error.code == ErrorCode::INVALID_INPUT);
     CHECK(error.message == "is required");
@@ -65,14 +60,12 @@ DROGON_TEST(DatabaseTimeoutToHttp504)
 
 DROGON_TEST(DatabaseErrorToHttp500)
 {
-    Error dbError{
-        ErrorCode::DB_QUERY_ERROR, ErrorCategory::DATABASE, "", "", ""};
+    Error dbError{ErrorCode::DB_QUERY_ERROR, ErrorCategory::DATABASE, "", "", ""};
     CHECK(dbError.toHttpStatusCode() == 500);
 }
 
 DROGON_TEST(UnknownErrorToHttp500)
 {
-    Error internalError{
-        ErrorCode::DB_QUERY_ERROR, ErrorCategory::INTERNAL, "", "", ""};
+    Error internalError{ErrorCode::DB_QUERY_ERROR, ErrorCategory::INTERNAL, "", "", ""};
     CHECK(internalError.toHttpStatusCode() == 500);
 }

@@ -10,6 +10,5 @@ class GoogleController : public drogon::HttpController<GoogleController>
     ADD_METHOD_TO(GoogleController::login, "/api/google/login", Post, Options);
     METHOD_LIST_END
 
-    void login(const HttpRequestPtr &req,
-               std::function<void(const HttpResponsePtr &)> &&callback);
+    void login(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 };

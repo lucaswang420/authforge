@@ -41,44 +41,44 @@ struct OAuth2ControllerDocs
         tokenEndpoint.method = "POST";
         tokenEndpoint.summary = "Exchange authorization code for access token";
         tokenEndpoint.description =
-            "OAuth2 token endpoint - exchanges authorization "
-            "code or refresh token for access token";
+          "OAuth2 token endpoint - exchanges authorization "
+          "code or refresh token for access token";
         tokenEndpoint.tags = {"OAuth2", "Token"};
-        tokenEndpoint.parameters = {
-            {"grant_type",
-             "Authorization code or refresh token (required)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"code",
-             "Authorization code (required for grant_type=authorization_code)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             false},
-            {"refresh_token",
-             "Refresh token (required for grant_type=refresh_token)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             false},
-            {"client_id",
-             "Client identifier (required)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"client_secret",
-             "Client secret (required for confidential clients)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"redirect_uri",
-             "Redirect URI (required for authorization_code grant)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true}};
-        tokenEndpoint.responses = {
-            {200, "Token response with access_token and refresh_token"},
-            {400, "Invalid request"},
-            {401, "Authentication failed"}};
+        tokenEndpoint.parameters =
+          {{"grant_type",
+            "Authorization code or refresh token (required)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"code",
+            "Authorization code (required for grant_type=authorization_code)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            false},
+           {"refresh_token",
+            "Refresh token (required for grant_type=refresh_token)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            false},
+           {"client_id",
+            "Client identifier (required)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"client_secret",
+            "Client secret (required for confidential clients)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"redirect_uri",
+            "Redirect URI (required for authorization_code grant)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true}};
+        tokenEndpoint.responses =
+          {{200, "Token response with access_token and refresh_token"},
+           {400, "Invalid request"},
+           {401, "Authentication failed"}};
         tokenEndpoint.requiresAuth = false;
         OpenApiGenerator::addEndpoint(tokenEndpoint);
 
@@ -88,38 +88,37 @@ struct OAuth2ControllerDocs
         authorizeEndpoint.method = "GET";
         authorizeEndpoint.summary = "Request authorization";
         authorizeEndpoint.description =
-            "OAuth2 authorization endpoint - initiates authorization flow";
+          "OAuth2 authorization endpoint - initiates authorization flow";
         authorizeEndpoint.tags = {"OAuth2", "Authorization"};
-        authorizeEndpoint.parameters = {
-            {"client_id",
-             "Client identifier (required)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"redirect_uri",
-             "Redirect URI (required)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"response_type",
-             "Response type, must be 'code' (required)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             true},
-            {"scope",
-             "Requested scope (optional)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             false},
-            {"state",
-             "Opaque value to maintain state between request and callback "
-             "(recommended)",
-             common::documentation::ParameterType::STRING,
-             common::documentation::ParameterLocation::QUERY,
-             false}};
-        authorizeEndpoint.responses = {
-            {302, "Redirect to client with authorization code"},
-            {400, "Invalid request"}};
+        authorizeEndpoint.parameters =
+          {{"client_id",
+            "Client identifier (required)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"redirect_uri",
+            "Redirect URI (required)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"response_type",
+            "Response type, must be 'code' (required)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            true},
+           {"scope",
+            "Requested scope (optional)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            false},
+           {"state",
+            "Opaque value to maintain state between request and callback "
+            "(recommended)",
+            common::documentation::ParameterType::STRING,
+            common::documentation::ParameterLocation::QUERY,
+            false}};
+        authorizeEndpoint.responses =
+          {{302, "Redirect to client with authorization code"}, {400, "Invalid request"}};
         authorizeEndpoint.requiresAuth = false;
         OpenApiGenerator::addEndpoint(authorizeEndpoint);
 
@@ -141,19 +140,18 @@ struct OAuth2ControllerDocs
             userInfoEndpoint.method = "GET";
             userInfoEndpoint.summary = "Get user information";
             userInfoEndpoint.description =
-                "Returns information about the authenticated user. "
-                "Provides user profile data including username, email, "
-                "and assigned roles according to OpenID Connect "
-                "standards.";
+              "Returns information about the authenticated user. "
+              "Provides user profile data including username, email, "
+              "and assigned roles according to OpenID Connect "
+              "standards.";
             userInfoEndpoint.tags = {"OAuth2", "User"};
             userInfoEndpoint.parameters = {};
-            userInfoEndpoint.responses = {
-                {200, "User information retrieved successfully"},
-                {400, "Invalid User ID format"},
-                {401, "Invalid or expired access token"},
-                {404, "User not found"}};
-            userInfoEndpoint.responseExamples = {{200, successExample},
-                                                 {404, errorExample}};
+            userInfoEndpoint.responses =
+              {{200, "User information retrieved successfully"},
+               {400, "Invalid User ID format"},
+               {401, "Invalid or expired access token"},
+               {404, "User not found"}};
+            userInfoEndpoint.responseExamples = {{200, successExample}, {404, errorExample}};
             userInfoEndpoint.requiresAuth = true;
             OpenApiGenerator::addEndpoint(userInfoEndpoint);
         }
@@ -164,8 +162,7 @@ struct OAuth2ControllerDocs
             healthEndpoint.path = "/health";
             healthEndpoint.method = "GET";
             healthEndpoint.summary = "Health check";
-            healthEndpoint.description =
-                "Returns the health status of the service";
+            healthEndpoint.description = "Returns the health status of the service";
             healthEndpoint.tags = {"System"};
             healthEndpoint.parameters = {};
             healthEndpoint.responses = {{200, "Service is healthy"}};
@@ -180,44 +177,44 @@ struct OAuth2ControllerDocs
             loginEndpoint.method = "POST";
             loginEndpoint.summary = "Authenticate user";
             loginEndpoint.description =
-                "Authenticates user credentials and generates "
-                "authorization code";
+              "Authenticates user credentials and generates "
+              "authorization code";
             loginEndpoint.tags = {"OAuth2", "Authentication"};
-            loginEndpoint.parameters = {
-                {"username",
-                 "Username (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"password",
-                 "Password (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"client_id",
-                 "Client identifier (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"redirect_uri",
-                 "Redirect URI (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"scope",
-                 "Requested scope (optional)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 false},
-                {"state",
-                 "Opaque value to maintain state (recommended)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 false}};
-            loginEndpoint.responses = {{200, "Authentication successful"},
-                                       {302,
-                                        "Redirect with authorization code"},
-                                       {401, "Authentication failed"}};
+            loginEndpoint.parameters =
+              {{"username",
+                "Username (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"password",
+                "Password (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"client_id",
+                "Client identifier (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"redirect_uri",
+                "Redirect URI (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"scope",
+                "Requested scope (optional)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                false},
+               {"state",
+                "Opaque value to maintain state (recommended)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                false}};
+            loginEndpoint.responses =
+              {{200, "Authentication successful"},
+               {302, "Redirect with authorization code"},
+               {401, "Authentication failed"}};
             loginEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(loginEndpoint);
         }
@@ -228,27 +225,26 @@ struct OAuth2ControllerDocs
             registerEndpoint.path = "/api/register";
             registerEndpoint.method = "POST";
             registerEndpoint.summary = "Register new user";
-            registerEndpoint.description =
-                "Registers a new user account (for testing purposes)";
+            registerEndpoint.description = "Registers a new user account (for testing purposes)";
             registerEndpoint.tags = {"User", "Registration"};
-            registerEndpoint.parameters = {
-                {"username",
-                 "Username (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"password",
-                 "Password (required)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 true},
-                {"email",
-                 "Email address (optional)",
-                 common::documentation::ParameterType::STRING,
-                 common::documentation::ParameterLocation::QUERY,
-                 false}};
-            registerEndpoint.responses = {{200, "User registered successfully"},
-                                          {400, "Invalid registration data"}};
+            registerEndpoint.parameters =
+              {{"username",
+                "Username (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"password",
+                "Password (required)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                true},
+               {"email",
+                "Email address (optional)",
+                common::documentation::ParameterType::STRING,
+                common::documentation::ParameterLocation::QUERY,
+                false}};
+            registerEndpoint.responses =
+              {{200, "User registered successfully"}, {400, "Invalid registration data"}};
             registerEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(registerEndpoint);
         }
@@ -259,9 +255,10 @@ OAuth2ControllerDocs docs_;
 }  // namespace
 
 void OAuth2Controller::errorResponse(
-    std::function<void(const HttpResponsePtr &)> &&callback,
-    const std::string &message,
-    int statusCode)
+  std::function<void(const HttpResponsePtr &)> &&callback,
+  const std::string &message,
+  int statusCode
+)
 {
     Json::Value error;
     error["error"] = message;
@@ -271,16 +268,17 @@ void OAuth2Controller::errorResponse(
 }
 
 void OAuth2Controller::authorize(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Use ValidatorHelper for consistent validation
-    auto errors =
-        common::validation::ValidatorHelper::validateOAuth2AuthorizeParams(req);
+    auto errors = common::validation::ValidatorHelper::validateOAuth2AuthorizeParams(req);
 
     // Return validation errors if any
-    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
-            errors, std::move(callback)))
+    if (
+      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+    )
     {
         Metrics::incRequest("authorize", 400);
         return;
@@ -307,8 +305,9 @@ void OAuth2Controller::authorize(
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k400BadRequest);
         resp->setBody(
-            "state parameter is required for CSRF protection. "
-            "Please include a state parameter in your authorization request.");
+          "state parameter is required for CSRF protection. "
+          "Please include a state parameter in your authorization request."
+        );
         callback(resp);
         return;
     }
@@ -330,9 +329,10 @@ void OAuth2Controller::authorize(
     }
 
     // Check for potential state injection attacks (URL parameters in state)
-    if (state.find('?') != std::string::npos ||
-        state.find('#') != std::string::npos ||
-        state.find('&') != std::string::npos)
+    if (
+      state.find('?') != std::string::npos || state.find('#') != std::string::npos ||
+      state.find('&') != std::string::npos
+    )
     {
         LOG_WARN << "Authorization request has potentially malicious state "
                     "parameter (contains URL delimiters) for client: "
@@ -347,8 +347,8 @@ void OAuth2Controller::authorize(
         return;
     }
 
-    LOG_DEBUG << "Authorization request with valid state parameter for client: "
-              << clientId << ", state: " << state.substr(0, 8) << "...";
+    LOG_DEBUG << "Authorization request with valid state parameter for client: " << clientId
+              << ", state: " << state.substr(0, 8) << "...";
 
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
@@ -361,123 +361,136 @@ void OAuth2Controller::authorize(
     }
 
     // Validate Client (Async)
-    plugin->validateClient(
-        clientId,
-        "",
-        [=, callback = std::move(callback)](bool validClient) mutable {
-            if (!validClient)
-            {
-                Metrics::incRequest("authorize", 400);
-                Metrics::incLoginFailure("invalid_client_id");
+    plugin
+      ->validateClient(clientId, "", [=, callback = std::move(callback)](bool validClient) mutable {
+          if (!validClient)
+          {
+              Metrics::incRequest("authorize", 400);
+              Metrics::incLoginFailure("invalid_client_id");
 
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody("Invalid client_id");
-                callback(resp);
-                return;
-            }
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k400BadRequest);
+              resp->setBody("Invalid client_id");
+              callback(resp);
+              return;
+          }
 
-            // Validate Redirect URI (Async)
-            plugin->validateRedirectUri(
-                clientId,
-                redirectUri,
-                [=, callback = std::move(callback)](bool validUri) mutable {
-            if (!validUri)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody("Invalid redirect_uri");
-                callback(resp);
-                return;
-            }
-
-            // P0-5: Parse requested scopes for validation
-            std::vector<std::string> requestedScopes;
-            std::stringstream ss(scope);
-            std::string scopeItem;
-            while (std::getline(ss, scopeItem, ' '))
-            {
-                if (!scopeItem.empty())
+          // Validate Redirect URI (Async)
+          plugin->validateRedirectUri(
+            clientId, redirectUri, [=, callback = std::move(callback)](bool validUri) mutable {
+                if (!validUri)
                 {
-                    requestedScopes.push_back(scopeItem);
-                }
-            }
-
-            // P0-5 Tier 1: Validate client scopes (allowlist check)
-                    plugin->validateClientScopes(
-                        clientId,
-                        requestedScopes,
-                        [=, callback = std::move(callback)](
-                            bool validScopes, std::string scopeError) mutable {
-                if (!validScopes)
-                {
-                    LOG_WARN << "Client scope validation failed: "
-                             << scopeError;
-                    Json::Value jsonErr;
-                    jsonErr["error"] = "invalid_scope";
-                    jsonErr["error_description"] = scopeError;
-                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                    auto resp = HttpResponse::newHttpResponse();
                     resp->setStatusCode(k400BadRequest);
+                    resp->setBody(
+                      "Invalid "
+                      "redirect_"
+                      "uri"
+                    );
                     callback(resp);
                     return;
                 }
 
-                LOG_DEBUG << "Client scope validation successful";
-
-                // Check Session
-                std::string userId;
-                if (req->session())
+                // P0-5: Parse
+                // requested scopes
+                // for validation
+                std::vector<std::string> requestedScopes;
+                std::stringstream ss(scope);
+                std::string scopeItem;
+                while (std::getline(ss, scopeItem, ' '))
                 {
-                    userId = req->session()->get<std::string>("userId");
+                    if (!scopeItem.empty())
+                    {
+                        requestedScopes.push_back(scopeItem);
+                    }
                 }
-                if (!userId.empty())
-                {
-                    // P0-5 Tier 2: Validate user roles for admin scopes
-                    plugin->validateUserRolesForScopes(
-                        userId,
-                        requestedScopes,
-                        [=, callback = std::move(callback)](
-                            bool validRoles, std::string roleError) mutable {
-                            if (!validRoles)
-                            {
-                                LOG_WARN << "User role validation failed: "
-                                         << roleError;
-                                Json::Value jsonErr;
-                                jsonErr["error"] = "unauthorized_client";
-                                jsonErr["error_description"] = roleError;
-                                auto resp =
-                                    HttpResponse::newHttpJsonResponse(jsonErr);
-                                resp->setStatusCode(k403Forbidden);
-                                callback(resp);
-                                return;
-                            }
 
-                            LOG_DEBUG << "User role validation successful";
+                // P0-5 Tier 1:
+                // Validate client
+                // scopes (allowlist
+                // check)
+                plugin->validateClientScopes(
+                  clientId,
+                  requestedScopes,
+                  [=,
+                   callback =
+                     std::move(callback)](bool validScopes, std::string scopeError) mutable {
+                      if (!validScopes)
+                      {
+                          LOG_WARN << "Client scope validation failed: " << scopeError;
+                          Json::Value jsonErr;
+                          jsonErr["error"] = "invalid_scope";
+                          jsonErr["error_description"] = scopeError;
+                          auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                          resp->setStatusCode(k400BadRequest);
+                          callback(resp);
+                          return;
+                      }
 
-                            // P0-2: Check user consent for requested scopes
-                            // (Tier 3 validation - already implemented above)
-                            // Get internal user ID for consent checking
-                            plugin->getInternalUserId(
-                                userId,
-                                [=, callback = std::move(callback)](
-                                    std::optional<int32_t>
-                                        internalUserId) mutable {
-                                    if (!internalUserId)
-                                    {
-                                        // User mapping not found, this might be
-                                        // a first-time login For now, we'll
-                                        // proceed without consent checking for
-                                        // unmapped users In production, you
-                                        // would want to handle this differently
-                                        LOG_WARN << "No internal user ID found "
-                                                    "for subject: "
-                                                 << userId
-                                                 << ", proceeding without "
-                                                    "consent check";
+                      LOG_DEBUG << "Client scope validation successful";
 
-                                        // Proceed with authorization code
-                                        // generation
-                                        plugin->generateAuthorizationCode(
+                      // Check
+                      // Session
+                      std::string userId;
+                      if (req->session())
+                      {
+                          userId = req->session()->get<std::string>("userId");
+                      }
+                      if (!userId.empty())
+                      {
+                          // P0-5
+                          // Tier
+                          // 2:
+                          // Validate
+                          // user
+                          // roles
+                          // for
+                          // admin
+                          // scopes
+                          plugin->validateUserRolesForScopes(
+                            userId,
+                            requestedScopes,
+                            [=, callback = std::move(callback)](
+                              bool validRoles, std::string roleError
+                            ) mutable {
+                                if (!validRoles)
+                                {
+                                    LOG_WARN << "User role validation failed: " << roleError;
+                                    Json::Value jsonErr;
+                                    jsonErr["error"] = "unauthorized_client";
+                                    jsonErr["error_description"] = roleError;
+                                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                                    resp->setStatusCode(k403Forbidden);
+                                    callback(resp);
+                                    return;
+                                }
+
+                                LOG_DEBUG << "User role validation successful";
+
+                                // P0-2: Check user consent for requested scopes
+                                // (Tier 3 validation - already implemented above)
+                                // Get internal user ID for consent checking
+                                plugin->getInternalUserId(
+                                  userId,
+                                  [=, callback = std::move(callback)](
+                                    std::optional<int32_t> internalUserId
+                                  ) mutable {
+                                      if (!internalUserId)
+                                      {
+                                          // User mapping not found, this might be
+                                          // a first-time login For now, we'll
+                                          // proceed without consent checking for
+                                          // unmapped users In production, you
+                                          // would want to handle this differently
+                                          LOG_WARN << "No internal user ID found "
+                                                      "for subject: "
+                                                   << userId
+                                                   << ", proceeding without "
+                                                      "consent check";
+
+                                          // Proceed with authorization code
+                                          // generation
+                                          plugin->generateAuthorizationCode(
                                             clientId,
                                             userId,
                                             scope,
@@ -487,117 +500,124 @@ void OAuth2Controller::authorize(
                                             "",  // codeChallengeMethod (empty
                                                  // for now)
                                             [=, callback = std::move(callback)](
-                                                bool success,
-                                                std::string code,
-                                                std::string error) {
+                                              bool success, std::string code, std::string error
+                                            ) {
                                                 if (!success)
                                                 {
-                                                    LOG_ERROR
-                                                        << "Failed to generate "
-                                                           "authorization "
-                                                           "code: "
-                                                        << error;
+                                                    LOG_ERROR << "Failed to generate "
+                                                                 "authorization "
+                                                                 "code: "
+                                                              << error;
                                                     Json::Value jsonErr;
-                                                    jsonErr["error"] =
-                                                        "server_error";
-                                                    jsonErr
-                                                        ["error_description"] =
-                                                            "Failed to "
-                                                            "generate "
-                                                            "authorization "
-                                                            "code";
-                                                    auto resp = HttpResponse::
-                                                        newHttpJsonResponse(
-                                                            jsonErr);
-                                                    resp->setStatusCode(
-                                                        k500InternalServerError);
+                                                    jsonErr["error"] = "server_error";
+                                                    jsonErr["error_description"] =
+                                                      "Failed to "
+                                                      "generate "
+                                                      "authorization "
+                                                      "code";
+                                                    auto resp =
+                                                      HttpResponse::newHttpJsonResponse(jsonErr);
+                                                    resp->setStatusCode(k500InternalServerError);
                                                     callback(resp);
                                                     return;
                                                 }
 
                                                 std::string location =
-                                                    redirectUri +
-                                                    "?code=" + code;
+                                                  redirectUri + "?code=" + code;
                                                 if (!state.empty())
-                                                    location +=
-                                                        "&state=" + state;
-                                                auto resp = HttpResponse::
-                                                    newRedirectionResponse(
-                                                        location);
-                                                Metrics::incRequest("authorize",
-                                                                    302);
+                                                    location += "&state=" + state;
+                                                auto resp =
+                                                  HttpResponse::newRedirectionResponse(location);
+                                                Metrics::incRequest("authorize", 302);
                                                 callback(resp);
-                                            });
-                                        return;
-                                    }
+                                            }
+                                          );
+                                          return;
+                                      }
 
-                                    // Check consent for all requested scopes
-                                    checkUserConsentAndProceed(plugin,
-                                                               clientId,
-                                                               userId,
-                                                               *internalUserId,
-                                                               requestedScopes,
-                                                               scope,
-                                                               redirectUri,
-                                                               state,
-                                                               std::move(
-                                                                   callback));
-                                });
-                        });
-                    return;
-                }
-                else
-                {
-                    // Render Login Page
-                    HttpViewData data;
-                    data.insert("client_id", clientId);
-                    data.insert("redirect_uri", redirectUri);
-                    data.insert("scope", scope);
-                    data.insert("state", state);
-                    data.insert("response_type", responseType);
+                                      // Check consent for all requested scopes
+                                      checkUserConsentAndProceed(
+                                        plugin,
+                                        clientId,
+                                        userId,
+                                        *internalUserId,
+                                        requestedScopes,
+                                        scope,
+                                        redirectUri,
+                                        state,
+                                        std::move(callback)
+                                      );
+                                  }
+                                );
+                            }
+                          );
+                          return;
+                      }
+                      else
+                      {
+                          // Render
+                          // Login
+                          // Page
+                          HttpViewData data;
+                          data.insert("client_id", clientId);
+                          data.insert("redirect_uri", redirectUri);
+                          data.insert("scope", scope);
+                          data.insert("state", state);
+                          data.insert("response_type", responseType);
 
-                    // Get frontend configuration for register link
-                    auto customConfig = drogon::app().getCustomConfig();
-                    std::string frontendUrl = "http://localhost:5173";
-                    std::string registerPath = "/register";
+                          // Get
+                          // frontend
+                          // configuration
+                          // for
+                          // register
+                          // link
+                          auto customConfig = drogon::app().getCustomConfig();
+                          std::string frontendUrl = "http://localhost:5173";
+                          std::string registerPath = "/register";
 
-                    if (customConfig.isMember("frontend") &&
-                        customConfig["frontend"].isMember("url") &&
-                        customConfig["frontend"]["url"].isString())
-                    {
-            frontendUrl = customConfig["frontend"]["url"].asString();
-                    }
+                          if (
+                            customConfig.isMember("frontend") &&
+                            customConfig["frontend"].isMember("url") &&
+                            customConfig["frontend"]["url"].isString()
+                          )
+                          {
+                              frontendUrl = customConfig["frontend"]["url"].asString();
+                          }
 
-                    if (customConfig.isMember("frontend") &&
-                        customConfig["frontend"].isMember("register_path") &&
-                        customConfig["frontend"]["register_path"].isString())
-                    {
-            registerPath = customConfig["frontend"]["register_path"].asString();
-                    }
+                          if (
+                            customConfig.isMember("frontend") &&
+                            customConfig["frontend"].isMember("register_path") &&
+                            customConfig["frontend"]["register_path"].isString()
+                          )
+                          {
+                              registerPath = customConfig["frontend"]["register_path"].asString();
+                          }
 
-                    std::string frontendRegisterUrl =
-                        frontendUrl + registerPath;
-                    data.insert("frontend_register_url", frontendRegisterUrl);
+                          std::string frontendRegisterUrl = frontendUrl + registerPath;
+                          data.insert("frontend_register_url", frontendRegisterUrl);
 
-                    auto resp =
-                        HttpResponse::newHttpViewResponse("login.csp", data);
-                    callback(resp);
-                }
-            });
-        });
-    });
+                          auto resp = HttpResponse::newHttpViewResponse("login.csp", data);
+                          callback(resp);
+                      }
+                  }
+                );
+            }
+          );
+      });
 }
 
 void OAuth2Controller::login(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Use ValidatorHelper for consistent validation
     auto errors = common::validation::ValidatorHelper::validateLoginParams(req);
 
     // Return validation errors if any
-    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
-            errors, std::move(callback)))
+    if (
+      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+    )
     {
         Metrics::incLoginFailure("validation_failed");
         return;
@@ -634,90 +654,87 @@ void OAuth2Controller::login(
     }
 
     AuthService::validateUser(
-        username,
-        password,
-        [=, callback = std::move(callback)](std::optional<int> userId) {
-            if (userId)
-            {
-                req->session()->insert("userId", std::to_string(*userId));
-                auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
-                if (!plugin)
-                {
-                    LOG_ERROR << "OAuth2Plugin not loaded during login";
-                    auto resp = HttpResponse::newHttpResponse();
-                    resp->setStatusCode(k500InternalServerError);
-                    resp->setBody("Internal Server Error: Plugin not loaded");
-                    callback(resp);
-                    return;
-                }
+      username, password, [=, callback = std::move(callback)](std::optional<int> userId) {
+          if (userId)
+          {
+              req->session()->insert("userId", std::to_string(*userId));
+              auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+              if (!plugin)
+              {
+                  LOG_ERROR << "OAuth2Plugin not loaded during login";
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody("Internal Server Error: Plugin not loaded");
+                  callback(resp);
+                  return;
+              }
 
-                plugin->generateAuthorizationCode(
-                    clientId,
-                    std::to_string(*userId),  // Subject
-                    scope,
-                    redirectUri,  // CRITICAL: Pass redirect_uri for RFC 6749
-                                  // Section 4.1.3 validation
-                    "",           // codeChallenge (empty for now)
-                    "",           // codeChallengeMethod (empty for now)
-                    [=, callback = std::move(callback)](bool success,
-                                                        std::string code,
-                                                        std::string error) {
-                        if (!success)
-                        {
-                            LOG_ERROR
-                                << "Failed to generate authorization code: "
-                                << error;
-                            Json::Value jsonErr;
-                            jsonErr["error"] = "server_error";
-                            jsonErr["error_description"] =
-                                "Failed to generate authorization code";
-                            auto resp =
-                                HttpResponse::newHttpJsonResponse(jsonErr);
-                            resp->setStatusCode(k500InternalServerError);
-                            callback(resp);
-                            return;
-                        }
-
-                        std::string location = redirectUri + "?code=" + code;
-                        if (!state.empty())
-                            location += "&state=" + state;
-                        if (req->getParameter("json") == "true")
-                        {
-                            Json::Value ret;
-                            ret["code"] = code;
-                            ret["location"] = location;
-                            auto resp = HttpResponse::newHttpJsonResponse(ret);
-                            callback(resp);
-                            return;
-                        }
-                        auto resp =
-                            HttpResponse::newRedirectionResponse(location);
+              plugin->generateAuthorizationCode(
+                clientId,
+                std::to_string(*userId),  // Subject
+                scope,
+                redirectUri,  // CRITICAL: Pass redirect_uri for RFC 6749
+                              // Section 4.1.3 validation
+                "",           // codeChallenge (empty for now)
+                "",           // codeChallengeMethod (empty for now)
+                [=,
+                 callback =
+                   std::move(callback)](bool success, std::string code, std::string error) {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
                         callback(resp);
-                    });
-            }
-            else
-            {
-                // Fail (Bad Password or User Not Found)
-                Metrics::incLoginFailure("bad_credentials");
+                        return;
+                    }
 
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k401Unauthorized);
-                resp->setBody("Login Failed: Invalid Credentials");
-                callback(resp);
-            }
-        });
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    if (req->getParameter("json") == "true")
+                    {
+                        Json::Value ret;
+                        ret["code"] = code;
+                        ret["location"] = location;
+                        auto resp = HttpResponse::newHttpJsonResponse(ret);
+                        callback(resp);
+                        return;
+                    }
+                    auto resp = HttpResponse::newRedirectionResponse(location);
+                    callback(resp);
+                }
+              );
+          }
+          else
+          {
+              // Fail (Bad Password or User Not Found)
+              Metrics::incLoginFailure("bad_credentials");
+
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k401Unauthorized);
+              resp->setBody("Login Failed: Invalid Credentials");
+              callback(resp);
+          }
+      }
+    );
 }
 
 void OAuth2Controller::registerUser(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Use ValidatorHelper for consistent validation
     auto errors = common::validation::ValidatorHelper::validateLoginParams(req);
 
     // Return validation errors if any
-    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
-            errors, std::move(callback)))
+    if (
+      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+    )
     {
         return;
     }
@@ -728,35 +745,35 @@ void OAuth2Controller::registerUser(
     std::string password = params["password"];
     std::string email = params["email"];
 
-    AuthService::registerUser(
-        username, password, email, [callback](const std::string &error) {
-            if (error.empty())
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setBody("User Registered");
-                callback(resp);
-            }
-            else
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody(error);
-                callback(resp);
-            }
-        });
+    AuthService::registerUser(username, password, email, [callback](const std::string &error) {
+        if (error.empty())
+        {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setBody("User Registered");
+            callback(resp);
+        }
+        else
+        {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(error);
+            callback(resp);
+        }
+    });
 }
 
 void OAuth2Controller::token(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Use ValidatorHelper for consistent validation
-    auto errors =
-        common::validation::ValidatorHelper::validateOAuth2TokenParams(req);
+    auto errors = common::validation::ValidatorHelper::validateOAuth2TokenParams(req);
 
     // Return validation errors if any
-    if (common::validation::ValidationHelper::returnValidationErrorsIfAny(
-            errors, std::move(callback)))
+    if (
+      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+    )
     {
         Metrics::incRequest("token", 400);
         return;
@@ -785,15 +802,13 @@ void OAuth2Controller::token(
         LOG_DEBUG << "Token endpoint: Attempting HTTP Basic Authentication";
         try
         {
-            std::string decoded =
-                drogon::utils::base64Decode(authHeader.substr(6));
+            std::string decoded = drogon::utils::base64Decode(authHeader.substr(6));
             size_t colonPos = decoded.find(':');
             if (colonPos != std::string::npos)
             {
                 clientId = decoded.substr(0, colonPos);
                 clientSecret = decoded.substr(colonPos + 1);
-                LOG_DEBUG << "Token endpoint: Parsed Basic Auth for client_id="
-                          << clientId;
+                LOG_DEBUG << "Token endpoint: Parsed Basic Auth for client_id=" << clientId;
             }
             else
             {
@@ -833,71 +848,67 @@ void OAuth2Controller::token(
         code = req->getParameter("code");
         redirectUri = req->getParameter("redirect_uri");
         refreshToken = req->getParameter("refresh_token");
-        codeVerifier =
-            req->getParameter("code_verifier");  // P0-3: Extract PKCE parameter
+        codeVerifier = req->getParameter("code_verifier");  // P0-3: Extract PKCE parameter
     }
 
     // Process grant types
     if (grantType == "authorization_code")
     {
         plugin->exchangeCodeForToken(
-            code,
-            clientId,
-            clientSecret,  // CRITICAL: Pass client_secret for validation
-            redirectUri,   // CRITICAL: Pass redirect_uri for validation per RFC
-                           // 6749 Section 4.1.3
-            codeVerifier,  // P0-3: Pass PKCE code verifier for validation
-            [callback = std::move(callback)](const Json::Value &result) {
-                if (result.isMember("error"))
-                {
-                    auto resp = HttpResponse::newHttpJsonResponse(result);
-                    // CRITICAL: Use correct HTTP status code
-                    std::string errorCode = result.get("error", "").asString();
-                    drogon::HttpStatusCode statusCode =
-                        getHttpStatusCodeForError(errorCode);
-                    resp->setStatusCode(statusCode);
-                    Metrics::incRequest("token", static_cast<int>(statusCode));
-                    callback(resp);
-                    return;
-                }
+          code,
+          clientId,
+          clientSecret,  // CRITICAL: Pass client_secret for validation
+          redirectUri,   // CRITICAL: Pass redirect_uri for validation per
+                         // RFC 6749 Section 4.1.3
+          codeVerifier,  // P0-3: Pass PKCE code verifier for validation
+          [callback = std::move(callback)](const Json::Value &result) {
+              if (result.isMember("error"))
+              {
+                  auto resp = HttpResponse::newHttpJsonResponse(result);
+                  // CRITICAL: Use correct HTTP status code
+                  std::string errorCode = result.get("error", "").asString();
+                  drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
+                  resp->setStatusCode(statusCode);
+                  Metrics::incRequest("token", static_cast<int>(statusCode));
+                  callback(resp);
+                  return;
+              }
 
-                auto resp = HttpResponse::newHttpJsonResponse(result);
-                Metrics::incRequest("token", 200);
-                Metrics::updateActiveTokens(1);
-                callback(resp);
-            });
+              auto resp = HttpResponse::newHttpJsonResponse(result);
+              Metrics::incRequest("token", 200);
+              Metrics::updateActiveTokens(1);
+              callback(resp);
+          }
+        );
     }
     else if (grantType == "refresh_token")
     {
         std::string refreshTokenStr = req->getParameter("refresh_token");
         plugin->refreshAccessToken(
-            refreshTokenStr,
-            clientId,
-            [callback = std::move(callback)](const Json::Value &result) {
-                if (result.isMember("error"))
-                {
-                    auto resp = HttpResponse::newHttpJsonResponse(result);
-                    // CRITICAL: Use correct HTTP status code
-                    std::string errorCode = result.get("error", "").asString();
-                    drogon::HttpStatusCode statusCode =
-                        getHttpStatusCodeForError(errorCode);
-                    resp->setStatusCode(statusCode);
-                    Metrics::incRequest("token", static_cast<int>(statusCode));
-                    callback(resp);
-                    return;
-                }
+          refreshTokenStr, clientId, [callback = std::move(callback)](const Json::Value &result) {
+              if (result.isMember("error"))
+              {
+                  auto resp = HttpResponse::newHttpJsonResponse(result);
+                  // CRITICAL: Use correct HTTP status code
+                  std::string errorCode = result.get("error", "").asString();
+                  drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
+                  resp->setStatusCode(statusCode);
+                  Metrics::incRequest("token", static_cast<int>(statusCode));
+                  callback(resp);
+                  return;
+              }
 
-                auto resp = HttpResponse::newHttpJsonResponse(result);
-                Metrics::incRequest("token", 200);
-                callback(resp);
-            });
+              auto resp = HttpResponse::newHttpJsonResponse(result);
+              Metrics::incRequest("token", 200);
+              callback(resp);
+          }
+        );
     }
     else
     {
         Json::Value error;
         error["error"] = "unsupported_grant_type";
-        error["error_description"] =
-            "Supported types: authorization_code, refresh_token";
+        error["error_description"] = "Supported types: authorization_code, refresh_token";
         auto resp = HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(k400BadRequest);
         Metrics::incRequest("token", 400);
@@ -906,8 +917,9 @@ void OAuth2Controller::token(
 }
 
 void OAuth2Controller::userInfo(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     if (req->method() == Options)
     {
@@ -946,26 +958,26 @@ void OAuth2Controller::userInfo(
         return;
     }
 
-    AuthService::getUserInfo(
-        uid, [callback](std::optional<Json::Value> userInfo) {
-            if (userInfo)
-            {
-                auto resp = HttpResponse::newHttpJsonResponse(*userInfo);
-                callback(resp);
-            }
-            else
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k404NotFound);
-                resp->setBody("User not found");
-                callback(resp);
-            }
-        });
+    AuthService::getUserInfo(uid, [callback](std::optional<Json::Value> userInfo) {
+        if (userInfo)
+        {
+            auto resp = HttpResponse::newHttpJsonResponse(*userInfo);
+            callback(resp);
+        }
+        else
+        {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k404NotFound);
+            resp->setBody("User not found");
+            callback(resp);
+        }
+    });
 }
 
 void OAuth2Controller::logout(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // This endpoint is protected by OAuth2Middleware
     // The middleware validates the access token and sets userId in request
@@ -1018,70 +1030,71 @@ void OAuth2Controller::logout(
 
     // Mark token as revoked
     storage->getAccessToken(
-        accessToken,
-        [storage, userId, callback, req](
-            const std::optional<oauth2::OAuth2AccessToken> &token) {
-            if (!token)
-            {
-                // Token not found (already expired or invalid)
-                // CRITICAL: Clear session anyway to ensure complete logout
-                req->session()->erase("userId");
-                req->session()->clear();
+      accessToken,
+      [storage, userId, callback, req](const std::optional<oauth2::OAuth2AccessToken> &token) {
+          if (!token)
+          {
+              // Token not found (already expired or invalid)
+              // CRITICAL: Clear session anyway to ensure complete logout
+              req->session()->erase("userId");
+              req->session()->clear();
 
-                // Still return success for idempotency
-                Json::Value json;
-                json["message"] = "Logged out successfully";
-                json["userId"] = userId;
-                auto resp = HttpResponse::newHttpJsonResponse(json);
-                resp->setStatusCode(k200OK);
-                callback(resp);
-                return;
-            }
+              // Still return success for idempotency
+              Json::Value json;
+              json["message"] = "Logged out successfully";
+              json["userId"] = userId;
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k200OK);
+              callback(resp);
+              return;
+          }
 
-            // Verify token belongs to the user
-            if (token->userId != userId)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k403Forbidden);
-                resp->setBody("Token does not belong to this user");
-                callback(resp);
-                return;
-            }
+          // Verify token belongs to the user
+          if (token->userId != userId)
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k403Forbidden);
+              resp->setBody("Token does not belong to this user");
+              callback(resp);
+              return;
+          }
 
-            // Revoke the token
-            oauth2::OAuth2AccessToken revokedToken = *token;
-            revokedToken.revoked = true;
+          // Revoke the token
+          oauth2::OAuth2AccessToken revokedToken = *token;
+          revokedToken.revoked = true;
 
-            storage->saveAccessToken(revokedToken, [userId, callback, req]() {
-                if (req->session())
-                {
-                    req->session()->erase("userId");
-                    req->session()->clear();
-                }
+          storage->saveAccessToken(revokedToken, [userId, callback, req]() {
+              if (req->session())
+              {
+                  req->session()->erase("userId");
+                  req->session()->clear();
+              }
 
-                Json::Value json;
-                json["message"] = "Logged out successfully";
-                json["userId"] = userId;
-                auto resp = HttpResponse::newHttpJsonResponse(json);
-                resp->setStatusCode(k200OK);
-                callback(resp);
-            });
-        });
+              Json::Value json;
+              json["message"] = "Logged out successfully";
+              json["userId"] = userId;
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k200OK);
+              callback(resp);
+          });
+      }
+    );
 }
 
 void OAuth2Controller::health(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Health check endpoint for monitoring/orchestration systems
     // Returns 200 OK if service is healthy
     Json::Value json;
     json["status"] = "ok";
     json["service"] = "OAuth2Server";
-    json["timestamp"] = static_cast<int64_t>(
-        std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-            .count());
+    json["timestamp"] = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                               std::chrono::system_clock::now().time_since_epoch()
+    )
+                                               .count());
     auto statusCode = k200OK;
 
     // Check database connectivity (optional - can be expensive)
@@ -1114,104 +1127,104 @@ void OAuth2Controller::health(
 
 // P0-2: Helper function to check user consent and proceed with authorization
 void OAuth2Controller::checkUserConsentAndProceed(
-    OAuth2Plugin *plugin,
-    const std::string &clientId,
-    const std::string &userId,
-    int32_t internalUserId,
-    const std::vector<std::string> &requestedScopes,
-    const std::string &scope,
-    const std::string &redirectUri,
-    const std::string &state,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  OAuth2Plugin *plugin,
+  const std::string &clientId,
+  const std::string &userId,
+  int32_t internalUserId,
+  const std::vector<std::string> &requestedScopes,
+  const std::string &scope,
+  const std::string &redirectUri,
+  const std::string &state,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     if (requestedScopes.empty())
     {
         // No scopes requested, proceed with authorization
         plugin->generateAuthorizationCode(
-            clientId,
-            userId,
-            scope,
-            redirectUri,
-            "",  // codeChallenge (empty for now)
-            "",  // codeChallengeMethod (empty for now)
-            [=, callback = std::move(callback)](bool success,
-                                                std::string code,
-                                                std::string error) {
-                if (!success)
-                {
-                    LOG_ERROR << "Failed to generate authorization code: "
-                              << error;
-                    Json::Value jsonErr;
-                    jsonErr["error"] = "server_error";
-                    jsonErr["error_description"] =
-                        "Failed to generate authorization code";
-                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                    resp->setStatusCode(k500InternalServerError);
-                    callback(resp);
-                    return;
-                }
+          clientId,
+          userId,
+          scope,
+          redirectUri,
+          "",  // codeChallenge (empty for now)
+          "",  // codeChallengeMethod (empty for now)
+          [=, callback = std::move(callback)](bool success, std::string code, std::string error) {
+              if (!success)
+              {
+                  LOG_ERROR << "Failed to generate authorization code: " << error;
+                  Json::Value jsonErr;
+                  jsonErr["error"] = "server_error";
+                  jsonErr["error_description"] = "Failed to generate authorization code";
+                  auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                  resp->setStatusCode(k500InternalServerError);
+                  callback(resp);
+                  return;
+              }
 
-                std::string location = redirectUri + "?code=" + code;
-                if (!state.empty())
-                    location += "&state=" + state;
-                auto resp = HttpResponse::newRedirectionResponse(location);
-                Metrics::incRequest("authorize", 302);
-                callback(resp);
-            });
+              std::string location = redirectUri + "?code=" + code;
+              if (!state.empty())
+                  location += "&state=" + state;
+              auto resp = HttpResponse::newRedirectionResponse(location);
+              Metrics::incRequest("authorize", 302);
+              callback(resp);
+          }
+        );
         return;
     }
 
     // Check consent for the first scope, then recursively check the rest
     std::string currentScope = requestedScopes[0];
-    std::vector<std::string> remainingScopes(requestedScopes.begin() + 1,
-                                             requestedScopes.end());
+    std::vector<std::string> remainingScopes(requestedScopes.begin() + 1, requestedScopes.end());
 
     plugin->hasUserConsent(
-        internalUserId,
-        clientId,
-        currentScope,
-        [=, callback = std::move(callback)](bool hasConsent) mutable {
-            if (!hasConsent)
-            {
-                // User hasn't consented to this scope, redirect to consent page
-                LOG_INFO << "User " << userId << " hasn't consented to scope "
-                         << currentScope << " for client " << clientId;
+      internalUserId,
+      clientId,
+      currentScope,
+      [=, callback = std::move(callback)](bool hasConsent) mutable {
+          if (!hasConsent)
+          {
+              // User hasn't consented to this scope, redirect to consent page
+              LOG_INFO << "User " << userId << " hasn't consented to scope " << currentScope
+                       << " for client " << clientId;
 
-                // Store authorization request parameters in session for consent
-                // approval
-                auto req = HttpRequest::newHttpRequest();
-                // Note: In a real implementation, you would store these in the
-                // user session or a temporary transaction
+              // Store authorization request parameters in session for consent
+              // approval
+              auto req = HttpRequest::newHttpRequest();
+              // Note: In a real implementation, you would store these in the
+              // user session or a temporary transaction
 
-                HttpViewData data;
-                data.insert("client_id", clientId);
-                data.insert("user_id", userId);
-                data.insert("requested_scope", scope);
-                data.insert("redirect_uri", redirectUri);
-                data.insert("state", state);
+              HttpViewData data;
+              data.insert("client_id", clientId);
+              data.insert("user_id", userId);
+              data.insert("requested_scope", scope);
+              data.insert("redirect_uri", redirectUri);
+              data.insert("state", state);
 
-                auto resp =
-                    HttpResponse::newHttpViewResponse("consent.csp", data);
-                callback(resp);
-                return;
-            }
+              auto resp = HttpResponse::newHttpViewResponse("consent.csp", data);
+              callback(resp);
+              return;
+          }
 
-            // User has consented to this scope, check the remaining scopes
-            checkUserConsentAndProceed(plugin,
-                                       clientId,
-                                       userId,
-                                       internalUserId,
-                                       remainingScopes,
-                                       scope,
-                                       redirectUri,
-                                       state,
-                                       std::move(callback));
-        });
+          // User has consented to this scope, check the remaining scopes
+          checkUserConsentAndProceed(
+            plugin,
+            clientId,
+            userId,
+            internalUserId,
+            remainingScopes,
+            scope,
+            redirectUri,
+            state,
+            std::move(callback)
+          );
+      }
+    );
 }
 
 void OAuth2Controller::consent(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // P0-2: Handle user consent approval
     auto params = req->getParameters();
@@ -1226,8 +1239,7 @@ void OAuth2Controller::consent(
     {
         // User denied consent, redirect back with error
         std::string location =
-            redirectUri +
-            "?error=access_denied&error_description=User+denied+consent";
+          redirectUri + "?error=access_denied&error_description=User+denied+consent";
         if (!state.empty())
             location += "&state=" + state;
         auto resp = HttpResponse::newRedirectionResponse(location);
@@ -1248,140 +1260,125 @@ void OAuth2Controller::consent(
 
     // Get internal user ID
     plugin->getInternalUserId(
-        userId,
-        [=, callback = std::move(callback)](
-            std::optional<int32_t> internalUserId) mutable {
-            if (!internalUserId)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody("Failed to get user mapping");
-                callback(resp);
-                return;
-            }
+      userId, [=, callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
+          if (!internalUserId)
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k500InternalServerError);
+              resp->setBody("Failed to get user mapping");
+              callback(resp);
+              return;
+          }
 
-            // Parse scopes and save consent for each
-            std::vector<std::string> scopes;
-            std::stringstream ss(scope);
-            std::string scopeItem;
-            while (std::getline(ss, scopeItem, ' '))
-            {
-                if (!scopeItem.empty())
-                {
-                    scopes.push_back(scopeItem);
-                }
-            }
+          // Parse scopes and save consent for each
+          std::vector<std::string> scopes;
+          std::stringstream ss(scope);
+          std::string scopeItem;
+          while (std::getline(ss, scopeItem, ' '))
+          {
+              if (!scopeItem.empty())
+              {
+                  scopes.push_back(scopeItem);
+              }
+          }
 
-            // Save consent for all scopes (use first scope as callback trigger)
-            if (!scopes.empty())
-            {
-                std::string firstScope = scopes[0];
-                plugin->saveUserConsent(
-                    *internalUserId,
-                    clientId,
-                    firstScope,
-                    [=, callback = std::move(callback)](bool success) mutable {
-                        if (!success)
-                        {
-                            LOG_ERROR
-                                << "Failed to save user consent for scope: "
-                                << firstScope;
-                            auto resp = HttpResponse::newHttpResponse();
-                            resp->setStatusCode(k500InternalServerError);
-                            resp->setBody("Failed to save consent");
-                            callback(resp);
-                            return;
-                        }
-
-                        // Save consent for remaining scopes (fire and forget
-                        // for simplicity)
-                        for (size_t i = 1; i < scopes.size(); ++i)
-                        {
-                            plugin->saveUserConsent(*internalUserId,
-                                                    clientId,
-                                                    scopes[i],
-                                                    [](bool) {});
-                        }
-
-                        // Proceed with authorization code generation
-                        plugin->generateAuthorizationCode(
-                            clientId,
-                            userId,
-                            scope,
-                            redirectUri,
-                            "",  // codeChallenge (empty for now)
-                            "",  // codeChallengeMethod (empty for now)
-                            [=, callback = std::move(callback)](
-                                bool success,
-                                std::string code,
-                                std::string error) mutable {
-                                if (!success)
-                                {
-                                    LOG_ERROR << "Failed to generate "
-                                                 "authorization code: "
-                                              << error;
-                                    Json::Value jsonErr;
-                                    jsonErr["error"] = "server_error";
-                                    jsonErr["error_description"] =
-                                        "Failed to generate authorization code";
-                                    auto resp =
-                                        HttpResponse::newHttpJsonResponse(
-                                            jsonErr);
-                                    resp->setStatusCode(
-                                        k500InternalServerError);
-                                    callback(resp);
-                                    return;
-                                }
-
-                                std::string location =
-                                    redirectUri + "?code=" + code;
-                                if (!state.empty())
-                                    location += "&state=" + state;
-                                auto resp =
-                                    HttpResponse::newRedirectionResponse(
-                                        location);
-                                Metrics::incRequest("authorize", 302);
-                                callback(resp);
-                            });
-                    });
-            }
-            else
-            {
-                // No scopes to save consent for, proceed directly
-                plugin->generateAuthorizationCode(
-                    clientId,
-                    userId,
-                    scope,
-                    redirectUri,
-                    "",  // codeChallenge
-                    "",  // codeChallengeMethod
-                    [=, callback = std::move(callback)](bool success,
-                                                        std::string code,
-                                                        std::string error) {
-                        if (!success)
-                        {
-                            LOG_ERROR
-                                << "Failed to generate authorization code: "
-                                << error;
-                            Json::Value jsonErr;
-                            jsonErr["error"] = "server_error";
-                            jsonErr["error_description"] =
-                                "Failed to generate authorization code";
-                            auto resp =
-                                HttpResponse::newHttpJsonResponse(jsonErr);
-                            resp->setStatusCode(k500InternalServerError);
-                            callback(resp);
-                            return;
-                        }
-
-                        std::string location = redirectUri + "?code=" + code;
-                        if (!state.empty())
-                            location += "&state=" + state;
-                        auto resp =
-                            HttpResponse::newRedirectionResponse(location);
-                        Metrics::incRequest("authorize", 302);
+          // Save consent for all scopes (use first scope as callback trigger)
+          if (!scopes.empty())
+          {
+              std::string firstScope = scopes[0];
+              plugin->saveUserConsent(
+                *internalUserId,
+                clientId,
+                firstScope,
+                [=, callback = std::move(callback)](bool success) mutable {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to save user consent for scope: " << firstScope;
+                        auto resp = HttpResponse::newHttpResponse();
+                        resp->setStatusCode(k500InternalServerError);
+                        resp->setBody("Failed to save consent");
                         callback(resp);
-                    });
-            }
-        });
+                        return;
+                    }
+
+                    // Save consent for remaining scopes (fire and forget
+                    // for simplicity)
+                    for (size_t i = 1; i < scopes.size(); ++i)
+                    {
+                        plugin->saveUserConsent(*internalUserId, clientId, scopes[i], [](bool) {});
+                    }
+
+                    // Proceed with authorization code generation
+                    plugin->generateAuthorizationCode(
+                      clientId,
+                      userId,
+                      scope,
+                      redirectUri,
+                      "",  // codeChallenge (empty for now)
+                      "",  // codeChallengeMethod (empty for now)
+                      [=, callback = std::move(callback)](
+                        bool success, std::string code, std::string error
+                      ) mutable {
+                          if (!success)
+                          {
+                              LOG_ERROR << "Failed to generate "
+                                           "authorization code: "
+                                        << error;
+                              Json::Value jsonErr;
+                              jsonErr["error"] = "server_error";
+                              jsonErr["error_description"] =
+                                "Failed to generate authorization code";
+                              auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                              resp->setStatusCode(k500InternalServerError);
+                              callback(resp);
+                              return;
+                          }
+
+                          std::string location = redirectUri + "?code=" + code;
+                          if (!state.empty())
+                              location += "&state=" + state;
+                          auto resp = HttpResponse::newRedirectionResponse(location);
+                          Metrics::incRequest("authorize", 302);
+                          callback(resp);
+                      }
+                    );
+                }
+              );
+          }
+          else
+          {
+              // No scopes to save consent for, proceed directly
+              plugin->generateAuthorizationCode(
+                clientId,
+                userId,
+                scope,
+                redirectUri,
+                "",  // codeChallenge
+                "",  // codeChallengeMethod
+                [=,
+                 callback =
+                   std::move(callback)](bool success, std::string code, std::string error) {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                        return;
+                    }
+
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    auto resp = HttpResponse::newRedirectionResponse(location);
+                    Metrics::incRequest("authorize", 302);
+                    callback(resp);
+                }
+              );
+          }
+      }
+    );
 }

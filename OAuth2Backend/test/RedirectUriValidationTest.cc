@@ -34,14 +34,12 @@ DROGON_TEST(RedirectUriValidation_MemoryStorage)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
             f.get();
-            LOG_INFO << "Auth code saved with redirect URI: "
-                     << testCode.redirectUri;
+            LOG_INFO << "Auth code saved with redirect URI: " << testCode.redirectUri;
         }
 
         // Test 2: Valid redirect URI - should succeed
@@ -49,13 +47,12 @@ DROGON_TEST(RedirectUriValidation_MemoryStorage)
         {
             std::promise<std::optional<OAuth2AuthCode>> p;
             auto f = p.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     testCode.redirectUri,
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p.set_value(code);
-                                     });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code, testCode.redirectUri, [&](std::optional<OAuth2AuthCode> code) {
+                  p.set_value(code);
+              }
+            );
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -72,8 +69,7 @@ DROGON_TEST(RedirectUriValidation_MemoryStorage)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -86,13 +82,12 @@ DROGON_TEST(RedirectUriValidation_MemoryStorage)
         {
             std::promise<std::optional<OAuth2AuthCode>> p;
             auto f = p.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     "http://malicious-site.com/callback",
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p.set_value(code);
-                                     });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code,
+              "http://malicious-site.com/callback",
+              [&](std::optional<OAuth2AuthCode> code) { p.set_value(code); }
+            );
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -101,8 +96,7 @@ DROGON_TEST(RedirectUriValidation_MemoryStorage)
             LOG_INFO << "Invalid redirect URI properly rejected";
         }
 
-        LOG_INFO
-            << "=== Memory Storage Redirect URI Validation Test Completed ===";
+        LOG_INFO << "=== Memory Storage Redirect URI Validation Test Completed ===";
     }
     catch (const std::exception &e)
     {
@@ -141,8 +135,7 @@ DROGON_TEST(RedirectUriValidation_Atomicity)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -154,13 +147,12 @@ DROGON_TEST(RedirectUriValidation_Atomicity)
         {
             std::promise<std::optional<OAuth2AuthCode>> p;
             auto f = p.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     "http://malicious-site.com/callback",
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p.set_value(code);
-                                     });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code,
+              "http://malicious-site.com/callback",
+              [&](std::optional<OAuth2AuthCode> code) { p.set_value(code); }
+            );
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -173,12 +165,10 @@ DROGON_TEST(RedirectUriValidation_Atomicity)
         {
             std::promise<std::optional<OAuth2AuthCode>> p;
             auto f = p.get_future();
-            storage->getAuthCode(testCode.code,
-                                 [&](std::optional<OAuth2AuthCode> code) {
-                                     p.set_value(code);
-                                 });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->getAuthCode(testCode.code, [&](std::optional<OAuth2AuthCode> code) {
+                p.set_value(code);
+            });
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Get auth code timeout");
             }
@@ -193,13 +183,12 @@ DROGON_TEST(RedirectUriValidation_Atomicity)
         {
             std::promise<std::optional<OAuth2AuthCode>> p;
             auto f = p.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     testCode.redirectUri,
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p.set_value(code);
-                                     });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code, testCode.redirectUri, [&](std::optional<OAuth2AuthCode> code) {
+                  p.set_value(code);
+              }
+            );
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -246,8 +235,7 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -255,13 +243,10 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
 
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     "",
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p2.set_value(code);
-                                     });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(testCode.code, "", [&](std::optional<OAuth2AuthCode> code) {
+                p2.set_value(code);
+            });
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -284,8 +269,7 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -294,13 +278,11 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
             storage->consumeAuthCode(
-                testCode.code,
-                "http://localhost:5173/CALLBACK",  // Different case
-                [&](std::optional<OAuth2AuthCode> code) {
-                    p2.set_value(code);
-                });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+              testCode.code,
+              "http://localhost:5173/CALLBACK",  // Different case
+              [&](std::optional<OAuth2AuthCode> code) { p2.set_value(code); }
+            );
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -323,8 +305,7 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -333,13 +314,11 @@ DROGON_TEST(RedirectUriValidation_EdgeCases)
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
             storage->consumeAuthCode(
-                testCode.code,
-                "http://localhost:5173/callback#fragment",  // With fragment
-                [&](std::optional<OAuth2AuthCode> code) {
-                    p2.set_value(code);
-                });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+              testCode.code,
+              "http://localhost:5173/callback#fragment",  // With fragment
+              [&](std::optional<OAuth2AuthCode> code) { p2.set_value(code); }
+            );
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -386,8 +365,7 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -396,13 +374,12 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
             // Try to redirect to arbitrary domain
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     "http://evil.com/callback",
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p2.set_value(code);
-                                     });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code, "http://evil.com/callback", [&](std::optional<OAuth2AuthCode> code) {
+                  p2.set_value(code);
+              }
+            );
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -425,8 +402,7 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -435,13 +411,12 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
             // Try URL traversal
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     "http://localhost:5173/../evil/callback",
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p2.set_value(code);
-                                     });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code,
+              "http://localhost:5173/../evil/callback",
+              [&](std::optional<OAuth2AuthCode> code) { p2.set_value(code); }
+            );
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }
@@ -464,8 +439,7 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
             std::promise<void> p;
             auto f = p.get_future();
             storage->saveAuthCode(testCode, [&]() { p.set_value(); });
-            if (f.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Save auth code timeout");
             }
@@ -473,17 +447,15 @@ DROGON_TEST(RedirectUriValidation_SecurityScenarios)
 
             // Try null byte injection (should be rejected by string handling)
             std::string maliciousUri =
-                std::string("http://localhost:5173/callback") + '\0' +
-                ".evil.com";
+              std::string("http://localhost:5173/callback") + '\0' + ".evil.com";
             std::promise<std::optional<OAuth2AuthCode>> p2;
             auto f2 = p2.get_future();
-            storage->consumeAuthCode(testCode.code,
-                                     maliciousUri,
-                                     [&](std::optional<OAuth2AuthCode> code) {
-                                         p2.set_value(code);
-                                     });
-            if (f2.wait_for(std::chrono::seconds(30)) ==
-                std::future_status::timeout)
+            storage->consumeAuthCode(
+              testCode.code, maliciousUri, [&](std::optional<OAuth2AuthCode> code) {
+                  p2.set_value(code);
+              }
+            );
+            if (f2.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {
                 throw std::runtime_error("Consume auth code timeout");
             }

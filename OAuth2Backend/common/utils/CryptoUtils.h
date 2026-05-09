@@ -67,8 +67,7 @@ inline std::vector<unsigned char> sha256(const std::string &data)
  * @param method Challenge method ("plain" or "S256")
  * @return The code challenge
  */
-inline std::string computeCodeChallenge(const std::string &codeVerifier,
-                                        const std::string &method)
+inline std::string computeCodeChallenge(const std::string &codeVerifier, const std::string &method)
 {
     if (method == "S256")
     {
@@ -101,8 +100,10 @@ inline bool isValidCodeVerifier(const std::string &codeVerifier)
     // Check character set: [A-Za-z0-9-._~]
     for (char c : codeVerifier)
     {
-        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '-' &&
-            c != '.' && c != '_' && c != '~')
+        if (
+          !std::isalnum(static_cast<unsigned char>(c)) && c != '-' && c != '.' && c != '_' &&
+          c != '~'
+        )
         {
             return false;
         }
@@ -129,8 +130,10 @@ inline bool isValidCodeChallenge(const std::string &codeChallenge)
     // Check character set: [A-Za-z0-9-._~]
     for (char c : codeChallenge)
     {
-        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '-' &&
-            c != '.' && c != '_' && c != '~')
+        if (
+          !std::isalnum(static_cast<unsigned char>(c)) && c != '-' && c != '.' && c != '_' &&
+          c != '~'
+        )
         {
             return false;
         }

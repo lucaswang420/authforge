@@ -16,15 +16,15 @@ struct EnvOverride
 };
 
 // OAuth2 environment variable override rules
-inline const std::vector<EnvOverride> OAUTH2_ENV_OVERRIDES = {
-    {"db_clients.0.host", "OAUTH2_DB_HOST", false},
-    {"db_clients.0.port", "OAUTH2_DB_PORT", true},
-    {"db_clients.0.dbname", "OAUTH2_DB_NAME", false},
-    {"db_clients.0.user", "OAUTH2_DB_USER", false},
-    {"db_clients.0.passwd", "OAUTH2_DB_PASSWORD", false},
-    {"redis_clients.0.host", "OAUTH2_REDIS_HOST", false},
-    {"redis_clients.0.port", "OAUTH2_REDIS_PORT", true},
-    {"redis_clients.0.passwd", "OAUTH2_REDIS_PASSWORD", false},
-    {"vue_client.secret", "OAUTH2_VUE_CLIENT_SECRET", false}};
+inline const std::vector<EnvOverride> OAUTH2_ENV_OVERRIDES =
+  {{"db_clients.0.host", "OAUTH2_DB_HOST", false},
+   {"db_clients.0.port", "OAUTH2_DB_PORT", true},
+   {"db_clients.0.dbname", "OAUTH2_DB_NAME", false},
+   {"db_clients.0.user", "OAUTH2_DB_USER", false},
+   {"db_clients.0.passwd", "OAUTH2_DB_PASSWORD", false},
+   {"redis_clients.0.host", "OAUTH2_REDIS_HOST", false},
+   {"redis_clients.0.port", "OAUTH2_REDIS_PORT", true},
+   {"redis_clients.0.passwd", "OAUTH2_REDIS_PASSWORD", false},
+   {"vue_client.secret", "OAUTH2_VUE_CLIENT_SECRET", false}};
 
 }  // namespace common::config

@@ -10,6 +10,5 @@ class WeChatController : public drogon::HttpController<WeChatController>
     ADD_METHOD_TO(WeChatController::login, "/api/wechat/login", Post, Options);
     METHOD_LIST_END
 
-    void login(const HttpRequestPtr &req,
-               std::function<void(const HttpResponsePtr &)> &&callback);
+    void login(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 };

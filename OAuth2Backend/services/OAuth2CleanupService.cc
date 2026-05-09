@@ -3,8 +3,7 @@
 namespace oauth2
 {
 
-OAuth2CleanupService::OAuth2CleanupService(IOAuth2Storage *storage)
-    : storage_(storage)
+OAuth2CleanupService::OAuth2CleanupService(IOAuth2Storage *storage) : storage_(storage)
 {
 }
 
@@ -15,8 +14,7 @@ OAuth2CleanupService::~OAuth2CleanupService()
     // teardown
     if (!stopped_ && running_)
     {
-        LOG_WARN
-            << "OAuth2CleanupService destroyed without explicit shutdown()";
+        LOG_WARN << "OAuth2CleanupService destroyed without explicit shutdown()";
     }
 }
 
@@ -36,8 +34,7 @@ void OAuth2CleanupService::start(double intervalSeconds)
 
     running_ = true;
     interval_ = intervalSeconds;
-    LOG_INFO << "Starting OAuth2 Cleanup Service with interval: "
-             << intervalSeconds << "s";
+    LOG_INFO << "Starting OAuth2 Cleanup Service with interval: " << intervalSeconds << "s";
 
     // Use weak_ptr to prevent SegFaults if Service is destroyed before timer
     // triggers

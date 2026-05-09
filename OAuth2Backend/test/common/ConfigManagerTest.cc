@@ -37,8 +37,7 @@ DROGON_TEST(ConfigManagerTest_TypeSafeAccessWithDefault)
     auto port = common::config::ConfigManager::get<int>(config, "port", 0);
     CHECK(port == 8080);
 
-    auto missing =
-        common::config::ConfigManager::get<int>(config, "missing", 123);
+    auto missing = common::config::ConfigManager::get<int>(config, "missing", 123);
     CHECK(missing == 123);
 }
 
@@ -91,9 +90,7 @@ DROGON_TEST(ConfigManagerTest_Database_EnvOverrideDbHost)
     Json::Value config;
     CHECK(common::config::ConfigManager::load(configPath, config) == true);
 
-    auto dbHost =
-        common::config::ConfigManager::get<std::string>(config,
-                                                        "db_clients.0.host");
+    auto dbHost = common::config::ConfigManager::get<std::string>(config, "db_clients.0.host");
     CHECK(dbHost == "test-host");
 
     unsetenv("OAUTH2_DB_HOST");

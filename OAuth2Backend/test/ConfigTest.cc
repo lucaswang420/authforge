@@ -8,8 +8,7 @@
 DROGON_TEST(ConfigTest)
 {
     // 1. Verify config.json exists
-    std::string configPath =
-        "../../config.json";  // Assuming running from build/test/Release
+    std::string configPath = "../../config.json";  // Assuming running from build/test/Release
     if (!std::filesystem::exists(configPath))
     {
         configPath = "../config.json";  // Try parent
@@ -54,8 +53,7 @@ DROGON_TEST(ConfigTest)
                     CHECK(config.isMember("storage_type"));
                     // Verify it matches one of the expected types
                     std::string type = config["storage_type"].asString();
-                    bool isValidType = (type == "memory" || type == "redis" ||
-                                        type == "postgres");
+                    bool isValidType = (type == "memory" || type == "redis" || type == "postgres");
                     CHECK(isValidType);
                 }
             }

@@ -393,7 +393,14 @@ cd build && ctest -V -C Release --output-on-failure
 git ls-files 'OAuth2Backend/*.cc' 'OAuth2Backend/*.h' | grep -v '^OAuth2Backend/models/' | xargs clang-format -i
 
 # 静态分析
-clang-tidy OAuth2Backend/**/*.cc -- -I OAuth2Backend/
+# Linux/macOS: 使用 CMake 编译数据库（推荐）
+cd build && clang-tidy -p . ../OAuth2Backend/**/*.cc
+
+# Windows: 使用 PowerShell 7+ 或 Git Bash
+# cd build && clang-tidy -p . ../OAuth2Backend/**/*.cc
+
+# 或者使用 find 命令（跨平台）
+find OAuth2Backend -name "*.cc" -exec clang-tidy {} -- -I OAuth2Backend/ \;
 
 # 启动开发服务器
 cd build && ./OAuth2Backend -c config.json

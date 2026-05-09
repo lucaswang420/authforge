@@ -19,17 +19,18 @@ namespace security
 {
 
 // Helper to make login request
-static std::string makeLoginRequest(const std::string &username,
-                                    const std::string &password)
+static std::string makeLoginRequest(const std::string &username, const std::string &password)
 {
     auto client = drogon::HttpClient::newHttpClient("http://localhost:5555");
     auto req = drogon::HttpRequest::newHttpRequest();
     req->setMethod(drogon::Post);
     req->setPath("/oauth2/login");
     req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
-    req->setBody("username=" + username + "&password=" + password +
-                 "&client_id=vue-client&redirect_uri=http://localhost:5173/"
-                 "callback&scope=openid");
+    req->setBody(
+      "username=" + username + "&password=" + password +
+      "&client_id=vue-client&redirect_uri=http://localhost:5173/"
+      "callback&scope=openid"
+    );
 
     auto resp = client->sendRequest(req);
     return std::string(resp->body());
@@ -43,9 +44,11 @@ static Json::Value makeTokenRequest(const std::string &code)
     req->setMethod(drogon::Post);
     req->setPath("/oauth2/token");
     req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
-    req->setBody("grant_type=authorization_code&code=" + code +
-                 "&client_id=vue-client&redirect_uri=http:"
-                 "//localhost:5173/callback");
+    req->setBody(
+      "grant_type=authorization_code&code=" + code +
+      "&client_id=vue-client&redirect_uri=http:"
+      "//localhost:5173/callback"
+    );
 
     auto resp = client->sendRequest(req);
     Json::Value result;
@@ -66,8 +69,10 @@ TEST(SecurityInputValidation, SqlInjectionInUsername)
 
     // Should not return a successful login redirect
     EXPECT_TRUE(response.find("302") == std::string::npos);
-    EXPECT_TRUE(response.find("Login Failed") != std::string::npos ||
-                response.find("Invalid Credentials") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("Login Failed") != std::string::npos ||
+      response.find("Invalid Credentials") != std::string::npos
+    );
 }
 
 TEST(SecurityInputValidation, SqlInjectionInPassword)
@@ -84,8 +89,7 @@ TEST(SecurityInputValidation, XssAttackInUsername)
 {
     // Test: XSS attack attempt in username
     // Expected: Should be rejected/sanitized
-    std::string response =
-        makeLoginRequest("<script>alert('XSS')</script>", "admin");
+    std::string response = makeLoginRequest("<script>alert('XSS')</script>", "admin");
 
     // Should not execute the script (no redirect)
     EXPECT_TRUE(response.find("302") == std::string::npos);
@@ -107,8 +111,7 @@ TEST(SecurityInputValidation, LongUsername)
     std::string longUsername(101, 'A');
     std::string response = makeLoginRequest(longUsername, "admin");
 
-    EXPECT_TRUE(response.find("Username exceeds maximum length") !=
-                std::string::npos);
+    EXPECT_TRUE(response.find("Username exceeds maximum length") != std::string::npos);
 }
 
 TEST(SecurityInputValidation, LongPassword)
@@ -118,8 +121,7 @@ TEST(SecurityInputValidation, LongPassword)
     std::string longPassword(201, 'B');
     std::string response = makeLoginRequest("admin", longPassword);
 
-    EXPECT_TRUE(response.find("Password exceeds maximum length") !=
-                std::string::npos);
+    EXPECT_TRUE(response.find("Password exceeds maximum length") != std::string::npos);
 }
 
 TEST(SecurityInputValidation, EmptyCredentials)
@@ -141,11 +143,12 @@ TEST(SecurityAuth, InvalidCredentials)
 {
     // Test: Login with completely invalid credentials
     // Expected: Should fail with error message
-    std::string response =
-        makeLoginRequest("invalid_user_xyz", "invalid_pass_xyz");
+    std::string response = makeLoginRequest("invalid_user_xyz", "invalid_pass_xyz");
 
-    EXPECT_TRUE(response.find("Login Failed") != std::string::npos ||
-                response.find("Invalid Credentials") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("Login Failed") != std::string::npos ||
+      response.find("Invalid Credentials") != std::string::npos
+    );
 }
 
 TEST(SecurityAuth, WrongPasswordForValidUser)
@@ -176,8 +179,7 @@ TEST(SecurityCORS, AllowAuthorizedOrigin)
     auto resp = client->sendRequest(req);
 
     // Check for CORS headers
-    EXPECT_TRUE(resp->getHeader("access-control-allow-origin") ==
-                "http://localhost:5173");
+    EXPECT_TRUE(resp->getHeader("access-control-allow-origin") == "http://localhost:5173");
     EXPECT_TRUE(resp->getHeader("access-control-allow-credentials") == "true");
     EXPECT_EQ(resp->statusCode(), drogon::k200OK);
 }
@@ -232,8 +234,9 @@ TEST(SecurityToken, InvalidRefreshToken)
     req->setPath("/oauth2/token");
     req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
     req->setBody(
-        "grant_type=refresh_token&refresh_token=invalid_token&"
-        "client_id=vue-client");
+      "grant_type=refresh_token&refresh_token=invalid_token&"
+      "client_id=vue-client"
+    );
 
     auto resp = client->sendRequest(req);
     Json::Value response;
@@ -263,8 +266,8 @@ TEST(SecurityHeaders, CheckSecurityHeadersOnHttpResponse)
     EXPECT_TRUE(resp->getHeader("x-content-type-options") == "nosniff");
     EXPECT_TRUE(resp->getHeader("x-frame-options") == "SAMEORIGIN");
     EXPECT_TRUE(
-        resp->getHeader("content-security-policy").find("default-src 'self'") !=
-        std::string::npos);
+      resp->getHeader("content-security-policy").find("default-src 'self'") != std::string::npos
+    );
 }
 
 TEST(SecurityHeaders, HstsNotSetOnHttp)
@@ -294,14 +297,12 @@ TEST(SecurityRateLimit, DetectRateLimiting)
 
     for (int i = 0; i < 20; ++i)
     {
-        auto client =
-            drogon::HttpClient::newHttpClient("http://localhost:5555");
+        auto client = drogon::HttpClient::newHttpClient("http://localhost:5555");
         auto req = drogon::HttpRequest::newHttpRequest();
         req->setMethod(drogon::Post);
         req->setPath("/oauth2/login");
         req->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
-        req->setBody("username=test" + std::to_string(i) +
-                     "&password=test&client_id=vue-client");
+        req->setBody("username=test" + std::to_string(i) + "&password=test&client_id=vue-client");
 
         auto resp = client->sendRequest(req);
 

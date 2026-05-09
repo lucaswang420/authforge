@@ -37,9 +37,9 @@ enum class GrantType
  */
 enum class OAuth2Error
 {
-    INVALID_CLIENT,       // Client authentication failed
-    INVALID_GRANT,        // The authorization code or refresh token is invalid
-    UNAUTHORIZED_CLIENT,  // Client is not authorized to use this grant type
+    INVALID_CLIENT,          // Client authentication failed
+    INVALID_GRANT,           // The authorization code or refresh token is invalid
+    UNAUTHORIZED_CLIENT,     // Client is not authorized to use this grant type
     UNSUPPORTED_GRANT_TYPE,  // Grant type not supported
     INVALID_REQUEST,         // Missing or invalid parameter
     ACCESS_DENIED,           // Resource owner denied access

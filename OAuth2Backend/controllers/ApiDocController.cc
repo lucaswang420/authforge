@@ -7,8 +7,9 @@
 using namespace api;
 
 void ApiDocController::openApiSpec(
-    const drogon::HttpRequestPtr &req,
-    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+  const drogon::HttpRequestPtr &req,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
 {
     try
     {
@@ -19,8 +20,7 @@ void ApiDocController::openApiSpec(
         {
             baseDir = std::filesystem::current_path();
         }
-        std::string filePath =
-            (baseDir / "docs" / "api" / "openapi.json").string();
+        std::string filePath = (baseDir / "docs" / "api" / "openapi.json").string();
 
         // Read the OpenAPI specification file
         std::ifstream file(filePath);
@@ -30,9 +30,10 @@ void ApiDocController::openApiSpec(
             resp->setStatusCode(drogon::k404NotFound);
             resp->setContentTypeString("application/json");
             resp->setBody(
-                "{\"error\": \"OpenAPI specification not found\", \"path\": "
-                "\"" +
-                filePath + "\"}");
+              "{\"error\": \"OpenAPI specification not found\", \"path\": "
+              "\"" +
+              filePath + "\"}"
+            );
             callback(resp);
             return;
         }
@@ -59,8 +60,9 @@ void ApiDocController::openApiSpec(
 }
 
 void ApiDocController::swaggerUi(
-    const drogon::HttpRequestPtr &req,
-    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+  const drogon::HttpRequestPtr &req,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
 {
     try
     {
@@ -71,8 +73,7 @@ void ApiDocController::swaggerUi(
         {
             baseDir = std::filesystem::current_path();
         }
-        std::string filePath =
-            (baseDir / "docs" / "api" / "swagger-ui" / "index.html").string();
+        std::string filePath = (baseDir / "docs" / "api" / "swagger-ui" / "index.html").string();
 
         // Read the Swagger UI HTML file
         std::ifstream file(filePath);
@@ -82,8 +83,8 @@ void ApiDocController::swaggerUi(
             resp->setStatusCode(drogon::k404NotFound);
             resp->setContentTypeString("text/html");
             resp->setBody(
-                "<h1>Swagger UI not found</h1><p>Attempted to read from: " +
-                filePath + "</p>");
+              "<h1>Swagger UI not found</h1><p>Attempted to read from: " + filePath + "</p>"
+            );
             callback(resp);
             return;
         }

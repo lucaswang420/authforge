@@ -12,7 +12,9 @@ class OAuth2Middleware : public HttpFilter<OAuth2Middleware>
     {
     }
 
-    void doFilter(const HttpRequestPtr &req,
-                  FilterCallback &&fcb,
-                  FilterChainCallback &&fccb) override;
+    void doFilter(
+      const HttpRequestPtr &req,
+      FilterCallback &&fcb,
+      FilterChainCallback &&fccb
+    ) override;
 };

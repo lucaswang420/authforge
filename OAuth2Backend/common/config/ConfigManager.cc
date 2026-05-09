@@ -13,8 +13,7 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
     std::ifstream configFile(configPath);
     if (!configFile.is_open())
     {
-        std::cerr << "Error: Config file not found: " << configPath
-                  << std::endl;
+        std::cerr << "Error: Config file not found: " << configPath << std::endl;
         return false;
     }
 
@@ -22,8 +21,7 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
     std::string errs;
     if (!Json::parseFromStream(builder, configFile, &config, &errs))
     {
-        std::cerr << "Error: Failed to parse config file: " << errs
-                  << std::endl;
+        std::cerr << "Error: Failed to parse config file: " << errs << std::endl;
         return false;
     }
 
@@ -33,8 +31,7 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
     return true;
 }
 
-void ConfigManager::applyEnvOverrides(Json::Value &config,
-                                      const std::vector<EnvOverride> &rules)
+void ConfigManager::applyEnvOverrides(Json::Value &config, const std::vector<EnvOverride> &rules)
 {
     for (const auto &rule : rules)
     {
@@ -56,8 +53,7 @@ void ConfigManager::applyEnvOverrides(Json::Value &config,
     }
 }
 
-Json::Value *ConfigManager::getJsonPointer(Json::Value &root,
-                                           const std::string &path)
+Json::Value *ConfigManager::getJsonPointer(Json::Value &root, const std::string &path)
 {
     std::vector<std::string> parts;
     std::stringstream ss(path);
@@ -115,8 +111,7 @@ int ConfigManager::parseInt(const std::string &str)
     }
 }
 
-bool ConfigManager::validate(const Json::Value &config,
-                             std::string &errorMessage)
+bool ConfigManager::validate(const Json::Value &config, std::string &errorMessage)
 {
     // Check db_clients section exists and is an array (can be empty for memory
     // storage)
@@ -135,8 +130,7 @@ bool ConfigManager::validate(const Json::Value &config,
     }
 
     // Validate port ranges if db_clients is not empty
-    if (config["db_clients"].size() > 0 &&
-        config["db_clients"][0].isMember("port"))
+    if (config["db_clients"].size() > 0 && config["db_clients"][0].isMember("port"))
     {
         int port = config["db_clients"][0]["port"].asInt();
         if (port < 1 || port > 65535)
@@ -147,8 +141,7 @@ bool ConfigManager::validate(const Json::Value &config,
     }
 
     // Validate port ranges if redis_clients is not empty
-    if (config["redis_clients"].size() > 0 &&
-        config["redis_clients"][0].isMember("port"))
+    if (config["redis_clients"].size() > 0 && config["redis_clients"][0].isMember("port"))
     {
         int port = config["redis_clients"][0]["port"].asInt();
         if (port < 1 || port > 65535)

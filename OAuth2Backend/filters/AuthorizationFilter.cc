@@ -31,16 +31,18 @@ void AuthorizationFilter::loadConfig()
                 }
             }
             rules_.push_back(rule);
-            LOG_INFO << "RBAC Rule Loaded: " << pattern << " -> "
-                     << rule.allowedRoles.size() << " roles";
+            LOG_INFO << "RBAC Rule Loaded: " << pattern << " -> " << rule.allowedRoles.size()
+                     << " roles";
         }
     }
     initialized_ = true;
 }
 
-void AuthorizationFilter::doFilter(const HttpRequestPtr &req,
-                                   FilterCallback &&fcb,
-                                   FilterChainCallback &&fccb)
+void AuthorizationFilter::doFilter(
+  const HttpRequestPtr &req,
+  FilterCallback &&fcb,
+  FilterChainCallback &&fccb
+)
 {
     loadConfig();
 
@@ -71,9 +73,12 @@ void AuthorizationFilter::doFilter(const HttpRequestPtr &req,
     if (!plugin)
     {
         LOG_ERROR << "OAuth2Plugin not found!";
-        fcb(HttpResponse::newHttpResponse(
+        fcb(
+          HttpResponse::newHttpResponse(
             k500InternalServerError,
-            ContentType::CT_TEXT_PLAIN));  // Return response -> Use fcb
+            ContentType::CT_TEXT_PLAIN
+          )
+        );  // Return response -> Use fcb
         return;
     }
 
@@ -84,44 +89,47 @@ void AuthorizationFilter::doFilter(const HttpRequestPtr &req,
     auto nextCbPtr = std::make_shared<FilterChainCallback>(std::move(fccb));
 
     plugin->validateAccessToken(
-        token,
-        [this, req, denyCbPtr, nextCbPtr, plugin](
-            std::shared_ptr<OAuth2Plugin::AccessToken> at) mutable {
-            if (!at)
-            {
-                Json::Value error;
-                error["error"] = "invalid_token";
-                auto resp = HttpResponse::newHttpJsonResponse(error);
-                resp->setStatusCode(k401Unauthorized);
-                (*denyCbPtr)(resp);
-                return;
-            }
+      token,
+      [this, req, denyCbPtr, nextCbPtr, plugin](
+        std::shared_ptr<OAuth2Plugin::AccessToken> at
+      ) mutable {
+          if (!at)
+          {
+              Json::Value error;
+              error["error"] = "invalid_token";
+              auto resp = HttpResponse::newHttpJsonResponse(error);
+              resp->setStatusCode(k401Unauthorized);
+              (*denyCbPtr)(resp);
+              return;
+          }
 
-            // 3. Get User Roles
-            plugin->getUserRoles(
-                at->userId,
-                [this, req, denyCbPtr, nextCbPtr](
-                    std::vector<std::string> roles) mutable {
-                    // 4. Check Access
-                    if (checkAccess(roles, req->path()))
-                    {
-                        (*nextCbPtr)();  // ALLOW -> Continue
-                    }
-                    else
-                    {
-                        Json::Value error;
-                        error["error"] = "forbidden";
-                        error["message"] = "Insufficient permissions";
-                        auto resp = HttpResponse::newHttpJsonResponse(error);
-                        resp->setStatusCode(k403Forbidden);
-                        (*denyCbPtr)(resp);  // DENY -> Return 403
-                    }
-                });
-        });
+          // 3. Get User Roles
+          plugin->getUserRoles(
+            at->userId, [this, req, denyCbPtr, nextCbPtr](std::vector<std::string> roles) mutable {
+                // 4. Check Access
+                if (checkAccess(roles, req->path()))
+                {
+                    (*nextCbPtr)();  // ALLOW -> Continue
+                }
+                else
+                {
+                    Json::Value error;
+                    error["error"] = "forbidden";
+                    error["message"] = "Insufficient permissions";
+                    auto resp = HttpResponse::newHttpJsonResponse(error);
+                    resp->setStatusCode(k403Forbidden);
+                    (*denyCbPtr)(resp);  // DENY -> Return 403
+                }
+            }
+          );
+      }
+    );
 }
 
-bool AuthorizationFilter::checkAccess(const std::vector<std::string> &userRoles,
-                                      const std::string &path)
+bool AuthorizationFilter::checkAccess(
+  const std::vector<std::string> &userRoles,
+  const std::string &path
+)
 {
     // If no rules match, DENY by default if config exists?
     // Or ALLOW by default?

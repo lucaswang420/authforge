@@ -133,38 +133,45 @@ Error ErrorHandler::handleDbException(const DrogonDbException &e)
 
     if (errStr.find("connection") != std::string::npos)
     {
-        return Error{ErrorCode::DB_CONNECTION_ERROR,
-                     ErrorCategory::DATABASE,
-                     "Database connection failed",
-                     errStr,
-                     generateRequestId()};
+        return Error{
+          ErrorCode::DB_CONNECTION_ERROR,
+          ErrorCategory::DATABASE,
+          "Database connection failed",
+          errStr,
+          generateRequestId()
+        };
     }
     else if (errStr.find("constraint") != std::string::npos)
     {
-        return Error{ErrorCode::DB_CONSTRAINT_VIOLATION,
-                     ErrorCategory::DATABASE,
-                     "Database constraint violation",
-                     errStr,
-                     generateRequestId()};
+        return Error{
+          ErrorCode::DB_CONSTRAINT_VIOLATION,
+          ErrorCategory::DATABASE,
+          "Database constraint violation",
+          errStr,
+          generateRequestId()
+        };
     }
     else
     {
-        return Error{ErrorCode::DB_QUERY_ERROR,
-                     ErrorCategory::DATABASE,
-                     "Database query error",
-                     errStr,
-                     generateRequestId()};
+        return Error{
+          ErrorCode::DB_QUERY_ERROR,
+          ErrorCategory::DATABASE,
+          "Database query error",
+          errStr,
+          generateRequestId()
+        };
     }
 }
 
-Error ErrorHandler::handleValidationError(const std::string &field,
-                                          const std::string &reason)
+Error ErrorHandler::handleValidationError(const std::string &field, const std::string &reason)
 {
-    return Error{ErrorCode::INVALID_INPUT,
-                 ErrorCategory::VALIDATION,
-                 reason,
-                 "field: " + field,
-                 generateRequestId()};
+    return Error{
+      ErrorCode::INVALID_INPUT,
+      ErrorCategory::VALIDATION,
+      reason,
+      "field: " + field,
+      generateRequestId()
+    };
 }
 
 }  // namespace common::error

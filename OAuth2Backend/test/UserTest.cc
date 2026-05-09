@@ -34,8 +34,7 @@ DROGON_TEST(UserSystemTest)
     // Clean up
     try
     {
-        db->execSqlSync("DELETE FROM users WHERE username = $1",
-                        "unittest_user_orm");
+        db->execSqlSync("DELETE FROM users WHERE username = $1", "unittest_user_orm");
     }
     catch (...)
     {
@@ -70,16 +69,15 @@ DROGON_TEST(UserSystemTest)
 
     // Raw SQL Verification
     {
-        auto result = db->execSqlSync("SELECT * FROM users WHERE username = $1",
-                                      "unittest_user_orm");
+        auto result =
+          db->execSqlSync("SELECT * FROM users WHERE username = $1", "unittest_user_orm");
         if (result.empty())
         {
             LOG_ERROR << "Raw SQL: User NOT found in database!";
         }
         else
         {
-            LOG_INFO << "Raw SQL: User found! ID: "
-                     << result[0]["id"].as<int>();
+            LOG_INFO << "Raw SQL: User found! ID: " << result[0]["id"].as<int>();
         }
     }
 
@@ -87,10 +85,9 @@ DROGON_TEST(UserSystemTest)
     try
     {
         LOG_INFO << "Attempting to find user...";
-        auto user = mapper.findOne(
-            Criteria(drogon_model::oauth_test::Users::Cols::_username,
-                     CompareOperator::EQ,
-                     "unittest_user_orm"));
+        auto user = mapper.findOne(Criteria(
+          drogon_model::oauth_test::Users::Cols::_username, CompareOperator::EQ, "unittest_user_orm"
+        ));
         LOG_INFO << "User found via ORM!";
 
         std::string dbHash = user.getValueOfPasswordHash();
@@ -100,10 +97,7 @@ DROGON_TEST(UserSystemTest)
 
         std::string inputHash = utils::getSha256(password + dbSalt);
         std::transform(dbHash.begin(), dbHash.end(), dbHash.begin(), ::tolower);
-        std::transform(inputHash.begin(),
-                       inputHash.end(),
-                       inputHash.begin(),
-                       ::tolower);
+        std::transform(inputHash.begin(), inputHash.end(), inputHash.begin(), ::tolower);
 
         CHECK(dbHash == inputHash);
     }
@@ -116,8 +110,7 @@ DROGON_TEST(UserSystemTest)
     // Clean up
     try
     {
-        db->execSqlSync("DELETE FROM users WHERE username = $1",
-                        "unittest_user_orm");
+        db->execSqlSync("DELETE FROM users WHERE username = $1", "unittest_user_orm");
     }
     catch (...)
     {

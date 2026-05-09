@@ -319,11 +319,6 @@ docker run -d -p 5555:5555 --name oauth2-server oauth2-backend:v1.9.12
 # Linux/macOS
 docker build --no-cache -f Dockerfile.debug.cn -t oauth2-backend-debug:v1.9.12 .
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-quick-verify-debug.sh
-
-# Expected result:
-# assertions: 46 | 46 passed | 0 failed
-# test cases: 11 | 11 passed | 0 failed
-# SUCCESS: No crash during teardown!
 ```
 
 For detailed debugging and verification instructions, see:

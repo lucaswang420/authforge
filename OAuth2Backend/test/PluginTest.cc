@@ -23,8 +23,7 @@ DROGON_TEST(PluginTest)
     // map.
 
     Json::Value clientConfig;
-    clientConfig["type"] =
-        "PUBLIC";  // Set as PUBLIC client (no secret required)
+    clientConfig["type"] = "PUBLIC";  // Set as PUBLIC client (no secret required)
     clientConfig["secret"] = "plugin-secret";
     clientConfig["redirect_uri"] = "http://localhost/cb";
     config["clients"]["plugin-client"] = clientConfig;
@@ -40,9 +39,9 @@ DROGON_TEST(PluginTest)
     {
         std::promise<bool> p;
         auto f = p.get_future();
-        plugin->validateClient("plugin-client",
-                               "plugin-secret",
-                               [&](bool valid) { p.set_value(valid); });
+        plugin->validateClient("plugin-client", "plugin-secret", [&](bool valid) {
+            p.set_value(valid);
+        });
         CHECK(f.get() == true);
     }
 
@@ -52,22 +51,23 @@ DROGON_TEST(PluginTest)
         std::promise<std::string> p;
         auto f = p.get_future();
         plugin->generateAuthorizationCode(
-            "plugin-client",
-            "user1",
-            "scope1",
-            "http://localhost/cb",  // redirect_uri
-            "",                     // codeChallenge (empty for non-PKCE test)
-            "",  // codeChallengeMethod (empty for non-PKCE test)
-            [&](bool success, std::string code, std::string error) {
-                if (success)
-                {
-                    p.set_value(code);
-                }
-                else
-                {
-                    p.set_value("");
-                }
-            });
+          "plugin-client",
+          "user1",
+          "scope1",
+          "http://localhost/cb",  // redirect_uri
+          "",                     // codeChallenge (empty for non-PKCE test)
+          "",                     // codeChallengeMethod (empty for non-PKCE test)
+          [&](bool success, std::string code, std::string error) {
+              if (success)
+              {
+                  p.set_value(code);
+              }
+              else
+              {
+                  p.set_value("");
+              }
+          }
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -83,12 +83,13 @@ DROGON_TEST(PluginTest)
         std::promise<Json::Value> p;
         auto f = p.get_future();
         plugin->exchangeCodeForToken(
-            authCode,
-            "plugin-client",
-            "",                     // Empty secret for test client (PUBLIC)
-            "http://localhost/cb",  // redirect_uri must match authorization
-            "",                     // code_verifier (empty for non-PKCE test)
-            [&](const Json::Value &result) { p.set_value(result); });
+          authCode,
+          "plugin-client",
+          "",                     // Empty secret for test client (PUBLIC)
+          "http://localhost/cb",  // redirect_uri must match authorization
+          "",                     // code_verifier (empty for non-PKCE test)
+          [&](const Json::Value &result) { p.set_value(result); }
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -106,12 +107,13 @@ DROGON_TEST(PluginTest)
         std::promise<Json::Value> p;
         auto f = p.get_future();
         plugin->exchangeCodeForToken(
-            authCode,
-            "plugin-client",
-            "",                     // Empty secret for test client (PUBLIC)
-            "http://localhost/cb",  // redirect_uri must match authorization
-            "",                     // code_verifier (empty for non-PKCE test)
-            [&](const Json::Value &result) { p.set_value(result); });
+          authCode,
+          "plugin-client",
+          "",                     // Empty secret for test client (PUBLIC)
+          "http://localhost/cb",  // redirect_uri must match authorization
+          "",                     // code_verifier (empty for non-PKCE test)
+          [&](const Json::Value &result) { p.set_value(result); }
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -125,11 +127,11 @@ DROGON_TEST(PluginTest)
     {
         std::promise<Json::Value> p;
         auto f = p.get_future();
-        plugin->refreshAccessToken(requestRefreshToken,
-                                   "plugin-client",
-                                   [&](const Json::Value &result) {
-                                       p.set_value(result);
-                                   });
+        plugin->refreshAccessToken(
+          requestRefreshToken, "plugin-client", [&](const Json::Value &result) {
+              p.set_value(result);
+          }
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -137,10 +139,8 @@ DROGON_TEST(PluginTest)
         auto result = f.get();
         CHECK(result.isMember("access_token"));
         CHECK(result.isMember("refresh_token"));
-        CHECK(result["access_token"].asString() !=
-              requestAccessToken);  // Should be new
-        CHECK(result["refresh_token"].asString() !=
-              requestRefreshToken);  // Should be rotated
+        CHECK(result["access_token"].asString() != requestAccessToken);    // Should be new
+        CHECK(result["refresh_token"].asString() != requestRefreshToken);  // Should be rotated
     }
 
     // 7. Validate New Token
@@ -158,22 +158,23 @@ DROGON_TEST(PluginTest)
         std::promise<std::string> p;
         auto f = p.get_future();
         plugin->generateAuthorizationCode(
-            "plugin-client",
-            "admin",
-            "scope1",
-            "http://localhost/cb",  // redirect_uri
-            "",                     // codeChallenge (empty for non-PKCE test)
-            "",  // codeChallengeMethod (empty for non-PKCE test)
-            [&](bool success, std::string code, std::string error) {
-                if (success)
-                {
-                    p.set_value(code);
-                }
-                else
-                {
-                    p.set_value("");
-                }
-            });
+          "plugin-client",
+          "admin",
+          "scope1",
+          "http://localhost/cb",  // redirect_uri
+          "",                     // codeChallenge (empty for non-PKCE test)
+          "",                     // codeChallengeMethod (empty for non-PKCE test)
+          [&](bool success, std::string code, std::string error) {
+              if (success)
+              {
+                  p.set_value(code);
+              }
+              else
+              {
+                  p.set_value("");
+              }
+          }
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -184,12 +185,13 @@ DROGON_TEST(PluginTest)
         std::promise<Json::Value> p2;
         auto f2 = p2.get_future();
         plugin->exchangeCodeForToken(
-            adminCode,
-            "plugin-client",
-            "",                     // Empty secret for test client (PUBLIC)
-            "http://localhost/cb",  // redirect_uri must match authorization
-            "",                     // code_verifier (empty for non-PKCE test)
-            [&](const Json::Value &v) { p2.set_value(v); });
+          adminCode,
+          "plugin-client",
+          "",                     // Empty secret for test client (PUBLIC)
+          "http://localhost/cb",  // redirect_uri must match authorization
+          "",                     // code_verifier (empty for non-PKCE test)
+          [&](const Json::Value &v) { p2.set_value(v); }
+        );
         auto res = f2.get();
 
         CHECK(res.isMember("roles"));

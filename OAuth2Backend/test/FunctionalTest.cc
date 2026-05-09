@@ -23,10 +23,11 @@ namespace functional
 
 // Helper: Make HTTP request and get response
 static drogon::HttpResponsePtr makeHttpResponse(
-    const std::string &method,
-    const std::string &path,
-    const std::string &body = "",
-    const std::string &authHeader = "")
+  const std::string &method,
+  const std::string &path,
+  const std::string &body = "",
+  const std::string &authHeader = ""
+)
 {
     auto client = drogon::HttpClient::newHttpClient("http://localhost:5555");
     auto req = drogon::HttpRequest::newHttpRequest();
@@ -51,10 +52,12 @@ static drogon::HttpResponsePtr makeHttpResponse(
     return resp;
 }
 
-static std::string makeRequest(const std::string &method,
-                               const std::string &path,
-                               const std::string &body = "",
-                               const std::string &authHeader = "")
+static std::string makeRequest(
+  const std::string &method,
+  const std::string &path,
+  const std::string &body = "",
+  const std::string &authHeader = ""
+)
 {
     auto resp = makeHttpResponse(method, path, body, authHeader);
     return std::string(resp->body());
@@ -70,17 +73,19 @@ TEST(FunctionalOAuth2, CompleteAuthorizationCodeFlow)
     // Expected: Login �?Code �?Token �?Protected Resource Access
 
     // Step 1: User Login
-    std::string loginResp =
-        makeRequest("POST",
-                    "/oauth2/login",
-                    "username=admin&password=admin&"
-                    "client_id=vue-client&"
-                    "redirect_uri=http://localhost:5173/callback&"
-                    "scope=openid&state=test");
+    std::string loginResp = makeRequest(
+      "POST",
+      "/oauth2/login",
+      "username=admin&password=admin&"
+      "client_id=vue-client&"
+      "redirect_uri=http://localhost:5173/callback&"
+      "scope=openid&state=test"
+    );
 
     // Should return authorization code in redirect
-    EXPECT_TRUE(loginResp.find("code=") != std::string::npos ||
-                loginResp.find("302") != std::string::npos);
+    EXPECT_TRUE(
+      loginResp.find("code=") != std::string::npos || loginResp.find("302") != std::string::npos
+    );
 
     // Note: Due to rate limiting in tests, we may not get actual code
     // The important thing is the system handles the request correctly
@@ -94,10 +99,12 @@ TEST(FunctionalErrorHandling, InvalidGrantType)
 {
     // Test: Invalid grant_type parameter
     // Expected: Should return unsupported_grant_type error
-    std::string response = makeRequest("POST",
-                                       "/oauth2/token",
-                                       "grant_type=invalid_grant&code=test&"
-                                       "client_id=vue-client");
+    std::string response = makeRequest(
+      "POST",
+      "/oauth2/token",
+      "grant_type=invalid_grant&code=test&"
+      "client_id=vue-client"
+    );
 
     EXPECT_TRUE(response.find("unsupported_grant_type") != std::string::npos);
 }
@@ -106,8 +113,7 @@ TEST(FunctionalErrorHandling, MissingRequiredParameters)
 {
     // Test: Missing required parameters
     // Expected: Should return invalid_grant error
-    std::string response =
-        makeRequest("POST", "/oauth2/token", "grant_type=authorization_code");
+    std::string response = makeRequest("POST", "/oauth2/token", "grant_type=authorization_code");
 
     EXPECT_TRUE(response.find("invalid_grant") != std::string::npos);
 }
@@ -116,11 +122,12 @@ TEST(FunctionalErrorHandling, InvalidClientId)
 {
     // Test: Invalid client_id
     // Expected: Should return error (invalid_grant or invalid_client)
-    std::string response =
-        makeRequest("POST",
-                    "/oauth2/token",
-                    "grant_type=authorization_code&code=test&"
-                    "client_id=invalid_client&client_secret=123456");
+    std::string response = makeRequest(
+      "POST",
+      "/oauth2/token",
+      "grant_type=authorization_code&code=test&"
+      "client_id=invalid_client&client_secret=123456"
+    );
 
     // Should return some kind of error
     EXPECT_TRUE(response.find("error") != std::string::npos);
@@ -130,12 +137,10 @@ TEST(FunctionalErrorHandling, EmptyCredentials)
 {
     // Test: Empty username or password
     // Expected: Should return 400 error with "required" message
-    std::string response1 =
-        makeRequest("POST", "/oauth2/login", "username=&password=admin");
+    std::string response1 = makeRequest("POST", "/oauth2/login", "username=&password=admin");
     EXPECT_TRUE(response1.find("required") != std::string::npos);
 
-    std::string response2 =
-        makeRequest("POST", "/oauth2/login", "username=admin&password=");
+    std::string response2 = makeRequest("POST", "/oauth2/login", "username=admin&password=");
     EXPECT_TRUE(response2.find("required") != std::string::npos);
 }
 
@@ -144,13 +149,16 @@ TEST(FunctionalErrorHandling, InvalidCredentials)
     // Test: Wrong username or password
     // Expected: Should return "Invalid Credentials" or "Login Failed"
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=wrong_user&password=wrong_pass&"
-        "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=wrong_user&password=wrong_pass&"
+      "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
-    EXPECT_TRUE(response.find("Invalid Credentials") != std::string::npos ||
-                response.find("Login Failed") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("Invalid Credentials") != std::string::npos ||
+      response.find("Login Failed") != std::string::npos
+    );
 }
 
 // ============================================================================
@@ -162,10 +170,11 @@ TEST(FunctionalUtf8, ChineseCharacters)
     // Test: Chinese characters in username
     // Expected: Should handle correctly (not crash)
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=管理�?password=admin&"
-        "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=管理�?password=admin&"
+      "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
     // Should not crash and should return some response
     // (User may not exist, but system should handle UTF-8 correctly)
@@ -178,10 +187,11 @@ TEST(FunctionalUtf8, EmojiCharacters)
     // Expected: Should handle 4-byte UTF-8 sequences correctly
     // Using UTF-8 escape sequence for grinning face emoji (U+1F600)
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=user\xf0\x9f\x98\x80test&password=admin&"
-        "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=user\xf0\x9f\x98\x80test&password=admin&"
+      "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
     // Should not crash when processing emoji
     EXPECT_FALSE(response.empty());
@@ -193,10 +203,11 @@ TEST(FunctionalUtf8, FourByteUtf8Sequences)
     // Expected: Should be handled without crashes
     // Using UTF-8 escape sequence for rocket emoji (U+1F680)
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=user\xf0\x9f\x9a\x80rocket&password=admin&"
-        "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=user\xf0\x9f\x9a\x80rocket&password=admin&"
+      "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
     // System should handle or reject gracefully, not crash
     EXPECT_FALSE(response.empty());
@@ -229,8 +240,10 @@ TEST(FunctionalHealth, HealthCheckFields)
     EXPECT_TRUE(response.find("\"status\"") != std::string::npos);
     EXPECT_TRUE(response.find("\"service\"") != std::string::npos);
     EXPECT_TRUE(response.find("\"timestamp\"") != std::string::npos);
-    EXPECT_TRUE(response.find("\"database\"") != std::string::npos ||
-                response.find("\"storage_type\"") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("\"database\"") != std::string::npos ||
+      response.find("\"storage_type\"") != std::string::npos
+    );
 }
 
 TEST(FunctionalHealth, HealthCheckNotLeakingSensitiveInfo)
@@ -255,19 +268,22 @@ TEST(FunctionalRbac, UnauthorizedAccess)
     // Expected: Should return 401 Unauthorized
     std::string response = makeRequest("GET", "/api/admin/dashboard");
 
-    EXPECT_TRUE(response.find("unauthorized") != std::string::npos ||
-                response.find("401") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("unauthorized") != std::string::npos ||
+      response.find("401") != std::string::npos
+    );
 }
 
 TEST(FunctionalRbac, InvalidToken)
 {
     // Test: Access protected resource with invalid token
     // Expected: Should return 401 or invalid_token error
-    std::string response =
-        makeRequest("GET", "/api/admin/dashboard", "", "Bearer invalid-token");
+    std::string response = makeRequest("GET", "/api/admin/dashboard", "", "Bearer invalid-token");
 
-    EXPECT_TRUE(response.find("invalid_token") != std::string::npos ||
-                response.find("unauthorized") != std::string::npos);
+    EXPECT_TRUE(
+      response.find("invalid_token") != std::string::npos ||
+      response.find("unauthorized") != std::string::npos
+    );
 }
 
 // ============================================================================
@@ -278,13 +294,14 @@ TEST(FunctionalToken, InvalidAuthorizationCode)
 {
     // Test: Token exchange with invalid authorization code
     // Expected: Should return invalid_grant error
-    std::string response =
-        makeRequest("POST",
-                    "/oauth2/token",
-                    "grant_type=authorization_code&"
-                    "code=invalid_code_12345&"
-                    "client_id=vue-client&"
-                    "redirect_uri=http://localhost:5173/callback");
+    std::string response = makeRequest(
+      "POST",
+      "/oauth2/token",
+      "grant_type=authorization_code&"
+      "code=invalid_code_12345&"
+      "client_id=vue-client&"
+      "redirect_uri=http://localhost:5173/callback"
+    );
 
     EXPECT_TRUE(response.find("invalid_grant") != std::string::npos);
 }
@@ -293,11 +310,13 @@ TEST(FunctionalToken, InvalidRefreshToken)
 {
     // Test: Refresh token with invalid/expired refresh token
     // Expected: Should return invalid_grant error
-    std::string response = makeRequest("POST",
-                                       "/oauth2/token",
-                                       "grant_type=refresh_token&"
-                                       "refresh_token=invalid_refresh_token&"
-                                       "client_id=vue-client");
+    std::string response = makeRequest(
+      "POST",
+      "/oauth2/token",
+      "grant_type=refresh_token&"
+      "refresh_token=invalid_refresh_token&"
+      "client_id=vue-client"
+    );
 
     EXPECT_TRUE(response.find("invalid_grant") != std::string::npos);
 }
@@ -306,10 +325,12 @@ TEST(FunctionalToken, MissingRefreshToken)
 {
     // Test: Refresh without refresh_token parameter
     // Expected: Should return error
-    std::string response = makeRequest("POST",
-                                       "/oauth2/token",
-                                       "grant_type=refresh_token&"
-                                       "client_id=vue-client");
+    std::string response = makeRequest(
+      "POST",
+      "/oauth2/token",
+      "grant_type=refresh_token&"
+      "client_id=vue-client"
+    );
 
     EXPECT_TRUE(response.find("error") != std::string::npos);
 }
@@ -324,14 +345,14 @@ TEST(FunctionalInput, LongUsername)
     // Expected: Should return "Username exceeds maximum length"
     std::string longUsername(101, 'A');
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=" + longUsername +
-            "&password=admin&"
-            "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=" + longUsername +
+        "&password=admin&"
+        "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
-    EXPECT_TRUE(response.find("Username exceeds maximum length") !=
-                std::string::npos);
+    EXPECT_TRUE(response.find("Username exceeds maximum length") != std::string::npos);
 }
 
 TEST(FunctionalInput, LongPassword)
@@ -340,14 +361,14 @@ TEST(FunctionalInput, LongPassword)
     // Expected: Should return "Password exceeds maximum length"
     std::string longPassword(201, 'B');
     std::string response = makeRequest(
-        "POST",
-        "/oauth2/login",
-        "username=admin&password=" + longPassword +
-            "&"
-            "client_id=vue-client&redirect_uri=http://localhost:5173/callback");
+      "POST",
+      "/oauth2/login",
+      "username=admin&password=" + longPassword +
+        "&"
+        "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
+    );
 
-    EXPECT_TRUE(response.find("Password exceeds maximum length") !=
-                std::string::npos);
+    EXPECT_TRUE(response.find("Password exceeds maximum length") != std::string::npos);
 }
 
 // ============================================================================
@@ -364,17 +385,20 @@ TEST(FunctionalRateLimit, DetectRateLimiting)
     // Make multiple rapid requests
     for (int i = 0; i < 15; ++i)
     {
-        std::string response =
-            makeRequest("POST",
-                        "/oauth2/login",
-                        "username=test" + std::to_string(i) +
-                            "&password=test&"
-                            "client_id=vue-client&"
-                            "redirect_uri=http://localhost:5173/callback");
+        std::string response = makeRequest(
+          "POST",
+          "/oauth2/login",
+          "username=test" + std::to_string(i) +
+            "&password=test&"
+            "client_id=vue-client&"
+            "redirect_uri=http://localhost:5173/callback"
+        );
 
         // Check if rate limit was triggered
-        if (response.find("429") != std::string::npos ||
-            response.find("Too Many Requests") != std::string::npos)
+        if (
+          response.find("429") != std::string::npos ||
+          response.find("Too Many Requests") != std::string::npos
+        )
         {
             rateLimitDetected = true;
             break;
@@ -403,8 +427,7 @@ TEST(FunctionalEndpoints, OAuth2EndpointsAvailable)
     EXPECT_FALSE(resp1.empty());
 
     // Token endpoint (with invalid data, should return error)
-    std::string resp2 =
-        makeRequest("POST", "/oauth2/token", "grant_type=invalid");
+    std::string resp2 = makeRequest("POST", "/oauth2/token", "grant_type=invalid");
     EXPECT_FALSE(resp2.empty());
 
     // Health endpoint

@@ -80,10 +80,8 @@ class IOAuth2Storage
     // Callback types
     using ClientCallback = std::function<void(std::optional<OAuth2Client>)>;
     using AuthCodeCallback = std::function<void(std::optional<OAuth2AuthCode>)>;
-    using AccessTokenCallback =
-        std::function<void(std::optional<OAuth2AccessToken>)>;
-    using RefreshTokenCallback =
-        std::function<void(std::optional<OAuth2RefreshToken>)>;
+    using AccessTokenCallback = std::function<void(std::optional<OAuth2AccessToken>)>;
+    using RefreshTokenCallback = std::function<void(std::optional<OAuth2RefreshToken>)>;
     using VoidCallback = std::function<void()>;
     using BoolCallback = std::function<void(bool)>;
 
@@ -92,35 +90,33 @@ class IOAuth2Storage
     /**
      * @brief Get client by ID
      */
-    virtual void getClient(const std::string &clientId,
-                           ClientCallback &&cb) = 0;
+    virtual void getClient(const std::string &clientId, ClientCallback &&cb) = 0;
 
     /**
      * @brief Validate client credentials
      */
-    virtual void validateClient(const std::string &clientId,
-                                const std::string &clientSecret,
-                                BoolCallback &&cb) = 0;
+    virtual void validateClient(
+      const std::string &clientId,
+      const std::string &clientSecret,
+      BoolCallback &&cb
+    ) = 0;
 
     // ========== Authorization Code Operations ==========
 
     /**
      * @brief Save a new authorization code
      */
-    virtual void saveAuthCode(const OAuth2AuthCode &code,
-                              VoidCallback &&cb) = 0;
+    virtual void saveAuthCode(const OAuth2AuthCode &code, VoidCallback &&cb) = 0;
 
     /**
      * @brief Get authorization code by code value
      */
-    virtual void getAuthCode(const std::string &code,
-                             AuthCodeCallback &&cb) = 0;
+    virtual void getAuthCode(const std::string &code, AuthCodeCallback &&cb) = 0;
 
     /**
      * @brief Mark an authorization code as used (single-use enforcement)
      */
-    virtual void markAuthCodeUsed(const std::string &code,
-                                  VoidCallback &&cb) = 0;
+    virtual void markAuthCodeUsed(const std::string &code, VoidCallback &&cb) = 0;
 
     /**
      * @brief Atomic Consume: Get Code, Check if Used, Mark Used, Return Code.
@@ -136,45 +132,42 @@ class IOAuth2Storage
      * @param cb Callback with auth code data or nullopt if
      * invalid/used/mismatch
      */
-    virtual void consumeAuthCode(const std::string &code,
-                                 const std::string &redirectUri,
-                                 AuthCodeCallback &&cb) = 0;
+    virtual void consumeAuthCode(
+      const std::string &code,
+      const std::string &redirectUri,
+      AuthCodeCallback &&cb
+    ) = 0;
 
     // ========== Access Token Operations ==========
 
     /**
      * @brief Save a new access token
      */
-    virtual void saveAccessToken(const OAuth2AccessToken &token,
-                                 VoidCallback &&cb) = 0;
+    virtual void saveAccessToken(const OAuth2AccessToken &token, VoidCallback &&cb) = 0;
 
     /**
      * @brief Get access token by token value
      */
-    virtual void getAccessToken(const std::string &token,
-                                AccessTokenCallback &&cb) = 0;
+    virtual void getAccessToken(const std::string &token, AccessTokenCallback &&cb) = 0;
 
     // ========== Refresh Token Operations ==========
 
     /**
      * @brief Save a new refresh token
      */
-    virtual void saveRefreshToken(const OAuth2RefreshToken &token,
-                                  VoidCallback &&cb) = 0;
+    virtual void saveRefreshToken(const OAuth2RefreshToken &token, VoidCallback &&cb) = 0;
 
     /**
      * @brief Get refresh token by token value
      */
-    virtual void getRefreshToken(const std::string &token,
-                                 RefreshTokenCallback &&cb) = 0;
+    virtual void getRefreshToken(const std::string &token, RefreshTokenCallback &&cb) = 0;
 
     /**
      * @brief Revoke a refresh token
      * @param token The refresh token to revoke
      * @param cb Callback invoked when revocation completes
      */
-    virtual void revokeRefreshToken(const std::string &token,
-                                    VoidCallback &&cb) = 0;
+    virtual void revokeRefreshToken(const std::string &token, VoidCallback &&cb) = 0;
 
     using StringListCallback = std::function<void(std::vector<std::string>)>;
 
@@ -185,16 +178,14 @@ class IOAuth2Storage
      * @param userId The ID of the user (as string)
      * @param cb Callback with list of role names
      */
-    virtual void getUserRoles(const std::string &userId,
-                              StringListCallback &&cb) = 0;
+    virtual void getUserRoles(const std::string &userId, StringListCallback &&cb) = 0;
 
     /**
      * @brief Get roles assigned to a user by internal user ID
      * @param internalUserId The internal user ID (integer)
      * @param cb Callback with list of role names
      */
-    virtual void getUserRoles(int32_t internalUserId,
-                              StringListCallback &&cb) = 0;
+    virtual void getUserRoles(int32_t internalUserId, StringListCallback &&cb) = 0;
 
     // ========== Subject Mapping Operations ==========
 
@@ -205,9 +196,11 @@ class IOAuth2Storage
      * @param cb Callback with internal user ID or std::nullopt if not found
      */
     using OptionalIntCallback = std::function<void(std::optional<int32_t>)>;
-    virtual void getInternalUserId(const std::string &subject,
-                                   const std::string &provider,
-                                   OptionalIntCallback &&cb) = 0;
+    virtual void getInternalUserId(
+      const std::string &subject,
+      const std::string &provider,
+      OptionalIntCallback &&cb
+    ) = 0;
 
     /**
      * @brief Create a new subject mapping
@@ -216,10 +209,12 @@ class IOAuth2Storage
      * @param provider Provider name
      * @param cb Callback invoked with true on success, false on failure
      */
-    virtual void createSubjectMapping(const std::string &subject,
-                                      int32_t internalUserId,
-                                      const std::string &provider,
-                                      BoolCallback &&cb) = 0;
+    virtual void createSubjectMapping(
+      const std::string &subject,
+      int32_t internalUserId,
+      const std::string &provider,
+      BoolCallback &&cb
+    ) = 0;
 
     // ========== Authorization Transaction Operations ==========
 
@@ -244,8 +239,7 @@ class IOAuth2Storage
         int64_t expiresAt;
     };
 
-    using TransactionCallback =
-        std::function<void(std::optional<AuthorizationTransaction>)>;
+    using TransactionCallback = std::function<void(std::optional<AuthorizationTransaction>)>;
 
     /**
      * @brief Save authorization transaction to storage
@@ -253,8 +247,9 @@ class IOAuth2Storage
      * @param cb Callback invoked with true on success, false on failure
      */
     virtual void saveAuthorizationTransaction(
-        const AuthorizationTransaction &transaction,
-        BoolCallback &&cb) = 0;
+      const AuthorizationTransaction &transaction,
+      BoolCallback &&cb
+    ) = 0;
 
     /**
      * @brief Get authorization transaction by ID
@@ -262,8 +257,10 @@ class IOAuth2Storage
      * @param cb Callback with transaction data or std::nullopt if not
      * found/expired
      */
-    virtual void getAuthorizationTransaction(const std::string &transactionId,
-                                             TransactionCallback &&cb) = 0;
+    virtual void getAuthorizationTransaction(
+      const std::string &transactionId,
+      TransactionCallback &&cb
+    ) = 0;
 
     /**
      * @brief Delete authorization transaction
@@ -271,8 +268,9 @@ class IOAuth2Storage
      * @param cb Callback invoked when deletion completes
      */
     virtual void deleteAuthorizationTransaction(
-        const std::string &transactionId,
-        VoidCallback &&cb) = 0;
+      const std::string &transactionId,
+      VoidCallback &&cb
+    ) = 0;
 
     /**
      * @brief Mark authorization transaction as consumed (prevent duplicate
@@ -281,8 +279,7 @@ class IOAuth2Storage
      * @param cb Callback invoked with true if successfully marked, false if
      * already consumed
      */
-    virtual void markTransactionConsumed(const std::string &transactionId,
-                                         BoolCallback &&cb) = 0;
+    virtual void markTransactionConsumed(const std::string &transactionId, BoolCallback &&cb) = 0;
 
     // ========== Scope Management Operations ==========
 
@@ -293,10 +290,12 @@ class IOAuth2Storage
      * @param scope Scope name
      * @param cb Callback with true if consent exists, false otherwise
      */
-    virtual void hasUserConsent(int32_t internalUserId,
-                                const std::string &clientId,
-                                const std::string &scope,
-                                BoolCallback &&cb) = 0;
+    virtual void hasUserConsent(
+      int32_t internalUserId,
+      const std::string &clientId,
+      const std::string &scope,
+      BoolCallback &&cb
+    ) = 0;
 
     /**
      * @brief Save user consent for a specific scope
@@ -305,10 +304,12 @@ class IOAuth2Storage
      * @param scope Scope name
      * @param cb Callback invoked with true on success, false on failure
      */
-    virtual void saveUserConsent(int32_t internalUserId,
-                                 const std::string &clientId,
-                                 const std::string &scope,
-                                 BoolCallback &&cb) = 0;
+    virtual void saveUserConsent(
+      int32_t internalUserId,
+      const std::string &clientId,
+      const std::string &scope,
+      BoolCallback &&cb
+    ) = 0;
 
     /**
      * @brief Revoke user consent for a specific scope
@@ -317,10 +318,12 @@ class IOAuth2Storage
      * @param scope Scope name
      * @param cb Callback invoked when revocation completes
      */
-    virtual void revokeUserConsent(int32_t internalUserId,
-                                   const std::string &clientId,
-                                   const std::string &scope,
-                                   VoidCallback &&cb) = 0;
+    virtual void revokeUserConsent(
+      int32_t internalUserId,
+      const std::string &clientId,
+      const std::string &scope,
+      VoidCallback &&cb
+    ) = 0;
 
     // ========== Cleanup Operations ==========
 

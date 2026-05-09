@@ -33,9 +33,11 @@ Json::Value &OpenApiGenerator::getServerConfig()
     return serverConfig;
 }
 
-void OpenApiGenerator::setApiInfo(const std::string &title,
-                                  const std::string &version,
-                                  const std::string &description)
+void OpenApiGenerator::setApiInfo(
+  const std::string &title,
+  const std::string &version,
+  const std::string &description
+)
 {
     auto &apiInfo = getApiInfo();
     apiInfo["title"] = title;
@@ -44,8 +46,7 @@ void OpenApiGenerator::setApiInfo(const std::string &title,
     getInitialized() = true;
 }
 
-void OpenApiGenerator::setServerConfig(const std::string &url,
-                                       const std::string &description)
+void OpenApiGenerator::setServerConfig(const std::string &url, const std::string &description)
 {
     auto &serverConfig = getServerConfig();
     serverConfig["url"] = url;
@@ -65,9 +66,11 @@ Json::Value OpenApiGenerator::generateOpenApiSpec()
     // Info section
     if (!getInitialized())
     {
-        setApiInfo("OAuth2 Authorization Server API",
-                   "1.0.0",
-                   "OAuth2.0 authorization server with token management");
+        setApiInfo(
+          "OAuth2 Authorization Server API",
+          "1.0.0",
+          "OAuth2.0 authorization server with token management"
+        );
     }
     spec["info"] = getApiInfo();
 
@@ -97,10 +100,9 @@ Json::Value OpenApiGenerator::generateOpenApiSpec()
         Json::Value pathItem = generatePathItem(endpoint);
 
         std::string mLower = endpoint.method;
-        std::transform(mLower.begin(),
-                       mLower.end(),
-                       mLower.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+        std::transform(mLower.begin(), mLower.end(), mLower.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
 
         if (paths.isMember(pathKey))
         {
@@ -137,10 +139,11 @@ Json::Value OpenApiGenerator::generatePathItem(const EndpointInfo &endpoint)
     std::replace(safePath.begin(), safePath.end(), '/', '_');
 
     std::string methodLower = endpoint.method;
-    std::transform(methodLower.begin(),
-                   methodLower.end(),
-                   methodLower.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    std::transform(
+      methodLower.begin(), methodLower.end(), methodLower.begin(), [](unsigned char c) {
+          return std::tolower(c);
+      }
+    );
 
     pathItem["operationId"] = methodLower + "_" + safePath;
 
@@ -171,17 +174,14 @@ Json::Value OpenApiGenerator::generatePathItem(const EndpointInfo &endpoint)
         response["description"] = desc;
 
         // Add response example if available
-        if (endpoint.responseExamples.find(code) !=
-            endpoint.responseExamples.end())
+        if (endpoint.responseExamples.find(code) != endpoint.responseExamples.end())
         {
-            response["content"]["application/json"]["example"] =
-                endpoint.responseExamples.at(code);
+            response["content"]["application/json"]["example"] = endpoint.responseExamples.at(code);
         }
         else if (code == 200)
         {
             // Default schema for 200 responses
-            response["content"]["application/json"]["schema"]["type"] =
-                "object";
+            response["content"]["application/json"]["schema"]["type"] = "object";
         }
 
         responses[std::to_string(code)] = response;
@@ -255,8 +255,7 @@ std::string OpenApiGenerator::parameterTypeToString(ParameterType type)
     }
 }
 
-std::string OpenApiGenerator::parameterLocationToString(
-    ParameterLocation location)
+std::string OpenApiGenerator::parameterLocationToString(ParameterLocation location)
 {
     switch (location)
     {
@@ -297,21 +296,18 @@ Json::Value OpenApiGenerator::generateParameter(const ParameterInfo &param)
         {
             parameter["schema"]["default"] = (param.defaultValue == "true");
         }
-        else if (param.type == ParameterType::INTEGER ||
-                 param.type == ParameterType::NUMBER)
+        else if (param.type == ParameterType::INTEGER || param.type == ParameterType::NUMBER)
         {
             // Try to parse as number
             try
             {
                 if (param.type == ParameterType::INTEGER)
                 {
-                    parameter["schema"]["default"] =
-                        std::stoi(param.defaultValue);
+                    parameter["schema"]["default"] = std::stoi(param.defaultValue);
                 }
                 else
                 {
-                    parameter["schema"]["default"] =
-                        std::stod(param.defaultValue);
+                    parameter["schema"]["default"] = std::stod(param.defaultValue);
                 }
             }
             catch (...)
@@ -368,16 +364,14 @@ bool OpenApiGenerator::writeToFile(const std::string &outputPath)
         std::ofstream outputFile(outputPath);
         if (!outputFile.is_open())
         {
-            std::cerr << "Failed to open file for writing: " << outputPath
-                      << std::endl;
+            std::cerr << "Failed to open file for writing: " << outputPath << std::endl;
             return false;
         }
 
         writer->write(spec, &outputFile);
         outputFile.close();
 
-        std::cout << "OpenAPI specification written to: " << outputPath
-                  << std::endl;
+        std::cout << "OpenAPI specification written to: " << outputPath << std::endl;
         return true;
     }
     catch (const std::exception &e)

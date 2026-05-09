@@ -69,8 +69,7 @@ class SubjectGenerator
      * If provider is not in the whitelist, logs a warning and returns ("local",
      * fullSubject).
      */
-    static std::pair<std::string, std::string> parse(
-        const std::string &fullSubject)
+    static std::pair<std::string, std::string> parse(const std::string &fullSubject)
     {
         size_t colonPos = fullSubject.find(':');
         if (colonPos == std::string::npos)
@@ -84,15 +83,12 @@ class SubjectGenerator
 
         // Whitelist validation to prevent parsing errors with subjects
         // containing ":"
-        static const std::set<std::string> VALID_PROVIDERS = {LOCAL,
-                                                              GOOGLE,
-                                                              WECHAT};
+        static const std::set<std::string> VALID_PROVIDERS = {LOCAL, GOOGLE, WECHAT};
 
         if (VALID_PROVIDERS.find(provider) == VALID_PROVIDERS.end())
         {
             // Unknown provider, treat as local with original subject
-            LOG_WARN << "Unknown provider in subject: " << fullSubject
-                     << ", treating as local";
+            LOG_WARN << "Unknown provider in subject: " << fullSubject << ", treating as local";
             return {LOCAL, fullSubject};
         }
 
@@ -105,8 +101,7 @@ class SubjectGenerator
      * @param subject Subject identifier
      * @return Subject in format "provider:subject"
      */
-    static std::string forProvider(const std::string &provider,
-                                   const std::string &subject)
+    static std::string forProvider(const std::string &provider, const std::string &subject)
     {
         return provider + ":" + subject;
     }
@@ -125,8 +120,7 @@ class SubjectGenerator
 
         // Check if subject contains at least one colon
         size_t colonPos = subject.find(':');
-        if (colonPos == std::string::npos || colonPos == 0 ||
-            colonPos == subject.length() - 1)
+        if (colonPos == std::string::npos || colonPos == 0 || colonPos == subject.length() - 1)
         {
             return false;
         }

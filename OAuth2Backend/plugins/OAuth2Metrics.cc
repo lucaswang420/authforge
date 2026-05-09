@@ -62,12 +62,14 @@ void Metrics::incLoginFailure(const std::string &reason)
     LOG_INFO << "[METRIC] oauth2_login_failures_total reason=" << reason;
 }
 
-void Metrics::observeLatency(const std::string &operation,
-                             const std::string &storage,
-                             double seconds)
+void Metrics::observeLatency(
+  const std::string &operation,
+  const std::string &storage,
+  double seconds
+)
 {
-    LOG_INFO << "[METRIC] oauth2_latency_seconds operation=" << operation
-             << " storage=" << storage << " val=" << seconds;
+    LOG_INFO << "[METRIC] oauth2_latency_seconds operation=" << operation << " storage=" << storage
+             << " val=" << seconds;
 }
 
 void Metrics::updateActiveTokens(int count)

@@ -8,9 +8,10 @@ namespace common::validation
 {
 
 std::optional<std::string> ValidatorHelper::validateField(
-    const std::string &value,
-    const std::string &fieldName,
-    const ValidationRuleConfig &rule)
+  const std::string &value,
+  const std::string &fieldName,
+  const ValidationRuleConfig &rule
+)
 {
     // 检查必填字段
     if (rule.required && value.empty())
@@ -27,14 +28,12 @@ std::optional<std::string> ValidatorHelper::validateField(
     // 长度验证
     if (value.length() < rule.minLength)
     {
-        return fieldName + " must be at least " +
-               std::to_string(rule.minLength) + " characters";
+        return fieldName + " must be at least " + std::to_string(rule.minLength) + " characters";
     }
 
     if (rule.maxLength > 0 && value.length() > rule.maxLength)
     {
-        return fieldName + " must be at most " +
-               std::to_string(rule.maxLength) + " characters";
+        return fieldName + " must be at most " + std::to_string(rule.maxLength) + " characters";
     }
 
     // 正则表达式验证
@@ -65,8 +64,9 @@ std::optional<std::string> ValidatorHelper::validateField(
 }
 
 std::vector<std::string> ValidatorHelper::validateFields(
-    const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
-    const std::vector<ValidationRuleConfig> &rules)
+  const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
+  const std::vector<ValidationRuleConfig> &rules
+)
 {
     std::vector<std::string> errors;
 
@@ -103,9 +103,10 @@ std::vector<std::string> ValidatorHelper::validateFields(
 }
 
 std::string ValidatorHelper::extractFieldValue(
-    const drogon::HttpRequestPtr &req,
-    const std::string &field,
-    const std::string &source)
+  const drogon::HttpRequestPtr &req,
+  const std::string &field,
+  const std::string &source
+)
 {
     if (source == "query")
     {
@@ -134,8 +135,9 @@ std::string ValidatorHelper::extractFieldValue(
 }
 
 std::vector<std::string> ValidatorHelper::validateRequest(
-    const drogon::HttpRequestPtr &req,
-    const std::vector<ValidationRuleConfig> &rules)
+  const drogon::HttpRequestPtr &req,
+  const std::vector<ValidationRuleConfig> &rules
+)
 {
     std::vector<std::pair<std::string, std::string>> fieldsAndValues;
 
@@ -151,8 +153,7 @@ std::vector<std::string> ValidatorHelper::validateRequest(
 
 // OAuth2 专用验证方法实现
 
-std::optional<std::string> ValidatorHelper::validateClientId(
-    const std::string &clientId)
+std::optional<std::string> ValidatorHelper::validateClientId(const std::string &clientId)
 {
     if (clientId.empty())
     {
@@ -174,8 +175,7 @@ std::optional<std::string> ValidatorHelper::validateClientId(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateClientSecret(
-    const std::string &secret)
+std::optional<std::string> ValidatorHelper::validateClientSecret(const std::string &secret)
 {
     if (secret.empty())
     {
@@ -197,8 +197,7 @@ std::optional<std::string> ValidatorHelper::validateClientSecret(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateRedirectUri(
-    const std::string &uri)
+std::optional<std::string> ValidatorHelper::validateRedirectUri(const std::string &uri)
 {
     if (uri.empty())
     {
@@ -214,8 +213,7 @@ std::optional<std::string> ValidatorHelper::validateRedirectUri(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateScope(
-    const std::string &scope)
+std::optional<std::string> ValidatorHelper::validateScope(const std::string &scope)
 {
     // scope 是可选的
     if (scope.empty())
@@ -232,8 +230,7 @@ std::optional<std::string> ValidatorHelper::validateScope(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateResponseType(
-    const std::string &type)
+std::optional<std::string> ValidatorHelper::validateResponseType(const std::string &type)
 {
     if (type.empty())
     {
@@ -248,8 +245,7 @@ std::optional<std::string> ValidatorHelper::validateResponseType(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateGrantType(
-    const std::string &type)
+std::optional<std::string> ValidatorHelper::validateGrantType(const std::string &type)
 {
     if (type.empty())
     {
@@ -264,8 +260,7 @@ std::optional<std::string> ValidatorHelper::validateGrantType(
     return std::nullopt;
 }
 
-std::optional<std::string> ValidatorHelper::validateToken(
-    const std::string &token)
+std::optional<std::string> ValidatorHelper::validateToken(const std::string &token)
 {
     if (token.empty())
     {
@@ -284,7 +279,8 @@ std::optional<std::string> ValidatorHelper::validateToken(
 // 便捷验证组合方法
 
 std::vector<std::string> ValidatorHelper::validateOAuth2AuthorizeParams(
-    const drogon::HttpRequestPtr &req)
+  const drogon::HttpRequestPtr &req
+)
 {
     std::vector<std::string> errors;
 
@@ -327,7 +323,8 @@ std::vector<std::string> ValidatorHelper::validateOAuth2AuthorizeParams(
 }
 
 std::vector<std::string> ValidatorHelper::validateOAuth2TokenParams(
-    const drogon::HttpRequestPtr &req)
+  const drogon::HttpRequestPtr &req
+)
 {
     std::vector<std::string> errors;
 
@@ -389,8 +386,7 @@ std::vector<std::string> ValidatorHelper::validateOAuth2TokenParams(
     return errors;
 }
 
-std::vector<std::string> ValidatorHelper::validateLoginParams(
-    const drogon::HttpRequestPtr &req)
+std::vector<std::string> ValidatorHelper::validateLoginParams(const drogon::HttpRequestPtr &req)
 {
     std::vector<std::string> errors;
 

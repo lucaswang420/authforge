@@ -24,9 +24,11 @@ class ValidationFilter : public HttpFilter<ValidationFilter>
     ValidationFilter() = default;
     ~ValidationFilter() override = default;
 
-    void doFilter(const HttpRequestPtr &req,
-                  FilterCallback &&fcb,
-                  FilterChainCallback &&fccb) override;
+    void doFilter(
+      const HttpRequestPtr &req,
+      FilterCallback &&fcb,
+      FilterChainCallback &&fccb
+    ) override;
 
   private:
     // 定义路由验证规则

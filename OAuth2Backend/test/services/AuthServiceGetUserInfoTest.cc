@@ -24,10 +24,9 @@ DROGON_TEST(AuthService_GetUserInfo_Success)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(testUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(testUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {
@@ -70,10 +69,9 @@ DROGON_TEST(AuthService_GetUserInfo_UserNotFound)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(nonExistentUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(nonExistentUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {
@@ -102,10 +100,9 @@ DROGON_TEST(AuthService_GetUserInfo_InvalidUserId)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(invalidUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(invalidUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {
@@ -134,10 +131,9 @@ DROGON_TEST(AuthService_GetUserInfo_UserWithRoles)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(testUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(testUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {
@@ -178,10 +174,9 @@ DROGON_TEST(AuthService_GetUserInfo_ResponseStructure)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(testUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(testUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {
@@ -227,10 +222,9 @@ DROGON_TEST(AuthService_GetUserInfo_DatabaseErrorHandling)
     std::promise<std::optional<Json::Value>> p;
     auto f = p.get_future();
 
-    AuthService::getUserInfo(testUserId,
-                             [&](std::optional<Json::Value> userInfo) {
-                                 p.set_value(userInfo);
-                             });
+    AuthService::getUserInfo(testUserId, [&](std::optional<Json::Value> userInfo) {
+        p.set_value(userInfo);
+    });
 
     if (f.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
     {

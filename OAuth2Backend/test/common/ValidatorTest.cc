@@ -20,8 +20,7 @@ DROGON_TEST(ValidateInvalidClientId)
 
 DROGON_TEST(ValidateRedirectUri)
 {
-    CHECK(
-        Validator::validateRedirectUri("https://example.com/callback").isValid);
+    CHECK(Validator::validateRedirectUri("https://example.com/callback").isValid);
     CHECK(Validator::validateRedirectUri("http://localhost:3000/auth").isValid);
     CHECK(!Validator::validateRedirectUri("ftp://invalid.com").isValid);
     CHECK(!Validator::validateRedirectUri("not-a-url").isValid);

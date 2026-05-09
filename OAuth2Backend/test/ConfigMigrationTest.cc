@@ -64,11 +64,8 @@ DROGON_TEST(ConfigMigrationTest_Database_EnvOverridesWorkAsBefore)
     Json::Value config;
     common::config::ConfigManager::load(configPath, config);
 
-    std::string host =
-        common::config::ConfigManager::get<std::string>(config,
-                                                        "db_clients.0.host");
-    int port =
-        common::config::ConfigManager::get<int>(config, "db_clients.0.port");
+    std::string host = common::config::ConfigManager::get<std::string>(config, "db_clients.0.host");
+    int port = common::config::ConfigManager::get<int>(config, "db_clients.0.port");
 
     CHECK(host == "test-host");
     CHECK(port == 5433);

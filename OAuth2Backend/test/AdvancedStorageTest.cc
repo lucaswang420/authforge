@@ -36,10 +36,9 @@ DROGON_TEST(AdvancedStorageTest)
 
         // Validate via Plugin
         std::promise<std::shared_ptr<OAuth2AccessToken>> pVal;
-        plugin->validateAccessToken("revoked_token_123",
-                                    [&](std::shared_ptr<OAuth2AccessToken> t) {
-                                        pVal.set_value(t);
-                                    });
+        plugin->validateAccessToken("revoked_token_123", [&](std::shared_ptr<OAuth2AccessToken> t) {
+            pVal.set_value(t);
+        });
         auto t = pVal.get_future().get();
         CHECK(t == nullptr);  // Should detect revocation
     }
@@ -52,8 +51,9 @@ DROGON_TEST(AdvancedStorageTest)
         expiredToken.userId = "user1";
         // Set specific past time
         auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                       std::chrono::system_clock::now().time_since_epoch())
-                       .count();
+                     std::chrono::system_clock::now().time_since_epoch()
+        )
+                     .count();
         expiredToken.expiresAt = now - 100;  // Expired 100s ago
         expiredToken.revoked = false;
 
@@ -63,10 +63,9 @@ DROGON_TEST(AdvancedStorageTest)
 
         // Validate via Plugin
         std::promise<std::shared_ptr<OAuth2AccessToken>> pVal;
-        plugin->validateAccessToken("expired_token_123",
-                                    [&](std::shared_ptr<OAuth2AccessToken> t) {
-                                        pVal.set_value(t);
-                                    });
+        plugin->validateAccessToken("expired_token_123", [&](std::shared_ptr<OAuth2AccessToken> t) {
+            pVal.set_value(t);
+        });
         auto t = pVal.get_future().get();
         CHECK(t == nullptr);  // Should detect expiration
     }
@@ -78,8 +77,9 @@ DROGON_TEST(AdvancedStorageTest)
         validToken.clientId = "client1";
         validToken.userId = "user1";
         auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                       std::chrono::system_clock::now().time_since_epoch())
-                       .count();
+                     std::chrono::system_clock::now().time_since_epoch()
+        )
+                     .count();
         validToken.expiresAt = now + 100;
         validToken.revoked = false;
 
@@ -88,10 +88,9 @@ DROGON_TEST(AdvancedStorageTest)
         pSave.get_future().get();
 
         std::promise<std::shared_ptr<OAuth2AccessToken>> pVal;
-        plugin->validateAccessToken("valid_token_123",
-                                    [&](std::shared_ptr<OAuth2AccessToken> t) {
-                                        pVal.set_value(t);
-                                    });
+        plugin->validateAccessToken("valid_token_123", [&](std::shared_ptr<OAuth2AccessToken> t) {
+            pVal.set_value(t);
+        });
         auto t = pVal.get_future().get();
         CHECK(t != nullptr);
         CHECK(t->token == "valid_token_123");
@@ -105,8 +104,9 @@ DROGON_TEST(AdvancedStorageTest)
         expiredToken2.clientId = "client1";
         expiredToken2.userId = "user1";
         auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                       std::chrono::system_clock::now().time_since_epoch())
-                       .count();
+                     std::chrono::system_clock::now().time_since_epoch()
+        )
+                     .count();
         expiredToken2.expiresAt = now - 1000;
         expiredToken2.revoked = false;
 
@@ -119,10 +119,9 @@ DROGON_TEST(AdvancedStorageTest)
 
         // Verify via validation (Should definitely be gone)
         std::promise<std::shared_ptr<OAuth2AccessToken>> pVal;
-        plugin->validateAccessToken("expired_token_456",
-                                    [&](std::shared_ptr<OAuth2AccessToken> t) {
-                                        pVal.set_value(t);
-                                    });
+        plugin->validateAccessToken("expired_token_456", [&](std::shared_ptr<OAuth2AccessToken> t) {
+            pVal.set_value(t);
+        });
         auto t = pVal.get_future().get();
         CHECK(t == nullptr);
     }

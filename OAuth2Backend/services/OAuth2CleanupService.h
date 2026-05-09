@@ -7,8 +7,7 @@
 namespace oauth2
 {
 
-class OAuth2CleanupService
-    : public std::enable_shared_from_this<OAuth2CleanupService>
+class OAuth2CleanupService : public std::enable_shared_from_this<OAuth2CleanupService>
 {
   public:
     OAuth2CleanupService(IOAuth2Storage *storage);

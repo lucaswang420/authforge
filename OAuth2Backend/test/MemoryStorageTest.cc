@@ -21,9 +21,7 @@ DROGON_TEST(MemoryStorageTest)
     {
         std::promise<std::optional<OAuth2Client>> p;
         auto f = p.get_future();
-        storage->getClient("test-client", [&](std::optional<OAuth2Client> c) {
-            p.set_value(c);
-        });
+        storage->getClient("test-client", [&](std::optional<OAuth2Client> c) { p.set_value(c); });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -31,8 +29,9 @@ DROGON_TEST(MemoryStorageTest)
         auto client = f.get();
         CHECK(client.has_value());
         CHECK(client->clientId == "test-client");
-        CHECK(client->clientSecretHash ==
-              "test-secret");  // Memory stores plaintext as "hash" currently
+        CHECK(
+          client->clientSecretHash == "test-secret"
+        );  // Memory stores plaintext as "hash" currently
     }
 
     // 3. Test validateClient
@@ -78,10 +77,9 @@ DROGON_TEST(MemoryStorageTest)
     {
         std::promise<std::optional<OAuth2AuthCode>> p;
         auto f = p.get_future();
-        storage->getAuthCode("test_code_123",
-                             [&](std::optional<OAuth2AuthCode> c) {
-                                 p.set_value(c);
-                             });
+        storage->getAuthCode("test_code_123", [&](std::optional<OAuth2AuthCode> c) {
+            p.set_value(c);
+        });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");
@@ -108,10 +106,9 @@ DROGON_TEST(MemoryStorageTest)
     {
         std::promise<std::optional<OAuth2AuthCode>> p;
         auto f = p.get_future();
-        storage->getAuthCode("test_code_123",
-                             [&](std::optional<OAuth2AuthCode> c) {
-                                 p.set_value(c);
-                             });
+        storage->getAuthCode("test_code_123", [&](std::optional<OAuth2AuthCode> c) {
+            p.set_value(c);
+        });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");

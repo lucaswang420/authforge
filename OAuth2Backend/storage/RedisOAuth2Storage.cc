@@ -40,8 +40,7 @@ std::unique_ptr<IOAuth2Storage> createRedisStorage(const Json::Value &config)
     return std::make_unique<RedisOAuth2Storage>(clientName);
 }
 
-void RedisOAuth2Storage::getClient(const std::string &clientId,
-                                   ClientCallback &&cb)
+void RedisOAuth2Storage::getClient(const std::string &clientId, ClientCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -52,54 +51,56 @@ void RedisOAuth2Storage::getClient(const std::string &clientId,
     std::string cmd = "HGETALL oauth2:client:" + clientId;
     auto timer = std::make_shared<OperationTimer>("getClient", "redis");
     redisClient_->execCommandAsync(
-        [cb, clientId, timer](const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil ||
-                result.type() != RedisResultType::kArray)
-            {
-                cb(std::nullopt);
-                return;
-            }
-            auto arr = result.asArray();
-            if (arr.empty())
-            {
-                cb(std::nullopt);
-                return;
-            }
+      [cb, clientId, timer](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil || result.type() != RedisResultType::kArray)
+          {
+              cb(std::nullopt);
+              return;
+          }
+          auto arr = result.asArray();
+          if (arr.empty())
+          {
+              cb(std::nullopt);
+              return;
+          }
 
-            OAuth2Client client;
-            client.clientId = clientId;
-            for (size_t i = 0; i < arr.size(); i += 2)
-            {
-                if (i + 1 >= arr.size())
-                    break;
-                std::string key = arr[i].asString();
-                std::string val = arr[i + 1].asString();
-                if (key == "secret")
-                    client.clientSecretHash = val;
-                else if (key == "salt")
-                    client.salt = val;
-                else if (key == "redirect_uris")
-                {
-                    auto json = parseJson(val);
-                    if (json.isArray())
-                    {
-                        for (const auto &uri : json)
-                            client.redirectUris.push_back(uri.asString());
-                    }
-                }
-            }
-            cb(client);
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Redis getClient error: " << e.what();
-            cb(std::nullopt);
-        },
-        cmd.c_str());
+          OAuth2Client client;
+          client.clientId = clientId;
+          for (size_t i = 0; i < arr.size(); i += 2)
+          {
+              if (i + 1 >= arr.size())
+                  break;
+              std::string key = arr[i].asString();
+              std::string val = arr[i + 1].asString();
+              if (key == "secret")
+                  client.clientSecretHash = val;
+              else if (key == "salt")
+                  client.salt = val;
+              else if (key == "redirect_uris")
+              {
+                  auto json = parseJson(val);
+                  if (json.isArray())
+                  {
+                      for (const auto &uri : json)
+                          client.redirectUris.push_back(uri.asString());
+                  }
+              }
+          }
+          cb(client);
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Redis getClient error: " << e.what();
+          cb(std::nullopt);
+      },
+      cmd.c_str()
+    );
 }
 
-void RedisOAuth2Storage::validateClient(const std::string &clientId,
-                                        const std::string &clientSecret,
-                                        BoolCallback &&cb)
+void RedisOAuth2Storage::validateClient(
+  const std::string &clientId,
+  const std::string &clientSecret,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -112,62 +113,58 @@ void RedisOAuth2Storage::validateClient(const std::string &clientId,
     {
         std::string cmd = "EXISTS oauth2:client:" + clientId;
         redisClient_->execCommandAsync(
-            [cb](const RedisResult &result) { cb(result.asInteger() == 1); },
-            [cb](const RedisException &e) {
-                LOG_ERROR << "Redis EXISTS error: " << e.what();
-                cb(false);
-            },
-            cmd.c_str());
+          [cb](const RedisResult &result) { cb(result.asInteger() == 1); },
+          [cb](const RedisException &e) {
+              LOG_ERROR << "Redis EXISTS error: " << e.what();
+              cb(false);
+          },
+          cmd.c_str()
+        );
     }
     else
     {
         std::string cmd = "HMGET oauth2:client:" + clientId + " secret salt";
         redisClient_->execCommandAsync(
-            [cb, inputSecret = clientSecret](const RedisResult &result) {
-                LOG_DEBUG << "validateClient HMGET result received";
-                if (result.type() == RedisResultType::kNil ||
-                    result.type() != RedisResultType::kArray)
-                {
-                    cb(false);
-                    return;
-                }
-                auto arr = result.asArray();
-                if (arr.size() < 2)
-                {
-                    cb(false);
-                    return;
-                }
+          [cb, inputSecret = clientSecret](const RedisResult &result) {
+              LOG_DEBUG << "validateClient HMGET result received";
+              if (
+                result.type() == RedisResultType::kNil || result.type() != RedisResultType::kArray
+              )
+              {
+                  cb(false);
+                  return;
+              }
+              auto arr = result.asArray();
+              if (arr.size() < 2)
+              {
+                  cb(false);
+                  return;
+              }
 
-                std::string storedHash = arr[0].asString();
-                std::string salt = arr[1].asString();
-                std::string input = inputSecret + salt;
-                std::string calculatedHash =
-                    drogon::utils::getSha256(input.data(), input.length());
+              std::string storedHash = arr[0].asString();
+              std::string salt = arr[1].asString();
+              std::string input = inputSecret + salt;
+              std::string calculatedHash = drogon::utils::getSha256(input.data(), input.length());
 
-                // Case-insensitive comparison
-                std::transform(calculatedHash.begin(),
-                               calculatedHash.end(),
-                               calculatedHash.begin(),
-                               ::tolower);
-                std::transform(storedHash.begin(),
-                               storedHash.end(),
-                               storedHash.begin(),
-                               ::tolower);
+              // Case-insensitive comparison
+              std::transform(
+                calculatedHash.begin(), calculatedHash.end(), calculatedHash.begin(), ::tolower
+              );
+              std::transform(storedHash.begin(), storedHash.end(), storedHash.begin(), ::tolower);
 
-                LOG_DEBUG << "validateClient match result: "
-                          << (calculatedHash == storedHash);
-                cb(calculatedHash == storedHash);
-            },
-            [cb](const RedisException &e) {
-                LOG_ERROR << "Redis validateClient HMGET error: " << e.what();
-                cb(false);
-            },
-            cmd.c_str());
+              LOG_DEBUG << "validateClient match result: " << (calculatedHash == storedHash);
+              cb(calculatedHash == storedHash);
+          },
+          [cb](const RedisException &e) {
+              LOG_ERROR << "Redis validateClient HMGET error: " << e.what();
+              cb(false);
+          },
+          cmd.c_str()
+        );
     }
 }
 
-void RedisOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code,
-                                      VoidCallback &&cb)
+void RedisOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code, VoidCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -186,38 +183,33 @@ void RedisOAuth2Storage::saveAuthCode(const OAuth2AuthCode &code,
 
     auto now = std::chrono::system_clock::now();
     size_t nowSec =
-        std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
-            .count();
-    size_t ttl =
-        (code.expiresAt > (int64_t)nowSec) ? (code.expiresAt - nowSec) : 1;
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    size_t ttl = (code.expiresAt > (int64_t)nowSec) ? (code.expiresAt - nowSec) : 1;
 
     std::string key = "oauth2:code:" + code.code;
     std::string ttlStr = std::to_string(ttl);
 
-    LOG_DEBUG << "saveAuthCode CMD: SETEX " << key << " " << ttlStr << " "
-              << jsonStr;
+    LOG_DEBUG << "saveAuthCode CMD: SETEX " << key << " " << ttlStr << " " << jsonStr;
 
     redisClient_->execCommandAsync(
-        [cb, codeStr = code.code](const RedisResult &result) {
-            LOG_DEBUG << "saveAuthCode SUCCESS for: " << codeStr
-                      << " Result: " << result.asString();
-            if (cb)
-                cb();
-        },
-        [cb, codeStr = code.code](const RedisException &e) {
-            LOG_ERROR << "saveAuthCode ERROR for: " << codeStr
-                      << " Error: " << e.what();
-            if (cb)
-                cb();
-        },
-        "SETEX %s %s %s",
-        key.c_str(),
-        ttlStr.c_str(),
-        jsonStr.c_str());
+      [cb, codeStr = code.code](const RedisResult &result) {
+          LOG_DEBUG << "saveAuthCode SUCCESS for: " << codeStr << " Result: " << result.asString();
+          if (cb)
+              cb();
+      },
+      [cb, codeStr = code.code](const RedisException &e) {
+          LOG_ERROR << "saveAuthCode ERROR for: " << codeStr << " Error: " << e.what();
+          if (cb)
+              cb();
+      },
+      "SETEX %s %s %s",
+      key.c_str(),
+      ttlStr.c_str(),
+      jsonStr.c_str()
+    );
 }
 
-void RedisOAuth2Storage::getAuthCode(const std::string &code,
-                                     AuthCodeCallback &&cb)
+void RedisOAuth2Storage::getAuthCode(const std::string &code, AuthCodeCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -228,46 +220,45 @@ void RedisOAuth2Storage::getAuthCode(const std::string &code,
     LOG_DEBUG << "getAuthCode CMD: GET " << key;
 
     redisClient_->execCommandAsync(
-        [cb, codeStr = code](const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil)
-            {
-                LOG_WARN << "getAuthCode: Key not found for: " << codeStr;
-                cb(std::nullopt);
-                return;
-            }
-            std::string jsonStr = result.asString();
-            LOG_DEBUG << "getAuthCode Result: " << jsonStr;
+      [cb, codeStr = code](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil)
+          {
+              LOG_WARN << "getAuthCode: Key not found for: " << codeStr;
+              cb(std::nullopt);
+              return;
+          }
+          std::string jsonStr = result.asString();
+          LOG_DEBUG << "getAuthCode Result: " << jsonStr;
 
-            auto json = parseJson(jsonStr);
-            if (json.isNull())
-            {
-                LOG_ERROR << "getAuthCode: Failed to parse JSON";
-                cb(std::nullopt);
-                return;
-            }
+          auto json = parseJson(jsonStr);
+          if (json.isNull())
+          {
+              LOG_ERROR << "getAuthCode: Failed to parse JSON";
+              cb(std::nullopt);
+              return;
+          }
 
-            OAuth2AuthCode authCode;
-            authCode.code = codeStr;
-            authCode.clientId = json["client_id"].asString();
-            authCode.userId = json["user_id"].asString();
-            authCode.scope = json["scope"].asString();
-            authCode.redirectUri = json["redirect_uri"].asString();
-            authCode.expiresAt = json["expires_at"].asInt64();
-            authCode.used = json["used"].asBool();
-            cb(authCode);
-        },
-        [cb, codeStr = code](const RedisException &e) {
-            LOG_ERROR << "getAuthCode ERROR for: " << codeStr
-                      << " Error: " << e.what();
-            cb(std::nullopt);
-        },
-        "GET %s",
-        key.c_str());
+          OAuth2AuthCode authCode;
+          authCode.code = codeStr;
+          authCode.clientId = json["client_id"].asString();
+          authCode.userId = json["user_id"].asString();
+          authCode.scope = json["scope"].asString();
+          authCode.redirectUri = json["redirect_uri"].asString();
+          authCode.expiresAt = json["expires_at"].asInt64();
+          authCode.used = json["used"].asBool();
+          cb(authCode);
+      },
+      [cb, codeStr = code](const RedisException &e) {
+          LOG_ERROR << "getAuthCode ERROR for: " << codeStr << " Error: " << e.what();
+          cb(std::nullopt);
+      },
+      "GET %s",
+      key.c_str()
+    );
 }
 
 // Mark used: We update the JSON to set used=true, preserving TTL
-void RedisOAuth2Storage::markAuthCodeUsed(const std::string &code,
-                                          VoidCallback &&cb)
+void RedisOAuth2Storage::markAuthCodeUsed(const std::string &code, VoidCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -295,22 +286,25 @@ void RedisOAuth2Storage::markAuthCodeUsed(const std::string &code,
     )";
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &) {
-            if (cb)
-                cb();
-        },
-        [cb](const RedisException &) {
-            if (cb)
-                cb();
-        },
-        "EVAL %s 1 %s",
-        script.c_str(),
-        key.c_str());
+      [cb](const RedisResult &) {
+          if (cb)
+              cb();
+      },
+      [cb](const RedisException &) {
+          if (cb)
+              cb();
+      },
+      "EVAL %s 1 %s",
+      script.c_str(),
+      key.c_str()
+    );
 }
 
-void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
-                                         const std::string &redirectUri,
-                                         AuthCodeCallback &&cb)
+void RedisOAuth2Storage::consumeAuthCode(
+  const std::string &code,
+  const std::string &redirectUri,
+  AuthCodeCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -343,57 +337,56 @@ void RedisOAuth2Storage::consumeAuthCode(const std::string &code,
     )";
 
     redisClient_->execCommandAsync(
-        [cb, codeStr = code, requestUri = redirectUri](
-            const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil)
-            {
-                // Log if this was a redirect_uri mismatch vs code not found
-                // (we can't distinguish in Lua script, but we can log the
-                // attempt)
-                if (!requestUri.empty())
-                {
-                    LOG_DEBUG << "[SECURITY] Auth code consumption failed "
-                              << "(code not found, expired, or redirect_uri "
-                                 "mismatch): "
-                              << codeStr;
-                }
-                cb(std::nullopt);
-                return;
-            }
-            std::string jsonStr = result.asString();
+      [cb, codeStr = code, requestUri = redirectUri](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil)
+          {
+              // Log if this was a redirect_uri mismatch vs code not found
+              // (we can't distinguish in Lua script, but we can log the
+              // attempt)
+              if (!requestUri.empty())
+              {
+                  LOG_DEBUG << "[SECURITY] Auth code consumption failed "
+                            << "(code not found, expired, or redirect_uri "
+                               "mismatch): "
+                            << codeStr;
+              }
+              cb(std::nullopt);
+              return;
+          }
+          std::string jsonStr = result.asString();
 
-            auto json = parseJson(jsonStr);
+          auto json = parseJson(jsonStr);
 
-            if (json.isNull())
-            {
-                LOG_ERROR << "consumeAuthCode: Failed to parse JSON result";
-                cb(std::nullopt);
-                return;
-            }
+          if (json.isNull())
+          {
+              LOG_ERROR << "consumeAuthCode: Failed to parse JSON result";
+              cb(std::nullopt);
+              return;
+          }
 
-            OAuth2AuthCode authCode;
-            authCode.code = codeStr;
-            authCode.clientId = json["client_id"].asString();
-            authCode.userId = json["user_id"].asString();
-            authCode.scope = json["scope"].asString();
-            authCode.redirectUri = json["redirect_uri"].asString();
-            authCode.expiresAt = json["expires_at"].asInt64();
-            authCode.used = true;  // We just marked it
+          OAuth2AuthCode authCode;
+          authCode.code = codeStr;
+          authCode.clientId = json["client_id"].asString();
+          authCode.userId = json["user_id"].asString();
+          authCode.scope = json["scope"].asString();
+          authCode.redirectUri = json["redirect_uri"].asString();
+          authCode.expiresAt = json["expires_at"].asInt64();
+          authCode.used = true;  // We just marked it
 
-            cb(authCode);
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "consumeAuthCode Redis Error: " << e.what();
-            cb(std::nullopt);
-        },
-        "EVAL %s 1 %s %s",
-        script.c_str(),
-        key.c_str(),
-        redirectUri.c_str());
+          cb(authCode);
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "consumeAuthCode Redis Error: " << e.what();
+          cb(std::nullopt);
+      },
+      "EVAL %s 1 %s %s",
+      script.c_str(),
+      key.c_str(),
+      redirectUri.c_str()
+    );
 }
 
-void RedisOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token,
-                                         VoidCallback &&cb)
+void RedisOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -411,31 +404,29 @@ void RedisOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token,
 
     auto now = std::chrono::system_clock::now();
     size_t nowSec =
-        std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
-            .count();
-    size_t ttl =
-        (token.expiresAt > (int64_t)nowSec) ? (token.expiresAt - nowSec) : 1;
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    size_t ttl = (token.expiresAt > (int64_t)nowSec) ? (token.expiresAt - nowSec) : 1;
 
     std::string key = "oauth2:token:" + token.token;
     std::string ttlStr = std::to_string(ttl);
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &) {
-            if (cb)
-                cb();
-        },
-        [cb](const RedisException &) {
-            if (cb)
-                cb();
-        },
-        "SETEX %s %s %s",
-        key.c_str(),
-        ttlStr.c_str(),
-        jsonStr.c_str());
+      [cb](const RedisResult &) {
+          if (cb)
+              cb();
+      },
+      [cb](const RedisException &) {
+          if (cb)
+              cb();
+      },
+      "SETEX %s %s %s",
+      key.c_str(),
+      ttlStr.c_str(),
+      jsonStr.c_str()
+    );
 }
 
-void RedisOAuth2Storage::getAccessToken(const std::string &token,
-                                        AccessTokenCallback &&cb)
+void RedisOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -444,49 +435,47 @@ void RedisOAuth2Storage::getAccessToken(const std::string &token,
     }
     std::string key = "oauth2:token:" + token;
     redisClient_->execCommandAsync(
-        [cb, tokenStr = token](const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil)
-            {
-                cb(std::nullopt);
-                return;
-            }
-            std::string jsonStr = result.asString();
-            auto json = parseJson(jsonStr);
-            if (json.isNull())
-            {
-                cb(std::nullopt);
-                return;
-            }
-            OAuth2AccessToken accessToken;
-            accessToken.token = tokenStr;
-            accessToken.clientId = json["client_id"].asString();
-            accessToken.userId = json["user_id"].asString();
-            accessToken.scope = json["scope"].asString();
-            accessToken.expiresAt = json["expires_at"].asInt64();
-            accessToken.revoked = json["revoked"].asBool();
-            cb(accessToken);
-        },
-        [cb](const RedisException &) { cb(std::nullopt); },
-        "GET %s",
-        key.c_str());
+      [cb, tokenStr = token](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil)
+          {
+              cb(std::nullopt);
+              return;
+          }
+          std::string jsonStr = result.asString();
+          auto json = parseJson(jsonStr);
+          if (json.isNull())
+          {
+              cb(std::nullopt);
+              return;
+          }
+          OAuth2AccessToken accessToken;
+          accessToken.token = tokenStr;
+          accessToken.clientId = json["client_id"].asString();
+          accessToken.userId = json["user_id"].asString();
+          accessToken.scope = json["scope"].asString();
+          accessToken.expiresAt = json["expires_at"].asInt64();
+          accessToken.revoked = json["revoked"].asBool();
+          cb(accessToken);
+      },
+      [cb](const RedisException &) { cb(std::nullopt); },
+      "GET %s",
+      key.c_str()
+    );
 }
 
-void RedisOAuth2Storage::saveRefreshToken(const OAuth2RefreshToken &token,
-                                          VoidCallback &&cb)
+void RedisOAuth2Storage::saveRefreshToken(const OAuth2RefreshToken &token, VoidCallback &&cb)
 {
     if (cb)
         cb();
 }
 
-void RedisOAuth2Storage::getRefreshToken(const std::string &token,
-                                         RefreshTokenCallback &&cb)
+void RedisOAuth2Storage::getRefreshToken(const std::string &token, RefreshTokenCallback &&cb)
 {
     if (cb)
         cb(std::nullopt);
 }
 
-void RedisOAuth2Storage::revokeRefreshToken(const std::string &token,
-                                            VoidCallback &&cb)
+void RedisOAuth2Storage::revokeRefreshToken(const std::string &token, VoidCallback &&cb)
 {
     if (!redisClient_)
     {
@@ -496,19 +485,19 @@ void RedisOAuth2Storage::revokeRefreshToken(const std::string &token,
     }
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &r) {
-            if (cb)
-                cb();
-        },
-        [cb](const std::exception &e) {
-            LOG_ERROR << "Failed to revoke refresh token in Redis: "
-                      << e.what();
-            // Call callback even on failure to avoid blocking
-            if (cb)
-                cb();
-        },
-        "HSET oauth2_refresh_tokens:%s revoked 1",
-        token.c_str());
+      [cb](const RedisResult &r) {
+          if (cb)
+              cb();
+      },
+      [cb](const std::exception &e) {
+          LOG_ERROR << "Failed to revoke refresh token in Redis: " << e.what();
+          // Call callback even on failure to avoid blocking
+          if (cb)
+              cb();
+      },
+      "HSET oauth2_refresh_tokens:%s revoked 1",
+      token.c_str()
+    );
 }
 
 // Redis handles expiration via TTL automatically.
@@ -517,15 +506,13 @@ void RedisOAuth2Storage::deleteExpiredData()
     LOG_DEBUG << "Redis deleteExpiredData called (No-op, relying on Redis TTL)";
 }
 
-void RedisOAuth2Storage::getUserRoles(const std::string &userId,
-                                      StringListCallback &&cb)
+void RedisOAuth2Storage::getUserRoles(const std::string &userId, StringListCallback &&cb)
 {
     // Default role for redis (until we implement role storage in redis)
     cb({"user"});
 }
 
-void RedisOAuth2Storage::getUserRoles(int32_t internalUserId,
-                                      StringListCallback &&cb)
+void RedisOAuth2Storage::getUserRoles(int32_t internalUserId, StringListCallback &&cb)
 {
     // Default role for redis (until we implement role storage in redis)
     cb({"user"});
@@ -533,9 +520,11 @@ void RedisOAuth2Storage::getUserRoles(int32_t internalUserId,
 
 // ========== Subject Mapping Operations ==========
 
-void RedisOAuth2Storage::getInternalUserId(const std::string &subject,
-                                           const std::string &provider,
-                                           OptionalIntCallback &&cb)
+void RedisOAuth2Storage::getInternalUserId(
+  const std::string &subject,
+  const std::string &provider,
+  OptionalIntCallback &&cb
+)
 {
     // Redis implementation using hash maps
     // Key: oauth2:subject_mapping:{provider}:{subject}
@@ -547,38 +536,40 @@ void RedisOAuth2Storage::getInternalUserId(const std::string &subject,
 
     std::string key = "oauth2:subject_mapping:" + provider + ":" + subject;
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil)
-            {
-                cb(std::nullopt);
-                return;
-            }
-            // Redis HGET returns string value or nil
-            std::string userIdStr = result.asString();
-            try
-            {
-                int32_t userId = std::stoi(userIdStr);
-                cb(userId);
-            }
-            catch (...)
-            {
-                LOG_ERROR << "Failed to parse user ID from Redis: "
-                          << userIdStr;
-                cb(std::nullopt);
-            }
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Redis getInternalUserId error: " << e.what();
-            cb(std::nullopt);
-        },
-        "HGET %s user_id",
-        key.c_str());
+      [cb](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil)
+          {
+              cb(std::nullopt);
+              return;
+          }
+          // Redis HGET returns string value or nil
+          std::string userIdStr = result.asString();
+          try
+          {
+              int32_t userId = std::stoi(userIdStr);
+              cb(userId);
+          }
+          catch (...)
+          {
+              LOG_ERROR << "Failed to parse user ID from Redis: " << userIdStr;
+              cb(std::nullopt);
+          }
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Redis getInternalUserId error: " << e.what();
+          cb(std::nullopt);
+      },
+      "HGET %s user_id",
+      key.c_str()
+    );
 }
 
-void RedisOAuth2Storage::createSubjectMapping(const std::string &subject,
-                                              int32_t internalUserId,
-                                              const std::string &provider,
-                                              BoolCallback &&cb)
+void RedisOAuth2Storage::createSubjectMapping(
+  const std::string &subject,
+  int32_t internalUserId,
+  const std::string &provider,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -590,25 +581,26 @@ void RedisOAuth2Storage::createSubjectMapping(const std::string &subject,
     std::string userIdStr = std::to_string(internalUserId);
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &result) {
-            // HSET returns 1 for new field, 0 for updated field
-            cb(true);
-        },
-        [cb, subject, provider](const RedisException &e) {
-            LOG_ERROR << "Failed to create subject mapping in Redis: "
-                      << e.what();
-            cb(false);
-        },
-        "HSET %s user_id %s",
-        key.c_str(),
-        userIdStr.c_str());
+      [cb](const RedisResult &result) {
+          // HSET returns 1 for new field, 0 for updated field
+          cb(true);
+      },
+      [cb, subject, provider](const RedisException &e) {
+          LOG_ERROR << "Failed to create subject mapping in Redis: " << e.what();
+          cb(false);
+      },
+      "HSET %s user_id %s",
+      key.c_str(),
+      userIdStr.c_str()
+    );
 }
 
 // ========== Authorization Transaction Operations ==========
 
 void RedisOAuth2Storage::saveAuthorizationTransaction(
-    const AuthorizationTransaction &transaction,
-    BoolCallback &&cb)
+  const AuthorizationTransaction &transaction,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -650,28 +642,26 @@ void RedisOAuth2Storage::saveAuthorizationTransaction(
 
     auto now = std::chrono::system_clock::now();
     size_t nowSec =
-        std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
-            .count();
-    size_t ttl = (transaction.expiresAt > (int64_t)nowSec)
-                     ? (transaction.expiresAt - nowSec)
-                     : 600;
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    size_t ttl = (transaction.expiresAt > (int64_t)nowSec) ? (transaction.expiresAt - nowSec) : 600;
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &) { cb(true); },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Failed to save authorization transaction: "
-                      << e.what();
-            cb(false);
-        },
-        "SETEX %s %d %s",
-        key.c_str(),
-        ttl,
-        jsonStr.c_str());
+      [cb](const RedisResult &) { cb(true); },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Failed to save authorization transaction: " << e.what();
+          cb(false);
+      },
+      "SETEX %s %d %s",
+      key.c_str(),
+      ttl,
+      jsonStr.c_str()
+    );
 }
 
 void RedisOAuth2Storage::getAuthorizationTransaction(
-    const std::string &transactionId,
-    TransactionCallback &&cb)
+  const std::string &transactionId,
+  TransactionCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -681,71 +671,68 @@ void RedisOAuth2Storage::getAuthorizationTransaction(
 
     std::string key = "oauth2:transaction:" + transactionId;
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &result) {
-            if (result.type() == RedisResultType::kNil)
-            {
-                cb(std::nullopt);
-                return;
-            }
+      [cb](const RedisResult &result) {
+          if (result.type() == RedisResultType::kNil)
+          {
+              cb(std::nullopt);
+              return;
+          }
 
-            std::string jsonStr = result.asString();
-            auto json = parseJson(jsonStr);
-            if (json.isNull())
-            {
-                cb(std::nullopt);
-                return;
-            }
+          std::string jsonStr = result.asString();
+          auto json = parseJson(jsonStr);
+          if (json.isNull())
+          {
+              cb(std::nullopt);
+              return;
+          }
 
-            AuthorizationTransaction transaction;
-            transaction.transactionId = json["transaction_id"].asString();
-            transaction.clientId = json["client_id"].asString();
-            transaction.subject = json["subject"].asString();
-            transaction.redirectUri = json["redirect_uri"].asString();
-            transaction.state = json["state"].asString();
-            transaction.codeChallenge = json["code_challenge"].asString();
-            transaction.codeChallengeMethod =
-                json["code_challenge_method"].asString();
-            transaction.consumed = json["consumed"].asBool();
-            transaction.expiresAt = json["expires_at"].asInt64();
+          AuthorizationTransaction transaction;
+          transaction.transactionId = json["transaction_id"].asString();
+          transaction.clientId = json["client_id"].asString();
+          transaction.subject = json["subject"].asString();
+          transaction.redirectUri = json["redirect_uri"].asString();
+          transaction.state = json["state"].asString();
+          transaction.codeChallenge = json["code_challenge"].asString();
+          transaction.codeChallengeMethod = json["code_challenge_method"].asString();
+          transaction.consumed = json["consumed"].asBool();
+          transaction.expiresAt = json["expires_at"].asInt64();
 
-            // Parse requested scopes
-            if (json.isMember("requested_scopes") &&
-                json["requested_scopes"].isArray())
-            {
-                for (const auto &scope : json["requested_scopes"])
-                    transaction.requestedScopes.push_back(scope.asString());
-            }
+          // Parse requested scopes
+          if (json.isMember("requested_scopes") && json["requested_scopes"].isArray())
+          {
+              for (const auto &scope : json["requested_scopes"])
+                  transaction.requestedScopes.push_back(scope.asString());
+          }
 
-            // Parse valid scopes
-            if (json.isMember("valid_scopes") && json["valid_scopes"].isArray())
-            {
-                for (const auto &scope : json["valid_scopes"])
-                    transaction.validScopes.push_back(scope.asString());
-            }
+          // Parse valid scopes
+          if (json.isMember("valid_scopes") && json["valid_scopes"].isArray())
+          {
+              for (const auto &scope : json["valid_scopes"])
+                  transaction.validScopes.push_back(scope.asString());
+          }
 
-            // Parse consent required scopes
-            if (json.isMember("consent_required_scopes") &&
-                json["consent_required_scopes"].isArray())
-            {
-                for (const auto &scope : json["consent_required_scopes"])
-                    transaction.consentRequiredScopes.push_back(
-                        scope.asString());
-            }
+          // Parse consent required scopes
+          if (json.isMember("consent_required_scopes") && json["consent_required_scopes"].isArray())
+          {
+              for (const auto &scope : json["consent_required_scopes"])
+                  transaction.consentRequiredScopes.push_back(scope.asString());
+          }
 
-            cb(transaction);
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Failed to get authorization transaction: "
-                      << e.what();
-            cb(std::nullopt);
-        },
-        "GET %s",
-        key.c_str());
+          cb(transaction);
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Failed to get authorization transaction: " << e.what();
+          cb(std::nullopt);
+      },
+      "GET %s",
+      key.c_str()
+    );
 }
 
 void RedisOAuth2Storage::deleteAuthorizationTransaction(
-    const std::string &transactionId,
-    VoidCallback &&cb)
+  const std::string &transactionId,
+  VoidCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -756,21 +743,23 @@ void RedisOAuth2Storage::deleteAuthorizationTransaction(
 
     std::string key = "oauth2:transaction:" + transactionId;
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &) {
-            if (cb)
-                cb();
-        },
-        [cb](const RedisException &) {
-            if (cb)
-                cb();
-        },
-        "DEL %s",
-        key.c_str());
+      [cb](const RedisResult &) {
+          if (cb)
+              cb();
+      },
+      [cb](const RedisException &) {
+          if (cb)
+              cb();
+      },
+      "DEL %s",
+      key.c_str()
+    );
 }
 
 void RedisOAuth2Storage::markTransactionConsumed(
-    const std::string &transactionId,
-    BoolCallback &&cb)
+  const std::string &transactionId,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -791,26 +780,29 @@ void RedisOAuth2Storage::markTransactionConsumed(
     )";
 
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &result) {
-            // Script returns 1 if marked successfully, 0 if already consumed or
-            // not found
-            cb(result.asInteger() == 1);
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Failed to mark transaction as consumed: " << e.what();
-            cb(false);
-        },
-        "EVAL %s 1 %s",
-        script.c_str(),
-        transactionId.c_str());
+      [cb](const RedisResult &result) {
+          // Script returns 1 if marked successfully, 0 if already consumed or
+          // not found
+          cb(result.asInteger() == 1);
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Failed to mark transaction as consumed: " << e.what();
+          cb(false);
+      },
+      "EVAL %s 1 %s",
+      script.c_str(),
+      transactionId.c_str()
+    );
 }
 
 // ========== Scope Management Operations ==========
 
-void RedisOAuth2Storage::hasUserConsent(int32_t internalUserId,
-                                        const std::string &clientId,
-                                        const std::string &scope,
-                                        BoolCallback &&cb)
+void RedisOAuth2Storage::hasUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -818,25 +810,28 @@ void RedisOAuth2Storage::hasUserConsent(int32_t internalUserId,
         return;
     }
 
-    std::string key = "oauth2:consent:" + std::to_string(internalUserId) + ":" +
-                      clientId + ":" + scope;
+    std::string key =
+      "oauth2:consent:" + std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &result) {
-            // EXISTS returns 1 if key exists, 0 otherwise
-            cb(result.type() != RedisResultType::kNil);
-        },
-        [cb](const RedisException &e) {
-            LOG_ERROR << "Redis hasUserConsent error: " << e.what();
-            cb(false);
-        },
-        "EXISTS %s",
-        key.c_str());
+      [cb](const RedisResult &result) {
+          // EXISTS returns 1 if key exists, 0 otherwise
+          cb(result.type() != RedisResultType::kNil);
+      },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Redis hasUserConsent error: " << e.what();
+          cb(false);
+      },
+      "EXISTS %s",
+      key.c_str()
+    );
 }
 
-void RedisOAuth2Storage::saveUserConsent(int32_t internalUserId,
-                                         const std::string &clientId,
-                                         const std::string &scope,
-                                         BoolCallback &&cb)
+void RedisOAuth2Storage::saveUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  BoolCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -844,31 +839,32 @@ void RedisOAuth2Storage::saveUserConsent(int32_t internalUserId,
         return;
     }
 
-    std::string key = "oauth2:consent:" + std::to_string(internalUserId) + ":" +
-                      clientId + ":" + scope;
+    std::string key =
+      "oauth2:consent:" + std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     auto now = std::chrono::system_clock::now();
     size_t nowSec =
-        std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
-            .count();
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
     size_t ttl = 30 * 24 * 3600;  // 30 days
 
-    redisClient_->execCommandAsync([cb](const RedisResult &) { cb(true); },
-                                   [cb](const RedisException &e) {
-                                       LOG_ERROR
-                                           << "Failed to save user consent: "
-                                           << e.what();
-                                       cb(false);
-                                   },
-                                   "SETEX %s %d %d",
-                                   key.c_str(),
-                                   ttl,
-                                   nowSec);
+    redisClient_->execCommandAsync(
+      [cb](const RedisResult &) { cb(true); },
+      [cb](const RedisException &e) {
+          LOG_ERROR << "Failed to save user consent: " << e.what();
+          cb(false);
+      },
+      "SETEX %s %d %d",
+      key.c_str(),
+      ttl,
+      nowSec
+    );
 }
 
-void RedisOAuth2Storage::revokeUserConsent(int32_t internalUserId,
-                                           const std::string &clientId,
-                                           const std::string &scope,
-                                           VoidCallback &&cb)
+void RedisOAuth2Storage::revokeUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  VoidCallback &&cb
+)
 {
     if (!redisClient_)
     {
@@ -877,19 +873,20 @@ void RedisOAuth2Storage::revokeUserConsent(int32_t internalUserId,
         return;
     }
 
-    std::string key = "oauth2:consent:" + std::to_string(internalUserId) + ":" +
-                      clientId + ":" + scope;
+    std::string key =
+      "oauth2:consent:" + std::to_string(internalUserId) + ":" + clientId + ":" + scope;
     redisClient_->execCommandAsync(
-        [cb](const RedisResult &) {
-            if (cb)
-                cb();
-        },
-        [cb](const RedisException &) {
-            if (cb)
-                cb();
-        },
-        "DEL %s",
-        key.c_str());
+      [cb](const RedisResult &) {
+          if (cb)
+              cb();
+      },
+      [cb](const RedisException &) {
+          if (cb)
+              cb();
+      },
+      "DEL %s",
+      key.c_str()
+    );
 }
 
 }  // namespace oauth2

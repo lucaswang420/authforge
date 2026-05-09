@@ -14,8 +14,7 @@ class ErrorHandler
   public:
     // Handle specific exception types
     static Error handleDbException(const DrogonDbException &e);
-    static Error handleValidationError(const std::string &field,
-                                       const std::string &reason);
+    static Error handleValidationError(const std::string &field, const std::string &reason);
 
     // Utility functions
     static std::string generateRequestId();

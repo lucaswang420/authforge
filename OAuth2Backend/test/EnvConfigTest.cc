@@ -23,8 +23,7 @@ DROGON_TEST(EnvInjectionVerify)
     const char *flag = std::getenv("OAUTH2_ENV_TEST_FLAG");
     if (!flag)
     {
-        LOG_INFO
-            << "Skipping EnvInjectionVerify (OAUTH2_ENV_TEST_FLAG not set)";
+        LOG_INFO << "Skipping EnvInjectionVerify (OAUTH2_ENV_TEST_FLAG not set)";
         return;
     }
 
@@ -70,8 +69,7 @@ DROGON_TEST(EnvInjectionVerify)
                 if (plugin.get("name", "").asString() == "OAuth2Plugin")
                 {
                     std::string actual =
-                        plugin["config"]["clients"]["vue-client"]["secret"]
-                            .asString();
+                      plugin["config"]["clients"]["vue-client"]["secret"].asString();
                     CHECK(actual == expectedSecret);
                     LOG_INFO << "Verified Client Secret: " << actual;
                     found = true;

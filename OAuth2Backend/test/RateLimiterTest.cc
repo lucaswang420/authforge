@@ -44,8 +44,7 @@ DROGON_TEST(RateLimiterTest)
         }
         catch (const std::exception &e)
         {
-            LOG_WARN << "Server not ready, attempt " << i + 1
-                     << "/3: " << e.what();
+            LOG_WARN << "Server not ready, attempt " << i + 1 << "/3: " << e.what();
             std::this_thread::sleep_for(std::chrono::seconds(2));
         }
     }
@@ -59,8 +58,7 @@ DROGON_TEST(RateLimiterTest)
     }
 
     // Helper function to create JSON POST request
-    auto createJsonPostRequest = [&](const std::string &path,
-                                     const Json::Value &data) {
+    auto createJsonPostRequest = [&](const std::string &path, const Json::Value &data) {
         auto req = HttpRequest::newHttpRequest();
         req->setPath(path);
         req->setMethod(Post);
@@ -103,13 +101,12 @@ DROGON_TEST(RateLimiterTest)
                 else if (response->statusCode() == k429TooManyRequests)
                 {
                     rateLimitedCount++;
-                    LOG_INFO << "Request " << i + 1
-                             << ": Rate limited (429) [LIMITED]";
+                    LOG_INFO << "Request " << i + 1 << ": Rate limited (429) [LIMITED]";
                 }
                 else
                 {
-                    LOG_DEBUG << "Request " << i + 1 << ": Other status ("
-                              << response->statusCode() << ")";
+                    LOG_DEBUG << "Request " << i + 1 << ": Other status (" << response->statusCode()
+                              << ")";
                 }
             }
 
@@ -123,27 +120,24 @@ DROGON_TEST(RateLimiterTest)
     }
 
     // Verify rate limiting is working
-    LOG_INFO << "Results: " << successCount << " successful, "
-             << rateLimitedCount << " rate limited";
+    LOG_INFO << "Results: " << successCount << " successful, " << rateLimitedCount
+             << " rate limited";
 
     if (rateLimitedCount > 0)
     {
         LOG_INFO << "[SUCCESS] Rate limiting is working correctly";
-        CHECK(successCount <= 5);  // Should not exceed limit
-        CHECK(rateLimitedCount >=
-              1);  // At least some requests should be rate limited
+        CHECK(successCount <= 5);      // Should not exceed limit
+        CHECK(rateLimitedCount >= 1);  // At least some requests should be rate limited
     }
     else
     {
-        LOG_WARN
-            << "[!] All requests succeeded - localhost might be whitelisted";
+        LOG_WARN << "[!] All requests succeeded - localhost might be whitelisted";
         LOG_WARN << "Remove 127.0.0.1 from trust_ips to test rate limiting";
     }
 
     // 3. Test endpoint-specific rate limiting on /oauth2/token
     LOG_INFO << "";
-    LOG_INFO
-        << "=== Test 2: Endpoint-specific rate limiting on /oauth2/token ===";
+    LOG_INFO << "=== Test 2: Endpoint-specific rate limiting on /oauth2/token ===";
 
     int tokenSuccessCount = 0;
     int tokenRateLimitedCount = 0;
@@ -165,16 +159,14 @@ DROGON_TEST(RateLimiterTest)
 
             if (response)
             {
-                if (response->statusCode() == k200OK ||
-                    response->statusCode() == k400BadRequest)
+                if (response->statusCode() == k200OK || response->statusCode() == k400BadRequest)
                 {
                     tokenSuccessCount++;
                 }
                 else if (response->statusCode() == k429TooManyRequests)
                 {
                     tokenRateLimitedCount++;
-                    LOG_INFO << "Token request " << i + 1
-                             << ": Rate limited (429) [LIMITED]";
+                    LOG_INFO << "Token request " << i + 1 << ": Rate limited (429) [LIMITED]";
                 }
             }
 
@@ -186,8 +178,8 @@ DROGON_TEST(RateLimiterTest)
         }
     }
 
-    LOG_INFO << "Token Results: " << tokenSuccessCount << " successful, "
-             << tokenRateLimitedCount << " rate limited";
+    LOG_INFO << "Token Results: " << tokenSuccessCount << " successful, " << tokenRateLimitedCount
+             << " rate limited";
 
     if (tokenRateLimitedCount > 0)
     {
@@ -196,8 +188,7 @@ DROGON_TEST(RateLimiterTest)
     }
     else
     {
-        LOG_WARN
-            << "[!] Token endpoint not rate limited (localhost whitelisted?)";
+        LOG_WARN << "[!] Token endpoint not rate limited (localhost whitelisted?)";
     }
 
     // 4. Test register endpoint rate limiting
@@ -224,16 +215,14 @@ DROGON_TEST(RateLimiterTest)
 
             if (response)
             {
-                if (response->statusCode() == k200OK ||
-                    response->statusCode() == k400BadRequest)
+                if (response->statusCode() == k200OK || response->statusCode() == k400BadRequest)
                 {
                     registerSuccessCount++;
                 }
                 else if (response->statusCode() == k429TooManyRequests)
                 {
                     registerRateLimitedCount++;
-                    LOG_INFO << "Register request " << i + 1
-                             << ": Rate limited (429) [LIMITED]";
+                    LOG_INFO << "Register request " << i + 1 << ": Rate limited (429) [LIMITED]";
                 }
             }
 
@@ -309,22 +298,17 @@ DROGON_TEST(RateLimiterTest)
     LOG_INFO << "=== Test Summary ===";
     LOG_INFO << "Server running: [OK]";
     LOG_INFO << "Rate limiting active: "
-             << (rateLimitedCount > 0 ? "[ACTIVE]"
-                                      : "[!] (localhost whitelisted)");
+             << (rateLimitedCount > 0 ? "[ACTIVE]" : "[!] (localhost whitelisted)");
     LOG_INFO << "Token limiting active: "
-             << (tokenRateLimitedCount > 0 ? "[ACTIVE]"
-                                           : "[!] (localhost whitelisted)");
+             << (tokenRateLimitedCount > 0 ? "[ACTIVE]" : "[!] (localhost whitelisted)");
     LOG_INFO << "Register limiting active: "
-             << (registerRateLimitedCount > 0 ? "[ACTIVE]"
-                                              : "[!] (localhost whitelisted)");
+             << (registerRateLimitedCount > 0 ? "[ACTIVE]" : "[!] (localhost whitelisted)");
 
-    if (rateLimitedCount == 0 && tokenRateLimitedCount == 0 &&
-        registerRateLimitedCount == 0)
+    if (rateLimitedCount == 0 && tokenRateLimitedCount == 0 && registerRateLimitedCount == 0)
     {
         LOG_WARN << "";
-        LOG_WARN
-            << "[!] No rate limiting detected - likely because localhost is "
-               "whitelisted";
+        LOG_WARN << "[!] No rate limiting detected - likely because localhost is "
+                    "whitelisted";
         LOG_WARN << "To enable rate limiting testing:";
         LOG_WARN << "1. Edit config.json";
         LOG_WARN << "2. Remove 127.0.0.1 from plugins[].config.trust_ips";

@@ -57,14 +57,12 @@ void createLogDirFromConfig(const std::string &configPath)
                     if (!std::filesystem::exists(path))
                     {
                         std::filesystem::create_directories(path);
-                        std::cout << "Created log directory: " << path
-                                  << std::endl;
+                        std::cout << "Created log directory: " << path << std::endl;
                     }
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "Failed to create log directory: " << e.what()
-                              << std::endl;
+                    std::cerr << "Failed to create log directory: " << e.what() << std::endl;
                 }
             }
         }
@@ -79,15 +77,13 @@ std::string loadConfigWithEnv(const std::string &configPath)
     std::ifstream configFile(configPath);
     if (!configFile.is_open())
     {
-        std::cerr << "Error: Config file not found: " << configPath
-                  << std::endl;
+        std::cerr << "Error: Config file not found: " << configPath << std::endl;
         return configPath;
     }
 
     if (!parseJsonString(configFile, root))
     {
-        std::cerr << "Error: Failed to parse config file: " << configPath
-                  << std::endl;
+        std::cerr << "Error: Failed to parse config file: " << configPath << std::endl;
         return configPath;
     }
 
@@ -97,13 +93,12 @@ std::string loadConfigWithEnv(const std::string &configPath)
     {
         for (const auto &plugin : root["plugins"])
         {
-            if (plugin.isMember("name") &&
-                plugin["name"].asString() == "OAuth2Plugin" &&
-                plugin.isMember("config") &&
-                plugin["config"].isMember("storage_type"))
+            if (
+              plugin.isMember("name") && plugin["name"].asString() == "OAuth2Plugin" &&
+              plugin.isMember("config") && plugin["config"].isMember("storage_type")
+            )
             {
-                std::string storageType =
-                    plugin["config"]["storage_type"].asString();
+                std::string storageType = plugin["config"]["storage_type"].asString();
                 if (storageType == "memory")
                 {
                     isMemoryStorage = true;
@@ -118,8 +113,7 @@ std::string loadConfigWithEnv(const std::string &configPath)
 
     // Override DB Settings (only if not memory storage and db_clients array is
     // not empty)
-    if (!isMemoryStorage && root["db_clients"].isArray() &&
-        root["db_clients"].size() > 0)
+    if (!isMemoryStorage && root["db_clients"].isArray() && root["db_clients"].size() > 0)
     {
         if (const char *env = std::getenv("OAUTH2_DB_HOST"))
         {
@@ -141,8 +135,7 @@ std::string loadConfigWithEnv(const std::string &configPath)
 
     // Override Redis Settings (only if not memory storage and redis_clients
     // array is not empty)
-    if (!isMemoryStorage && root["redis_clients"].isArray() &&
-        root["redis_clients"].size() > 0)
+    if (!isMemoryStorage && root["redis_clients"].isArray() && root["redis_clients"].size() > 0)
     {
         if (const char *env = std::getenv("OAUTH2_REDIS_HOST"))
         {
@@ -166,12 +159,12 @@ std::string loadConfigWithEnv(const std::string &configPath)
             {
                 if (plugin.get("name", "").asString() == "OAuth2Plugin")
                 {
-                    if (plugin.isMember("config") &&
-                        plugin["config"].isMember("clients") &&
-                        plugin["config"]["clients"].isMember("vue-client"))
+                    if (
+                      plugin.isMember("config") && plugin["config"].isMember("clients") &&
+                      plugin["config"]["clients"].isMember("vue-client")
+                    )
                     {
-                        plugin["config"]["clients"]["vue-client"]["secret"] =
-                            env;
+                        plugin["config"]["clients"]["vue-client"]["secret"] = env;
                     }
                     break;
                 }
@@ -194,8 +187,8 @@ std::string loadConfigWithEnv(const std::string &configPath)
     runtimeFile << jsonToStyledString(root);
     runtimeFile.close();
 
-    std::cout << "Loaded config with ENV overrides from: " << configPath
-              << " -> " << runtimePath << std::endl;
+    std::cout << "Loaded config with ENV overrides from: " << configPath << " -> " << runtimePath
+              << std::endl;
     return runtimePath;
 }
 
@@ -224,8 +217,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        std::cerr << "WARNING: config.json not found during pre-start check."
-                  << std::endl;
+        std::cerr << "WARNING: config.json not found during pre-start check." << std::endl;
     }
 
     std::promise<void> p1;
@@ -237,8 +229,7 @@ int main(int argc, char **argv)
         try
         {
             drogon::app().registerBeginningAdvice([&]() {
-                std::cout << "Drogon app ready, signaling tests to start..."
-                          << std::endl;
+                std::cout << "Drogon app ready, signaling tests to start..." << std::endl;
                 // Add a small delay on macOS to ensure EventLoop and ThreadPool
                 // are fully initialized before tests start hitting the server.
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -274,12 +265,12 @@ int main(int argc, char **argv)
 
     // 3. Wait for the event loop to start
     std::cout << "Main thread waiting for Drogon readiness..." << std::endl;
-    if (f1.wait_for(
-            std::chrono::seconds(test_config::APP_STARTUP_TIMEOUT_SECONDS)) !=
-        std::future_status::ready)
+    if (
+      f1.wait_for(std::chrono::seconds(test_config::APP_STARTUP_TIMEOUT_SECONDS)) !=
+      std::future_status::ready
+    )
     {
-        std::cerr << "TIMEOUT: drogon app failed to start within 60s!"
-                  << std::endl;
+        std::cerr << "TIMEOUT: drogon app failed to start within 60s!" << std::endl;
         std::_Exit(1);
     }
     f1.get();
@@ -287,8 +278,7 @@ int main(int argc, char **argv)
     // 4. Run tests
     std::cout << "Drogon ready. Pre-warming (500ms)..." << std::endl;
     std::cout.flush();
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(test_config::APP_PREWARM_MS));
+    std::this_thread::sleep_for(std::chrono::milliseconds(test_config::APP_PREWARM_MS));
 
     std::cout << "Executing test::run()..." << std::endl;
     std::cout.flush();
@@ -303,17 +293,15 @@ int main(int argc, char **argv)
     if (status == 0)
     {
         // Clean up temporary config file before exit
-        if (!runtimeConfigPath.empty() &&
-            std::filesystem::exists(runtimeConfigPath))
+        if (!runtimeConfigPath.empty() && std::filesystem::exists(runtimeConfigPath))
         {
-            std::cout << "Cleaning up temporary config: " << runtimeConfigPath
-                      << std::endl;
+            std::cout << "Cleaning up temporary config: " << runtimeConfigPath << std::endl;
             std::error_code ec;
             std::filesystem::remove(runtimeConfigPath, ec);
             if (ec)
             {
-                std::cerr << "Warning: Failed to remove " << runtimeConfigPath
-                          << ": " << ec.message() << std::endl;
+                std::cerr << "Warning: Failed to remove " << runtimeConfigPath << ": "
+                          << ec.message() << std::endl;
             }
         }
 
@@ -341,9 +329,7 @@ int main(int argc, char **argv)
     // 4. No need for graceful framework shutdown in test environment
     if (status == 0)
     {
-        std::cout
-            << "Tests passed, using fast exit to avoid teardown SegFault..."
-            << std::endl;
+        std::cout << "Tests passed, using fast exit to avoid teardown SegFault..." << std::endl;
         std::_Exit(0);
     }
 

@@ -12,9 +12,11 @@ class AuthorizationFilter : public HttpFilter<AuthorizationFilter>
 {
   public:
     AuthorizationFilter();
-    void doFilter(const HttpRequestPtr &req,
-                  FilterCallback &&fcb,
-                  FilterChainCallback &&fccb) override;
+    void doFilter(
+      const HttpRequestPtr &req,
+      FilterCallback &&fcb,
+      FilterChainCallback &&fccb
+    ) override;
 
   private:
     // Path regex -> Allowed Roles
@@ -28,6 +30,5 @@ class AuthorizationFilter : public HttpFilter<AuthorizationFilter>
     bool initialized_ = false;
 
     void loadConfig();
-    bool checkAccess(const std::vector<std::string> &userRoles,
-                     const std::string &path);
+    bool checkAccess(const std::vector<std::string> &userRoles, const std::string &path);
 };

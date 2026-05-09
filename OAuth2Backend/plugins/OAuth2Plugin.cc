@@ -23,15 +23,14 @@ void OAuth2Plugin::initAndStart(const Json::Value &config)
         accessTokenTtl_ = tokens.get("access_token_ttl", 3600).asInt64();
         refreshTokenTtl_ = tokens.get("refresh_token_ttl", 2592000).asInt64();
         LOG_INFO << "OAuth2 Config Loaded: AuthCode=" << authCodeTtl_
-                 << "s, AccessToken=" << accessTokenTtl_
-                 << "s, RefreshToken=" << refreshTokenTtl_ << "s";
+                 << "s, AccessToken=" << accessTokenTtl_ << "s, RefreshToken=" << refreshTokenTtl_
+                 << "s";
     }
 
     LOG_INFO << "OAuth2Plugin initialized with storage type: " << storageType_;
 
     // Initialize and start cleanup service
-    cleanupService_ =
-        std::make_shared<oauth2::OAuth2CleanupService>(storage_.get());
+    cleanupService_ = std::make_shared<oauth2::OAuth2CleanupService>(storage_.get());
 
     // Default cleanup 1 hour, or config
     double cleanupInterval = 3600.0;
@@ -49,8 +48,7 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
     if (storageType_ == "postgres")
     {
         auto s = std::make_unique<oauth2::PostgresOAuth2Storage>();
-        s->initFromConfig(
-            config["postgres"]);  // Always call to get defaults if missing
+        s->initFromConfig(config["postgres"]);  // Always call to get defaults if missing
 
         // Try to enable L2 Cache
         try
@@ -62,7 +60,8 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
             // Use raw new to avoid make_unique forwarding issues with move-only
             // types in some MSVC versions
             std::unique_ptr<oauth2::IOAuth2Storage> cached(
-                new oauth2::CachedOAuth2Storage(std::move(baseStorage), redis));
+              new oauth2::CachedOAuth2Storage(std::move(baseStorage), redis)
+            );
             storage_ = std::move(cached);
             LOG_INFO << "Using PostgreSQL storage backend with L2 Redis Cache";
         }
@@ -72,8 +71,7 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
             // The unique_ptr was moved, but we kept the raw pointer
             // Note: baseStorage's destructor will run during stack unwinding,
             // so we need to recreate or use the original pointer
-            LOG_ERROR
-                << "Failed to init Cache. Fallback to Postgres without cache.";
+            LOG_ERROR << "Failed to init Cache. Fallback to Postgres without cache.";
             // The original storage was already destroyed when baseStorage went
             // out of scope, so we need to recreate it
             auto s2 = std::make_unique<oauth2::PostgresOAuth2Storage>();
@@ -105,9 +103,11 @@ void OAuth2Plugin::shutdown()
     storage_.reset();
 }
 
-void OAuth2Plugin::validateClient(const std::string &clientId,
-                                  const std::string &clientSecret,
-                                  std::function<void(bool)> &&callback)
+void OAuth2Plugin::validateClient(
+  const std::string &clientId,
+  const std::string &clientSecret,
+  std::function<void(bool)> &&callback
+)
 {
     if (!storage_)
     {
@@ -117,9 +117,11 @@ void OAuth2Plugin::validateClient(const std::string &clientId,
     storage_->validateClient(clientId, clientSecret, std::move(callback));
 }
 
-void OAuth2Plugin::validateRedirectUri(const std::string &clientId,
-                                       const std::string &redirectUri,
-                                       std::function<void(bool)> &&callback)
+void OAuth2Plugin::validateRedirectUri(
+  const std::string &clientId,
+  const std::string &redirectUri,
+  std::function<void(bool)> &&callback
+)
 {
     if (!storage_)
     {
@@ -128,34 +130,36 @@ void OAuth2Plugin::validateRedirectUri(const std::string &clientId,
     }
 
     // We need to getClient first, then check URIs
-    storage_->getClient(clientId,
-                        [callback = std::move(callback), redirectUri](
-                            std::optional<oauth2::OAuth2Client> client) {
-                            if (!client)
-                            {
-                                callback(false);
-                                return;
-                            }
-                            for (const auto &uri : client->redirectUris)
-                            {
-                                if (uri == redirectUri)
-                                {
-                                    callback(true);
-                                    return;
-                                }
-                            }
-                            callback(false);
-                        });
+    storage_->getClient(
+      clientId,
+      [callback = std::move(callback), redirectUri](std::optional<oauth2::OAuth2Client> client) {
+          if (!client)
+          {
+              callback(false);
+              return;
+          }
+          for (const auto &uri : client->redirectUris)
+          {
+              if (uri == redirectUri)
+              {
+                  callback(true);
+                  return;
+              }
+          }
+          callback(false);
+      }
+    );
 }
 
 void OAuth2Plugin::generateAuthorizationCode(
-    const std::string &clientId,
-    const std::string &subject,
-    const std::string &scope,
-    const std::string &redirectUri,
-    const std::string &codeChallenge,
-    const std::string &codeChallengeMethod,
-    std::function<void(bool, std::string, std::string)> &&callback)
+  const std::string &clientId,
+  const std::string &subject,
+  const std::string &scope,
+  const std::string &redirectUri,
+  const std::string &codeChallenge,
+  const std::string &codeChallengeMethod,
+  std::function<void(bool, std::string, std::string)> &&callback
+)
 {
     using namespace oauth2::utils;
 
@@ -176,13 +180,14 @@ void OAuth2Plugin::generateAuthorizationCode(
     authCode.codeChallengeMethod = codeChallengeMethod;
 
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                   std::chrono::system_clock::now().time_since_epoch())
-                   .count();
+                 std::chrono::system_clock::now().time_since_epoch()
+    )
+                 .count();
     authCode.expiresAt = now + authCodeTtl_;
 
-    LOG_DEBUG << "Generated authorization code for client: " << clientId
-              << ", subject: " << subject << ", scope: " << scope << ", PKCE: "
-              << (codeChallenge.empty() ? "no" : codeChallengeMethod);
+    LOG_DEBUG << "Generated authorization code for client: " << clientId << ", subject: " << subject
+              << ", scope: " << scope
+              << ", PKCE: " << (codeChallenge.empty() ? "no" : codeChallengeMethod);
 
     storage_->saveAuthCode(authCode, [callback = std::move(callback), code]() {
         callback(true, code, "");
@@ -190,8 +195,7 @@ void OAuth2Plugin::generateAuthorizationCode(
 }
 
 // Helper to create error JSON
-static Json::Value makeError(const std::string &error,
-                             const std::string &desc = "")
+static Json::Value makeError(const std::string &error, const std::string &desc = "")
 {
     Json::Value json;
     json["error"] = error;
@@ -201,12 +205,13 @@ static Json::Value makeError(const std::string &error,
 }
 
 void OAuth2Plugin::exchangeCodeForToken(
-    const std::string &code,
-    const std::string &clientId,
-    const std::string &clientSecret,
-    const std::string &redirectUri,
-    const std::string &codeVerifier,  // P0-3: PKCE code verifier
-    std::function<void(const Json::Value &)> &&callback)
+  const std::string &code,
+  const std::string &clientId,
+  const std::string &clientSecret,
+  const std::string &redirectUri,
+  const std::string &codeVerifier,  // P0-3: PKCE code verifier
+  std::function<void(const Json::Value &)> &&callback
+)
 {
     if (!storage_)
     {
@@ -216,211 +221,169 @@ void OAuth2Plugin::exchangeCodeForToken(
 
     // CRITICAL: Validate client BEFORE consuming auth code
     storage_->validateClient(
-        clientId,
-        clientSecret,
-        [this,
-         code,
-         clientId,
-         redirectUri,
-         codeVerifier,
-         callback = std::move(callback)](bool isValid) mutable {
-            if (!isValid)
-            {
-                LOG_WARN
-                    << "[AUDIT] Action=ExchangeToken Client=" << clientId
-                    << " Success=False Reason=Invalid_client_authentication";
-                callback(makeError("invalid_client",
-                                   "Client authentication failed"));
-                return;
+      clientId,
+      clientSecret,
+      [this, code, clientId, redirectUri, codeVerifier, callback = std::move(callback)](
+        bool isValid
+      ) mutable {
+          if (!isValid)
+          {
+              LOG_WARN << "[AUDIT] Action=ExchangeToken Client=" << clientId
+                       << " Success=False Reason=Invalid_client_authentication";
+              callback(makeError("invalid_client", "Client authentication failed"));
+              return;
+          }
+
+          // Client validated, now consume auth code WITH redirect_uri
+          // validation
+          storage_->consumeAuthCode(
+            code,
+            redirectUri,
+            [this, callback = std::move(callback), clientId, code, codeVerifier](
+              std::optional<oauth2::OAuth2AuthCode> authCode
+            ) {
+                if (!authCode)
+                {
+                    LOG_WARN << "Invalid code (Not Found, Already Used, or "
+                                "redirect_uri mismatch): "
+                             << code;
+                    callback(makeError("invalid_grant", "Invalid authorization code"));
+                    return;
+                }
+                if (authCode->clientId != clientId)
+                {
+                    callback(makeError("invalid_client", "Client ID mismatch"));
+                    return;
+                }
+
+                // P0-3: PKCE Validation - Validate code_verifier if
+                // code_challenge was present
+                if (!authCode->codeChallenge.empty())
+                {
+                    if (codeVerifier.empty())
+                    {
+                        LOG_WARN << "PKCE: code_verifier required but "
+                                    "not provided for code: "
+                                 << code;
+                        callback(makeError(
+                          "invalid_request",
+                          "code_verifier is required "
+                          "when PKCE was used in "
+                          "authorization request"
+                        ));
+                        return;
+                    }
+
+                    if (!validatePkceCodeVerifier(
+                          codeVerifier, authCode->codeChallenge, authCode->codeChallengeMethod
+                        ))
+                    {
+                        LOG_WARN << "PKCE: code_verifier validation "
+                                    "failed for code: "
+                                 << code;
+                        callback(makeError("invalid_grant", "Invalid code_verifier"));
+                        return;
+                    }
+
+                    LOG_DEBUG << "PKCE: code_verifier validation "
+                                 "successful for code: "
+                              << code;
+                }
+
+                auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                             std::chrono::system_clock::now().time_since_epoch()
+                )
+                             .count();
+
+                if (now > authCode->expiresAt)
+                {
+                    LOG_WARN << "Code expired: " << code;
+                    callback(makeError("invalid_grant", "Code expired"));
+                    return;
+                }
+
+                // Generate Access Token (Code is already marked used by
+                // consumeAuthCode) No need to call markAuthCodeUsed
+                // again. Generate Access Token (Code is already marked
+                // used by consumeAuthCode)
+
+                // Fetch User Roles to return in response (and
+                // potentially bake into token if we switched to JWT
+                // later)
+                storage_->getUserRoles(
+                  authCode->userId,
+                  [this,
+                   callback,
+                   authCode,
+                   now,
+                   accessTokenTtl = accessTokenTtl_,
+                   refreshTokenTtl = refreshTokenTtl_](std::vector<std::string> roles) {
+                      // Convert roles vector to string for
+                      // logs/response
+                      Json::Value rolesJson(Json::arrayValue);
+                      for (const auto &r : roles)
+                          rolesJson.append(r);
+
+                      // Generate Access Token
+                      auto tokenStr = utils::getUuid();
+                      oauth2::OAuth2AccessToken token;
+                      token.token = tokenStr;
+                      token.clientId = authCode->clientId;
+                      token.userId = authCode->userId;
+                      token.scope = authCode->scope;
+                      token.expiresAt = now + accessTokenTtl;
+
+                      // Generate Refresh Token
+                      auto refreshTokenStr = utils::getUuid();
+                      oauth2::OAuth2RefreshToken refreshToken;
+                      refreshToken.token = refreshTokenStr;
+                      refreshToken.accessToken = tokenStr;
+                      refreshToken.clientId = authCode->clientId;
+                      refreshToken.userId = authCode->userId;
+                      refreshToken.scope = authCode->scope;
+                      refreshToken.expiresAt = now + refreshTokenTtl;
+
+                      // Save Access Token
+                      storage_->saveAccessToken(
+                        token, [this, callback, token, refreshToken, rolesJson]() {
+                            // Save
+                            // Refresh
+                            // Token
+                            storage_->saveRefreshToken(
+                              refreshToken, [this, callback, token, refreshToken, rolesJson]() {
+                                  LOG_INFO << "[AUDIT] Action=IssueToken User=" << token.userId
+                                           << " Client=" << token.clientId << " Success=True";
+
+                                  Json::Value json;
+                                  json["access_token"] = token.token;
+                                  json["token_type"] = "Bearer";
+                                  json["expires_in"] =
+                                    (Json::Int64)(token.expiresAt -
+                                                  std::chrono::duration_cast<std::chrono::seconds>(
+                                                    std::chrono::system_clock::now()
+                                                      .time_since_epoch()
+                                                  )
+                                                    .count());
+                                  json["refresh_token"] = refreshToken.token;
+                                  json["roles"] = rolesJson;  // Extension: Return roles
+                                  callback(json);
+                              }
+                            );
+                        }
+                      );
+                  }
+                );
             }
-
-            // Client validated, now consume auth code WITH redirect_uri
-            // validation
-            storage_
-                ->consumeAuthCode(
-                    code,
-                    redirectUri,
-                    [this,
-                     callback = std::move(callback),
-                     clientId,
-                     code,
-                     codeVerifier](
-                        std::optional<oauth2::OAuth2AuthCode> authCode) {
-                        if (!authCode)
-                        {
-                            LOG_WARN
-                                << "Invalid code (Not Found, Already Used, or "
-                                   "redirect_uri mismatch): "
-                                << code;
-                            callback(makeError("invalid_grant",
-                                               "Invalid authorization code"));
-                            return;
-                        }
-                        if (authCode->clientId != clientId)
-                        {
-                            callback(makeError("invalid_client",
-                                               "Client ID mismatch"));
-                            return;
-                        }
-
-                        // P0-3: PKCE Validation - Validate code_verifier if
-                        // code_challenge was present
-                        if (!authCode->codeChallenge.empty())
-                        {
-                            if (codeVerifier.empty())
-                            {
-                                LOG_WARN << "PKCE: code_verifier required but "
-                                            "not provided for code: "
-                                         << code;
-                                callback(makeError("invalid_request",
-                                                   "code_verifier is required "
-                                                   "when PKCE was used in "
-                                                   "authorization request"));
-                                return;
-                            }
-
-                            if (!validatePkceCodeVerifier(
-                                    codeVerifier,
-                                    authCode->codeChallenge,
-                                    authCode->codeChallengeMethod))
-                            {
-                                LOG_WARN << "PKCE: code_verifier validation "
-                                            "failed for code: "
-                                         << code;
-                                callback(makeError("invalid_grant",
-                                                   "Invalid code_verifier"));
-                                return;
-                            }
-
-                            LOG_DEBUG << "PKCE: code_verifier validation "
-                                         "successful for code: "
-                                      << code;
-                        }
-
-                        auto now =
-                            std::chrono::duration_cast<std::chrono::seconds>(
-                                std::chrono::system_clock::now()
-                                    .time_since_epoch())
-                                .count();
-
-                        if (now > authCode->expiresAt)
-                        {
-                            LOG_WARN << "Code expired: " << code;
-                            callback(
-                                makeError("invalid_grant", "Code expired"));
-                            return;
-                        }
-
-                        // Generate Access Token (Code is already marked used by
-                        // consumeAuthCode) No need to call markAuthCodeUsed
-                        // again. Generate Access Token (Code is already marked
-                        // used by consumeAuthCode)
-
-                        // Fetch User Roles to return in response (and
-                        // potentially bake into token if we switched to JWT
-                        // later)
-                        storage_
-                            ->getUserRoles(
-                                authCode->userId,
-                                [this,
-                                 callback,
-                                 authCode,
-                                 now,
-                                 accessTokenTtl = accessTokenTtl_,
-                                 refreshTokenTtl = refreshTokenTtl_](
-                                    std::vector<std::string> roles) {
-                                    // Convert roles vector to string for
-                                    // logs/response
-                                    Json::Value rolesJson(Json::arrayValue);
-                                    for (const auto &r : roles)
-                                        rolesJson.append(r);
-
-                                    // Generate Access Token
-                                    auto tokenStr = utils::getUuid();
-                                    oauth2::OAuth2AccessToken token;
-                                    token.token = tokenStr;
-                                    token.clientId = authCode->clientId;
-                                    token.userId = authCode->userId;
-                                    token.scope = authCode->scope;
-                                    token.expiresAt = now + accessTokenTtl;
-
-                                    // Generate Refresh Token
-                                    auto refreshTokenStr = utils::getUuid();
-                                    oauth2::OAuth2RefreshToken refreshToken;
-                                    refreshToken.token = refreshTokenStr;
-                                    refreshToken.accessToken = tokenStr;
-                                    refreshToken.clientId = authCode->clientId;
-                                    refreshToken.userId = authCode->userId;
-                                    refreshToken.scope = authCode->scope;
-                                    refreshToken.expiresAt =
-                                        now + refreshTokenTtl;
-
-                                    // Save Access Token
-                                    storage_->saveAccessToken(token,
-                                                              [this,
-                                                               callback,
-                                                               token,
-                                                               refreshToken,
-                                                               rolesJson]() {
-                                                                  // Save
-                                                                  // Refresh
-                                                                  // Token
-                                                                  storage_->saveRefreshToken(refreshToken,
-                                                                                             [this,
-                                                                                              callback,
-                                                                                              token,
-                                                                                              refreshToken,
-                                                                                              rolesJson]() {
-                                                                                                 LOG_INFO
-                                                                                                     << "[AUDIT] Action=IssueToken User="
-                                                                                                     << token
-                                                                                                            .userId
-                                                                                                     << " Client="
-                                                                                                     << token
-                                                                                                            .clientId
-                                                                                                     << " Success=True";
-
-                                                                                                 Json::Value
-                                                                                                     json;
-                                                                                                 json
-                                                                                                     ["access_token"] =
-                                                                                                         token
-                                                                                                             .token;
-                                                                                                 json
-                                                                                                     ["token_type"] =
-                                                                                                         "Bearer";
-                                                                                                 json
-                                                                                                     ["expires_in"] =
-                                                                                                         (Json::
-                                                                                                              Int64)(token
-                                                                                                                         .expiresAt -
-                                                                                                                     std::chrono::duration_cast<
-                                                                                                                         std::chrono::
-                                                                                                                             seconds>(
-                                                                                                                         std::chrono::system_clock::
-                                                                                                                             now()
-                                                                                                                                 .time_since_epoch())
-                                                                                                                         .count());
-                                                                                                 json
-                                                                                                     ["refresh_token"] =
-                                                                                                         refreshToken
-                                                                                                             .token;
-                                                                                                 json
-                                                                                                     ["roles"] =
-                                                                                                         rolesJson;  // Extension: Return roles
-                                                                                                 callback(
-                                                                                                     json);
-                                                                                             });
-                                                              });
-                                });
-                    });
-        });
+          );
+      }
+    );
 }
 
 void OAuth2Plugin::refreshAccessToken(
-    const std::string &refreshTokenStr,
-    const std::string &clientId,
-    std::function<void(const Json::Value &)> &&callback)
+  const std::string &refreshTokenStr,
+  const std::string &clientId,
+  std::function<void(const Json::Value &)> &&callback
+)
 {
     if (!storage_)
     {
@@ -429,97 +392,92 @@ void OAuth2Plugin::refreshAccessToken(
     }
 
     storage_->getRefreshToken(
-        refreshTokenStr,
-        [this, callback = std::move(callback), clientId](
-            std::optional<oauth2::OAuth2RefreshToken> storedRt) {
-            if (!storedRt)
-            {
-                callback(makeError("invalid_grant", "Invalid refresh token"));
-                return;
+      refreshTokenStr,
+      [this,
+       callback = std::move(callback),
+       clientId](std::optional<oauth2::OAuth2RefreshToken> storedRt) {
+          if (!storedRt)
+          {
+              callback(makeError("invalid_grant", "Invalid refresh token"));
+              return;
+          }
+          if (storedRt->clientId != clientId)
+          {
+              callback(makeError("invalid_client"));
+              return;
+          }
+          if (storedRt->revoked)
+          {
+              LOG_WARN << "Refresh token revoked: " << storedRt->token;
+              callback(makeError("invalid_grant", "Token revoked"));
+              return;
+          }
+
+          auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                       std::chrono::system_clock::now().time_since_epoch()
+          )
+                       .count();
+
+          if (now > storedRt->expiresAt)
+          {
+              callback(makeError("invalid_grant", "Token expired"));
+              return;
+          }
+
+          // Generate New Tokens (Rolling Refresh Token pattern is safer, but
+          // keeping simple for now? Let's implement Rolling: Revoke old RT,
+          // Issue new RT)
+
+          // 1. Generate New Access Token
+          auto newTokenStr = utils::getUuid();
+          oauth2::OAuth2AccessToken token;
+          token.token = newTokenStr;
+          token.clientId = storedRt->clientId;
+          token.userId = storedRt->userId;
+          token.scope = storedRt->scope;
+          token.expiresAt = now + accessTokenTtl_;
+
+          // 2. Generate New Refresh Token
+          auto newRefreshTokenStr = utils::getUuid();
+          oauth2::OAuth2RefreshToken newRt;
+          newRt.token = newRefreshTokenStr;
+          newRt.accessToken = newTokenStr;
+          newRt.clientId = storedRt->clientId;
+          newRt.userId = storedRt->userId;
+          newRt.scope = storedRt->scope;
+          newRt.expiresAt = now + refreshTokenTtl_;
+
+          // 3. Save New Access Token
+          storage_->saveAccessToken(
+            token, [this, callback, token, newRt, oldRefreshToken = storedRt->token]() {
+                // 4. Save New Refresh Token
+                storage_
+                  ->saveRefreshToken(newRt, [this, callback, token, newRt, oldRefreshToken]() {
+                      // 5. Revoke old refresh token
+                      storage_->revokeRefreshToken(
+                        oldRefreshToken, [this, callback, token, newRt, oldRefreshToken](auto...) {
+                            LOG_INFO << "[AUDIT] Action=RefreshToken User=" << token.userId
+                                     << " OldToken=Revoked NewToken=Issued";
+
+                            Json::Value json;
+                            json["access_token"] = token.token;
+                            json["token_type"] = "Bearer";
+                            json["expires_in"] = (Json::Int64)accessTokenTtl_;
+                            json["refresh_token"] = newRt.token;
+                            callback(json);
+                        }
+                      );
+                  });
             }
-            if (storedRt->clientId != clientId)
-            {
-                callback(makeError("invalid_client"));
-                return;
-            }
-            if (storedRt->revoked)
-            {
-                LOG_WARN << "Refresh token revoked: " << storedRt->token;
-                callback(makeError("invalid_grant", "Token revoked"));
-                return;
-            }
-
-            auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                           std::chrono::system_clock::now().time_since_epoch())
-                           .count();
-
-            if (now > storedRt->expiresAt)
-            {
-                callback(makeError("invalid_grant", "Token expired"));
-                return;
-            }
-
-            // Generate New Tokens (Rolling Refresh Token pattern is safer, but
-            // keeping simple for now? Let's implement Rolling: Revoke old RT,
-            // Issue new RT)
-
-            // 1. Generate New Access Token
-            auto newTokenStr = utils::getUuid();
-            oauth2::OAuth2AccessToken token;
-            token.token = newTokenStr;
-            token.clientId = storedRt->clientId;
-            token.userId = storedRt->userId;
-            token.scope = storedRt->scope;
-            token.expiresAt = now + accessTokenTtl_;
-
-            // 2. Generate New Refresh Token
-            auto newRefreshTokenStr = utils::getUuid();
-            oauth2::OAuth2RefreshToken newRt;
-            newRt.token = newRefreshTokenStr;
-            newRt.accessToken = newTokenStr;
-            newRt.clientId = storedRt->clientId;
-            newRt.userId = storedRt->userId;
-            newRt.scope = storedRt->scope;
-            newRt.expiresAt = now + refreshTokenTtl_;
-
-            // 3. Save New Access Token
-            storage_->saveAccessToken(
-                token,
-                [this,
-                 callback,
-                 token,
-                 newRt,
-                 oldRefreshToken = storedRt->token]() {
-                    // 4. Save New Refresh Token
-                    storage_->saveRefreshToken(
-                        newRt,
-                        [this, callback, token, newRt, oldRefreshToken]() {
-                            // 5. Revoke old refresh token
-                            storage_->revokeRefreshToken(
-                                oldRefreshToken,
-                                [this, callback, token, newRt, oldRefreshToken](
-                                    auto...) {
-                                    LOG_INFO
-                                        << "[AUDIT] Action=RefreshToken User="
-                                        << token.userId
-                                        << " OldToken=Revoked NewToken=Issued";
-
-                                    Json::Value json;
-                                    json["access_token"] = token.token;
-                                    json["token_type"] = "Bearer";
-                                    json["expires_in"] =
-                                        (Json::Int64)accessTokenTtl_;
-                                    json["refresh_token"] = newRt.token;
-                                    callback(json);
-                                });
-                        });
-                });
-        });
+          );
+      }
+    );
 }
 
 void OAuth2Plugin::validateAccessToken(
-    const std::string &token,
-    std::function<void(std::shared_ptr<AccessToken>)> &&callback)
+  const std::string &token,
+  std::function<void(std::shared_ptr<AccessToken>)> &&callback
+)
 {
     if (!storage_)
     {
@@ -527,38 +485,39 @@ void OAuth2Plugin::validateAccessToken(
         return;
     }
 
-    storage_->getAccessToken(
-        token, [callback](std::optional<oauth2::OAuth2AccessToken> t) {
-            if (!t)
-            {
-                callback(nullptr);
-                return;
-            }
+    storage_->getAccessToken(token, [callback](std::optional<oauth2::OAuth2AccessToken> t) {
+        if (!t)
+        {
+            callback(nullptr);
+            return;
+        }
 
-            auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                           std::chrono::system_clock::now().time_since_epoch())
-                           .count();
+        auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                     std::chrono::system_clock::now().time_since_epoch()
+        )
+                     .count();
 
-            if (t->revoked)
-            {
-                LOG_WARN << "Access token revoked: " << t->token;
-                callback(nullptr);
-                return;
-            }
-            if (now > t->expiresAt)
-            {
-                LOG_WARN << "Access token expired: " << t->token;
-                callback(nullptr);
-                return;
-            }
+        if (t->revoked)
+        {
+            LOG_WARN << "Access token revoked: " << t->token;
+            callback(nullptr);
+            return;
+        }
+        if (now > t->expiresAt)
+        {
+            LOG_WARN << "Access token expired: " << t->token;
+            callback(nullptr);
+            return;
+        }
 
-            callback(std::make_shared<oauth2::OAuth2AccessToken>(*t));
-        });
+        callback(std::make_shared<oauth2::OAuth2AccessToken>(*t));
+    });
 }
 
 void OAuth2Plugin::getUserRoles(
-    const std::string &userId,
-    std::function<void(std::vector<std::string>)> &&callback)
+  const std::string &userId,
+  std::function<void(std::vector<std::string>)> &&callback
+)
 {
     if (!storage_)
     {
@@ -570,10 +529,12 @@ void OAuth2Plugin::getUserRoles(
 
 // ========== Subject Mapping Methods ==========
 
-void OAuth2Plugin::ensureSubjectMapping(const std::string &subject,
-                                        const std::string &username,
-                                        int32_t internalUserId,
-                                        std::function<void()> &&callback)
+void OAuth2Plugin::ensureSubjectMapping(
+  const std::string &subject,
+  const std::string &username,
+  int32_t internalUserId,
+  std::function<void()> &&callback
+)
 {
     using namespace oauth2::utils;
 
@@ -589,68 +550,59 @@ void OAuth2Plugin::ensureSubjectMapping(const std::string &subject,
 
     // Check if mapping already exists
     storage_->getInternalUserId(
-        sub,
-        provider,
-        [this,
-         sub,
-         provider,
-         internalUserId,
-         username,
-         callback = std::move(callback)](auto existingUserId) {
-            if (existingUserId)
-            {
-                // Mapping already exists, verify consistency
-                if (*existingUserId == internalUserId)
+      sub,
+      provider,
+      [this, sub, provider, internalUserId, username, callback = std::move(callback)](
+        auto existingUserId
+      ) {
+          if (existingUserId)
+          {
+              // Mapping already exists, verify consistency
+              if (*existingUserId == internalUserId)
+              {
+                  LOG_DEBUG << "Subject mapping verified: " << sub << " (provider: " << provider
+                            << ") -> user_id: " << internalUserId;
+                  callback();
+                  return;
+              }
+              else
+              {
+                  LOG_WARN << "Subject mapping conflict: " << sub << " (provider: " << provider
+                           << ") -> old:" << *existingUserId << " vs new:" << internalUserId
+                           << ". Using existing mapping.";
+                  callback();
+                  return;
+              }
+          }
+
+          // Create new mapping
+          storage_->createSubjectMapping(
+            sub,
+            internalUserId,
+            provider,
+            [this, sub, provider, internalUserId, callback = std::move(callback)](bool success) {
+                if (!success)
                 {
-                    LOG_DEBUG << "Subject mapping verified: " << sub
-                              << " (provider: " << provider
-                              << ") -> user_id: " << internalUserId;
-                    callback();
-                    return;
+                    LOG_ERROR << "Failed to create subject mapping for: " << sub
+                              << " (provider: " << provider << ") -> user_id: " << internalUserId;
                 }
                 else
                 {
-                    LOG_WARN << "Subject mapping conflict: " << sub
-                             << " (provider: " << provider
-                             << ") -> old:" << *existingUserId
-                             << " vs new:" << internalUserId
-                             << ". Using existing mapping.";
-                    callback();
-                    return;
+                    LOG_INFO << "Created subject mapping: " << sub << " (provider: " << provider
+                             << ") -> user_id: " << internalUserId;
                 }
+                callback();
             }
-
-            // Create new mapping
-            storage_->createSubjectMapping(
-                sub,
-                internalUserId,
-                provider,
-                [this,
-                 sub,
-                 provider,
-                 internalUserId,
-                 callback = std::move(callback)](bool success) {
-                    if (!success)
-                    {
-                        LOG_ERROR
-                            << "Failed to create subject mapping for: " << sub
-                            << " (provider: " << provider
-                            << ") -> user_id: " << internalUserId;
-                    }
-                    else
-                    {
-                        LOG_INFO << "Created subject mapping: " << sub
-                                 << " (provider: " << provider
-                                 << ") -> user_id: " << internalUserId;
-                    }
-                    callback();
-                });
-        });
+          );
+      }
+    );
 }
 
-void OAuth2Plugin::handleFirstTimeLogin(const std::string &subject,
-                                        const std::string &provider,
-                                        std::function<void(int32_t)> &&callback)
+void OAuth2Plugin::handleFirstTimeLogin(
+  const std::string &subject,
+  const std::string &provider,
+  std::function<void(int32_t)> &&callback
+)
 {
     using namespace oauth2::utils;
 
@@ -676,36 +628,35 @@ void OAuth2Plugin::handleFirstTimeLogin(const std::string &subject,
     static int32_t nextUserId = 1000;  // Start from 1000 to avoid conflicts
     int32_t newUserId = nextUserId++;
 
-    LOG_INFO << "First-time login for subject: " << sub
-             << " (provider: " << prov << "), assigned user_id: " << newUserId;
+    LOG_INFO << "First-time login for subject: " << sub << " (provider: " << prov
+             << "), assigned user_id: " << newUserId;
 
     // Create subject mapping
     storage_->createSubjectMapping(
-        sub,
-        newUserId,
-        prov,
-        [this, sub, prov, newUserId, callback = std::move(callback)](
-            bool success) {
-            if (!success)
-            {
-                LOG_ERROR
-                    << "Failed to create subject mapping for first-time login: "
-                    << sub;
-                callback(0);
-                return;
-            }
+      sub,
+      newUserId,
+      prov,
+      [this, sub, prov, newUserId, callback = std::move(callback)](bool success) {
+          if (!success)
+          {
+              LOG_ERROR << "Failed to create subject mapping for first-time login: " << sub;
+              callback(0);
+              return;
+          }
 
-            LOG_INFO << "Created subject mapping for first-time login: " << sub
-                     << " (provider: " << prov << ") -> user_id: " << newUserId;
-            callback(newUserId);
-        });
+          LOG_INFO << "Created subject mapping for first-time login: " << sub
+                   << " (provider: " << prov << ") -> user_id: " << newUserId;
+          callback(newUserId);
+      }
+    );
 }
 
 // ========== P0-2: Consent Management Method Implementations ==========
 
 void OAuth2Plugin::getInternalUserId(
-    const std::string &subject,
-    std::function<void(std::optional<int32_t>)> &&callback)
+  const std::string &subject,
+  std::function<void(std::optional<int32_t>)> &&callback
+)
 {
     using namespace oauth2::utils;
 
@@ -720,18 +671,19 @@ void OAuth2Plugin::getInternalUserId(
     auto [provider, sub] = SubjectGenerator::parse(subject);
 
     // Get internal user ID from storage
-    storage_->getInternalUserId(sub,
-                                provider,
-                                [callback = std::move(callback)](
-                                    std::optional<int32_t> internalUserId) {
-                                    callback(internalUserId);
-                                });
+    storage_->getInternalUserId(
+      sub, provider, [callback = std::move(callback)](std::optional<int32_t> internalUserId) {
+          callback(internalUserId);
+      }
+    );
 }
 
-void OAuth2Plugin::hasUserConsent(int32_t internalUserId,
-                                  const std::string &clientId,
-                                  const std::string &scope,
-                                  std::function<void(bool)> &&callback)
+void OAuth2Plugin::hasUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  std::function<void(bool)> &&callback
+)
 {
     if (!storage_)
     {
@@ -740,16 +692,15 @@ void OAuth2Plugin::hasUserConsent(int32_t internalUserId,
         return;
     }
 
-    storage_->hasUserConsent(internalUserId,
-                             clientId,
-                             scope,
-                             std::move(callback));
+    storage_->hasUserConsent(internalUserId, clientId, scope, std::move(callback));
 }
 
-void OAuth2Plugin::saveUserConsent(int32_t internalUserId,
-                                   const std::string &clientId,
-                                   const std::string &scope,
-                                   std::function<void(bool)> &&callback)
+void OAuth2Plugin::saveUserConsent(
+  int32_t internalUserId,
+  const std::string &clientId,
+  const std::string &scope,
+  std::function<void(bool)> &&callback
+)
 {
     if (!storage_)
     {
@@ -758,18 +709,16 @@ void OAuth2Plugin::saveUserConsent(int32_t internalUserId,
         return;
     }
 
-    storage_->saveUserConsent(internalUserId,
-                              clientId,
-                              scope,
-                              std::move(callback));
+    storage_->saveUserConsent(internalUserId, clientId, scope, std::move(callback));
 }
 
 // ========== P0-3: PKCE Validation Method Implementations ==========
 
 bool OAuth2Plugin::validatePkceCodeVerifier(
-    const std::string &codeVerifier,
-    const std::string &codeChallenge,
-    const std::string &codeChallengeMethod)
+  const std::string &codeVerifier,
+  const std::string &codeChallenge,
+  const std::string &codeChallengeMethod
+)
 {
     if (codeVerifier.empty() || codeChallenge.empty())
     {
@@ -788,8 +737,7 @@ bool OAuth2Plugin::validatePkceCodeVerifier(
     {
         // Plain method: code_verifier == code_challenge
         bool valid = codeVerifier == codeChallenge;
-        LOG_DEBUG << "PKCE: Plain method validation "
-                  << (valid ? "succeeded" : "failed");
+        LOG_DEBUG << "PKCE: Plain method validation " << (valid ? "succeeded" : "failed");
         return valid;
     }
     else if (method == "S256")
@@ -798,10 +746,8 @@ bool OAuth2Plugin::validatePkceCodeVerifier(
         // code_challenge
         std::string computedChallenge = generateSha256Hash(codeVerifier);
         bool valid = computedChallenge == codeChallenge;
-        LOG_DEBUG << "PKCE: S256 method validation "
-                  << (valid ? "succeeded" : "failed")
-                  << ", computed: " << computedChallenge
-                  << ", expected: " << codeChallenge;
+        LOG_DEBUG << "PKCE: S256 method validation " << (valid ? "succeeded" : "failed")
+                  << ", computed: " << computedChallenge << ", expected: " << codeChallenge;
         return valid;
     }
     else
@@ -819,7 +765,8 @@ std::string OAuth2Plugin::generateSha256Hash(const std::string &input)
     // remove
     // '=' padding)
     std::string base64Url = drogon::utils::base64Encode(
-        reinterpret_cast<const unsigned char *>(hash.c_str()), hash.length());
+      reinterpret_cast<const unsigned char *>(hash.c_str()), hash.length()
+    );
 
     // Convert standard base64 to base64-url encoding
     for (char &c : base64Url)
@@ -842,9 +789,10 @@ std::string OAuth2Plugin::generateSha256Hash(const std::string &input)
 // ========== P0-5: Scope Permission Control Method Implementations ==========
 
 void OAuth2Plugin::validateClientScopes(
-    const std::string &clientId,
-    const std::vector<std::string> &requestedScopes,
-    std::function<void(bool, std::string)> &&callback)
+  const std::string &clientId,
+  const std::vector<std::string> &requestedScopes,
+  std::function<void(bool, std::string)> &&callback
+)
 {
     if (!storage_)
     {
@@ -854,60 +802,59 @@ void OAuth2Plugin::validateClientScopes(
 
     // Get client configuration to check allowed scopes
     storage_->getClient(
-        clientId,
-        [callback = std::move(callback),
-         requestedScopes](std::optional<oauth2::OAuth2Client> client) mutable {
-            if (!client)
-            {
-                callback(false, "Client not found");
-                return;
-            }
+      clientId,
+      [callback = std::move(callback),
+       requestedScopes](std::optional<oauth2::OAuth2Client> client) mutable {
+          if (!client)
+          {
+              callback(false, "Client not found");
+              return;
+          }
 
-            // Tier 1: Check if requested scopes are in client's allowlist
-            std::vector<std::string> invalidScopes;
-            for (const auto &scope : requestedScopes)
-            {
-                bool scopeAllowed = false;
-                for (const auto &allowedScope : client->allowedScopes)
-                {
-                    if (scope == allowedScope)
-                    {
-                        scopeAllowed = true;
-                        break;
-                    }
-                }
+          // Tier 1: Check if requested scopes are in client's allowlist
+          std::vector<std::string> invalidScopes;
+          for (const auto &scope : requestedScopes)
+          {
+              bool scopeAllowed = false;
+              for (const auto &allowedScope : client->allowedScopes)
+              {
+                  if (scope == allowedScope)
+                  {
+                      scopeAllowed = true;
+                      break;
+                  }
+              }
 
-                if (!scopeAllowed)
-                {
-                    invalidScopes.push_back(scope);
-                }
-            }
+              if (!scopeAllowed)
+              {
+                  invalidScopes.push_back(scope);
+              }
+          }
 
-            if (!invalidScopes.empty())
-            {
-                std::string errorMsg =
-                    "Scopes not allowed for this client: " + invalidScopes[0];
-                for (size_t i = 1; i < invalidScopes.size(); ++i)
-                {
-                    errorMsg += ", " + invalidScopes[i];
-                }
-                LOG_WARN << "Client scope validation failed for client: "
-                         << client->clientId
-                         << ", invalid scopes: " << errorMsg;
-                callback(false, errorMsg);
-                return;
-            }
+          if (!invalidScopes.empty())
+          {
+              std::string errorMsg = "Scopes not allowed for this client: " + invalidScopes[0];
+              for (size_t i = 1; i < invalidScopes.size(); ++i)
+              {
+                  errorMsg += ", " + invalidScopes[i];
+              }
+              LOG_WARN << "Client scope validation failed for client: " << client->clientId
+                       << ", invalid scopes: " << errorMsg;
+              callback(false, errorMsg);
+              return;
+          }
 
-            LOG_DEBUG << "Client scope validation successful for client: "
-                      << client->clientId;
-            callback(true, "");
-        });
+          LOG_DEBUG << "Client scope validation successful for client: " << client->clientId;
+          callback(true, "");
+      }
+    );
 }
 
 void OAuth2Plugin::validateUserRolesForScopes(
-    const std::string &userId,
-    const std::vector<std::string> &scopes,
-    std::function<void(bool, std::string)> &&callback)
+  const std::string &userId,
+  const std::vector<std::string> &scopes,
+  std::function<void(bool, std::string)> &&callback
+)
 {
     if (!storage_)
     {
@@ -935,46 +882,45 @@ void OAuth2Plugin::validateUserRolesForScopes(
 
     // Get user roles to validate admin scope access
     getUserRoles(
-        userId,
-        [callback = std::move(callback),
-         adminScopes](std::vector<std::string> userRoles) mutable {
-            // Check if user has admin role
-            bool hasAdminRole = false;
-            for (const auto &role : userRoles)
-            {
-                if (role == "admin")
-                {
-                    hasAdminRole = true;
-                    break;
-                }
-            }
+      userId,
+      [callback = std::move(callback), adminScopes](std::vector<std::string> userRoles) mutable {
+          // Check if user has admin role
+          bool hasAdminRole = false;
+          for (const auto &role : userRoles)
+          {
+              if (role == "admin")
+              {
+                  hasAdminRole = true;
+                  break;
+              }
+          }
 
-            if (!hasAdminRole)
-            {
-                std::string errorMsg =
-                    "Admin role required for scopes: " + adminScopes[0];
-                for (size_t i = 1; i < adminScopes.size(); ++i)
-                {
-                    errorMsg += ", " + adminScopes[i];
-                }
-                LOG_WARN << "User role validation failed, admin role required "
-                            "for scopes: "
-                         << errorMsg;
-                callback(false, errorMsg);
-                return;
-            }
+          if (!hasAdminRole)
+          {
+              std::string errorMsg = "Admin role required for scopes: " + adminScopes[0];
+              for (size_t i = 1; i < adminScopes.size(); ++i)
+              {
+                  errorMsg += ", " + adminScopes[i];
+              }
+              LOG_WARN << "User role validation failed, admin role required "
+                          "for scopes: "
+                       << errorMsg;
+              callback(false, errorMsg);
+              return;
+          }
 
-            LOG_DEBUG << "User role validation successful, user has admin role";
-            callback(true, "");
-        });
+          LOG_DEBUG << "User role validation successful, user has admin role";
+          callback(true, "");
+      }
+    );
 }
 
 bool OAuth2Plugin::scopeRequiresAdminRole(const std::string &scope)
 {
     // Define which scopes require admin role
     // In production, this should be configurable or loaded from database
-    static const std::vector<std::string> adminScopes = {
-        "admin", "admin:read", "admin:write", "user:manage", "settings:manage"};
+    static const std::vector<std::string> adminScopes =
+      {"admin", "admin:read", "admin:write", "user:manage", "settings:manage"};
 
     for (const auto &adminScope : adminScopes)
     {

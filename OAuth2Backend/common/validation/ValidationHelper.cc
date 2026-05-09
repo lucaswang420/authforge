@@ -9,7 +9,8 @@ namespace common::validation
 {
 
 drogon::HttpResponsePtr ValidationHelper::createValidationErrorResponse(
-    const std::vector<std::string> &errors)
+  const std::vector<std::string> &errors
+)
 {
     Json::Value root = createErrorJson(errors);
 
@@ -19,9 +20,10 @@ drogon::HttpResponsePtr ValidationHelper::createValidationErrorResponse(
 }
 
 void ValidationHelper::returnValidationError(
-    const std::string &field,
-    const std::string &reason,
-    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+  const std::string &field,
+  const std::string &reason,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
 {
     std::vector<std::string> errors;
     errors.push_back(field + ": " + reason);
@@ -31,16 +33,18 @@ void ValidationHelper::returnValidationError(
 }
 
 void ValidationHelper::returnValidationErrors(
-    const std::vector<std::string> &errors,
-    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+  const std::vector<std::string> &errors,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
 {
     auto resp = createValidationErrorResponse(errors);
     callback(resp);
 }
 
 bool ValidationHelper::returnValidationErrorsIfAny(
-    const std::vector<std::string> &errors,
-    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+  const std::vector<std::string> &errors,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
 {
     if (!errors.empty())
     {
@@ -50,8 +54,7 @@ bool ValidationHelper::returnValidationErrorsIfAny(
     return false;
 }
 
-Json::Value ValidationHelper::createErrorJson(
-    const std::vector<std::string> &errors)
+Json::Value ValidationHelper::createErrorJson(const std::vector<std::string> &errors)
 {
     Json::Value error;
     error["code"] = "VALIDATION_ERROR";
@@ -80,10 +83,7 @@ Json::Value ValidationHelper::createErrorJson(
     // 添加时间戳
     std::time_t now = std::time(nullptr);
     char timestamp[64];
-    std::strftime(timestamp,
-                  sizeof(timestamp),
-                  "%Y-%m-%dT%H:%M:%SZ",
-                  std::gmtime(&now));
+    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&now));
     error["timestamp"] = timestamp;
 
     Json::Value root;

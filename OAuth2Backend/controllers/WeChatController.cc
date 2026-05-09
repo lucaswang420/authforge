@@ -9,8 +9,7 @@ const std::string WECHAT_SECRET_KEY = "secret";
 std::string getWeChatConfig(const std::string &key)
 {
     auto config = drogon::app().getCustomConfig();
-    if (config.isMember("external_auth") &&
-        config["external_auth"].isMember("wechat"))
+    if (config.isMember("external_auth") && config["external_auth"].isMember("wechat"))
     {
         return config["external_auth"]["wechat"].get(key, "").asString();
     }
@@ -40,30 +39,28 @@ struct WeChatControllerDocs
         weChatEndpoint.method = "POST";
         weChatEndpoint.summary = "WeChat OAuth2 Login";
         weChatEndpoint.description =
-            "Exchange WeChat authorization code for user information. "
-            "This endpoint handles the server-side OAuth2 flow with "
-            "WeChat Open Platform.";
+          "Exchange WeChat authorization code for user information. "
+          "This endpoint handles the server-side OAuth2 flow with "
+          "WeChat Open Platform.";
         weChatEndpoint.tags = {"External Auth", "WeChat"};
 
         // Initialize parameters
         common::documentation::ParameterInfo codeParam;
         codeParam.name = "code";
-        codeParam.description =
-            "Authorization code from WeChat OAuth2 callback (required)";
+        codeParam.description = "Authorization code from WeChat OAuth2 callback (required)";
         codeParam.type = common::documentation::ParameterType::STRING;
         codeParam.location = common::documentation::ParameterLocation::QUERY;
         codeParam.required = true;
         weChatEndpoint.parameters = {codeParam};
 
         // Initialize responses
-        weChatEndpoint.responses = {
-            {200, "WeChat user info retrieved successfully"},
-            {400, "Invalid request (missing or invalid code)"},
-            {502, "Failed to contact WeChat API"}};
+        weChatEndpoint.responses =
+          {{200, "WeChat user info retrieved successfully"},
+           {400, "Invalid request (missing or invalid code)"},
+           {502, "Failed to contact WeChat API"}};
 
         // Initialize response examples
-        weChatEndpoint.responseExamples = {{200, successExample},
-                                           {400, errorExample}};
+        weChatEndpoint.responseExamples = {{200, successExample}, {400, errorExample}};
 
         weChatEndpoint.requiresAuth = false;
 
@@ -75,8 +72,9 @@ WeChatControllerDocs docs_;
 }  // namespace
 
 void WeChatController::login(
-    const HttpRequestPtr &req,
-    std::function<void(const HttpResponsePtr &)> &&callback)
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
 {
     // Handle OPTIONS for CORS
     if (req->method() == Options)
@@ -91,8 +89,7 @@ void WeChatController::login(
 
     // Check Content-Type and parse accordingly
     auto contentType = req->getHeader("Content-Type");
-    if (contentType.find("application/x-www-form-urlencoded") !=
-        std::string::npos)
+    if (contentType.find("application/x-www-form-urlencoded") != std::string::npos)
     {
         // Parse from POST body
         auto body = req->getBody();
@@ -130,86 +127,71 @@ void WeChatController::login(
     // https://api.weixin.qq.com/sns/oauth2/access_token?appid=APPID&secret=SECRET&code=CODE&grant_type=authorization_code
     auto client = HttpClient::newHttpClient("https://api.weixin.qq.com");
     auto request = HttpRequest::newHttpRequest();
-    std::string path =
-        "/sns/oauth2/access_token?appid=" + getWeChatConfig(WECHAT_APPID_KEY) +
-        "&secret=" + getWeChatConfig(WECHAT_SECRET_KEY) + "&code=" + code +
-        "&grant_type=authorization_code";
+    std::string path = "/sns/oauth2/access_token?appid=" + getWeChatConfig(WECHAT_APPID_KEY) +
+                       "&secret=" + getWeChatConfig(WECHAT_SECRET_KEY) + "&code=" + code +
+                       "&grant_type=authorization_code";
     request->setPath(path);
 
     // Keep the main callback alive
     auto callbackPtr =
-        std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-            std::move(callback));
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     client->sendRequest(
-        request,
-        [callbackPtr, client](ReqResult result,
-                              const HttpResponsePtr &response) {
-            if (result != ReqResult::Ok || !response ||
-                response->getStatusCode() != k200OK)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k502BadGateway);
-                resp->setBody("Failed to contact WeChat API");
-                (*callbackPtr)(resp);
-                return;
-            }
+      request, [callbackPtr, client](ReqResult result, const HttpResponsePtr &response) {
+          if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k502BadGateway);
+              resp->setBody("Failed to contact WeChat API");
+              (*callbackPtr)(resp);
+              return;
+          }
 
-            auto json = *response->getJsonObject();
-            if (json.isMember("errcode") && json["errcode"].asInt() != 0)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody("WeChat Error: " + json["errmsg"].asString());
-                (*callbackPtr)(resp);
-                return;
-            }
+          auto json = *response->getJsonObject();
+          if (json.isMember("errcode") && json["errcode"].asInt() != 0)
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k400BadRequest);
+              resp->setBody("WeChat Error: " + json["errmsg"].asString());
+              (*callbackPtr)(resp);
+              return;
+          }
 
-            std::string accessToken = json["access_token"].asString();
-            std::string openid = json["openid"].asString();
+          std::string accessToken = json["access_token"].asString();
+          std::string openid = json["openid"].asString();
 
-            // 2. Fetch User Info
-            // API:
-            // https://api.weixin.qq.com/sns/userinfo?access_token=ACCESS_TOKEN&openid=OPENID
-            auto client2 =
-                HttpClient::newHttpClient("https://api.weixin.qq.com");
-            auto req2 = HttpRequest::newHttpRequest();
-            req2->setPath("/sns/userinfo?access_token=" + accessToken +
-                          "&openid=" + openid);
+          // 2. Fetch User Info
+          // API:
+          // https://api.weixin.qq.com/sns/userinfo?access_token=ACCESS_TOKEN&openid=OPENID
+          auto client2 = HttpClient::newHttpClient("https://api.weixin.qq.com");
+          auto req2 = HttpRequest::newHttpRequest();
+          req2->setPath("/sns/userinfo?access_token=" + accessToken + "&openid=" + openid);
 
-            client2->sendRequest(
-                req2,
-                [callbackPtr](ReqResult res2, const HttpResponsePtr &resp2) {
-                    if (res2 != ReqResult::Ok || !resp2)
-                    {
-                        auto errResp = HttpResponse::newHttpResponse();
-                        errResp->setStatusCode(k502BadGateway);
-                        errResp->setBody("Failed to fetch WeChat UserInfo");
-                        (*callbackPtr)(errResp);
-                        return;
-                    }
+          client2->sendRequest(req2, [callbackPtr](ReqResult res2, const HttpResponsePtr &resp2) {
+              if (res2 != ReqResult::Ok || !resp2)
+              {
+                  auto errResp = HttpResponse::newHttpResponse();
+                  errResp->setStatusCode(k502BadGateway);
+                  errResp->setBody("Failed to fetch WeChat UserInfo");
+                  (*callbackPtr)(errResp);
+                  return;
+              }
 
-                    // Filter response to only include necessary fields
-                    // (security best practice)
-                    auto wechatData = resp2->getJsonObject();
-                    Json::Value filteredJson;
-                    filteredJson["openid"] =
-                        (*wechatData).get("openid", "").asString();
-                    filteredJson["nickname"] =
-                        (*wechatData).get("nickname", "").asString();
-                    filteredJson["headimgurl"] =
-                        (*wechatData).get("headimgurl", "").asString();
-                    filteredJson["sex"] = (*wechatData).get("sex", 0).asInt();
-                    filteredJson["city"] =
-                        (*wechatData).get("city", "").asString();
-                    filteredJson["province"] =
-                        (*wechatData).get("province", "").asString();
-                    filteredJson["country"] =
-                        (*wechatData).get("country", "").asString();
+              // Filter response to only include necessary fields
+              // (security best practice)
+              auto wechatData = resp2->getJsonObject();
+              Json::Value filteredJson;
+              filteredJson["openid"] = (*wechatData).get("openid", "").asString();
+              filteredJson["nickname"] = (*wechatData).get("nickname", "").asString();
+              filteredJson["headimgurl"] = (*wechatData).get("headimgurl", "").asString();
+              filteredJson["sex"] = (*wechatData).get("sex", 0).asInt();
+              filteredJson["city"] = (*wechatData).get("city", "").asString();
+              filteredJson["province"] = (*wechatData).get("province", "").asString();
+              filteredJson["country"] = (*wechatData).get("country", "").asString();
 
-                    auto finalResp =
-                        HttpResponse::newHttpJsonResponse(filteredJson);
-                    (*callbackPtr)(finalResp);
-                });
-        });
+              auto finalResp = HttpResponse::newHttpJsonResponse(filteredJson);
+              (*callbackPtr)(finalResp);
+          });
+      }
+    );
 }

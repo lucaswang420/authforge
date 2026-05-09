@@ -36,8 +36,7 @@ DROGON_TEST(IntegrationE2E)
 
     if (!dbClient)
     {
-        LOG_WARN
-            << "DB Client unavailable (Null). Skipping IntegrationE2ETest.";
+        LOG_WARN << "DB Client unavailable (Null). Skipping IntegrationE2ETest.";
         return;
     }
     LOG_INFO << "DB Client OK";
@@ -48,11 +47,11 @@ DROGON_TEST(IntegrationE2E)
 
     // Helper for async controller calls (Form Data)
     auto callCtrlForm =
-        [&](std::function<void(const HttpRequestPtr &,
-                               std::function<void(const HttpResponsePtr &)> &&)>
-                method,
-            const std::map<std::string, std::string> &params)
-        -> HttpResponsePtr {
+      [&](
+        std::function<void(const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&)>
+          method,
+        const std::map<std::string, std::string> &params
+      ) -> HttpResponsePtr {
         std::promise<HttpResponsePtr> p;
         auto f = p.get_future();
 
@@ -83,10 +82,9 @@ DROGON_TEST(IntegrationE2E)
 
         // Bind method: OAuth2Controller::registerUser
         // Since it's a member function, we bind 'this' to 'ctrl'.
-        auto method = std::bind(&OAuth2Controller::registerUser,
-                                ctrl,
-                                std::placeholders::_1,
-                                std::placeholders::_2);
+        auto method = std::bind(
+          &OAuth2Controller::registerUser, ctrl, std::placeholders::_1, std::placeholders::_2
+        );
 
         auto resp = callCtrlForm(method, params);
 
@@ -98,11 +96,9 @@ DROGON_TEST(IntegrationE2E)
         {
             if (resp->getStatusCode() != k200OK)
             {
-                LOG_ERROR << "Register Failed. Status: "
-                          << resp->getStatusCode() << " Body: "
-                          << ((resp->getBody().length() > 0)
-                                  ? std::string(resp->getBody())
-                                  : "Empty");
+                LOG_ERROR << "Register Failed. Status: " << resp->getStatusCode() << " Body: "
+                          << ((resp->getBody().length() > 0) ? std::string(resp->getBody())
+                                                             : "Empty");
             }
             CHECK(resp->getStatusCode() == k200OK);
             LOG_INFO << "User Registered: " << userId;
@@ -125,13 +121,14 @@ DROGON_TEST(IntegrationE2E)
         std::promise<void> p;
         auto f = p.get_future();
         client->execSqlAsync(
-            "DELETE FROM users WHERE username = $1",
-            [&](const drogon::orm::Result &) { p.set_value(); },
-            [&](const drogon::orm::DrogonDbException &e) {
-                LOG_ERROR << "Integration Cleanup Failed: " << e.base().what();
-                p.set_value();
-            },
-            userId);
+          "DELETE FROM users WHERE username = $1",
+          [&](const drogon::orm::Result &) { p.set_value(); },
+          [&](const drogon::orm::DrogonDbException &e) {
+              LOG_ERROR << "Integration Cleanup Failed: " << e.base().what();
+              p.set_value();
+          },
+          userId
+        );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
             throw std::runtime_error("TIMEOUT");

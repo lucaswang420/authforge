@@ -53,14 +53,12 @@ void createLogDirFromConfig(const std::string &configPath)
                     if (!std::filesystem::exists(logPath))
                     {
                         std::filesystem::create_directories(logPath);
-                        std::cout << "Created log directory: " << logPath
-                                  << std::endl;
+                        std::cout << "Created log directory: " << logPath << std::endl;
                     }
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "Failed to create log directory: " << e.what()
-                              << std::endl;
+                    std::cerr << "Failed to create log directory: " << e.what() << std::endl;
                 }
             }
         }
@@ -93,58 +91,52 @@ void setupCors()
 
     // Register sync advice to handle CORS preflight (OPTIONS) requests
     drogon::app().registerSyncAdvice(
-        [isAllowed](
-            const drogon::HttpRequestPtr &req) -> drogon::HttpResponsePtr {
-            if (req->method() == drogon::HttpMethod::Options)
-            {
-                const auto &origin = req->getHeader("Origin");
-                if (isAllowed(origin))
-                {
-                    auto resp = drogon::HttpResponse::newHttpResponse();
-                    resp->addHeader("Access-Control-Allow-Origin", origin);
+      [isAllowed](const drogon::HttpRequestPtr &req) -> drogon::HttpResponsePtr {
+          if (req->method() == drogon::HttpMethod::Options)
+          {
+              const auto &origin = req->getHeader("Origin");
+              if (isAllowed(origin))
+              {
+                  auto resp = drogon::HttpResponse::newHttpResponse();
+                  resp->addHeader("Access-Control-Allow-Origin", origin);
 
-                    const auto &requestMethod =
-                        req->getHeader("Access-Control-Request-Method");
-                    if (!requestMethod.empty())
-                    {
-                        resp->addHeader("Access-Control-Allow-Methods",
-                                        requestMethod);
-                    }
+                  const auto &requestMethod = req->getHeader("Access-Control-Request-Method");
+                  if (!requestMethod.empty())
+                  {
+                      resp->addHeader("Access-Control-Allow-Methods", requestMethod);
+                  }
 
-                    resp->addHeader("Access-Control-Allow-Credentials", "true");
+                  resp->addHeader("Access-Control-Allow-Credentials", "true");
 
-                    const auto &requestHeaders =
-                        req->getHeader("Access-Control-Request-Headers");
-                    if (!requestHeaders.empty())
-                    {
-                        resp->addHeader("Access-Control-Allow-Headers",
-                                        requestHeaders);
-                    }
-                    return resp;
-                }
-                // SECURITY: Reject unauthorized preflight requests with 403
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k403Forbidden);
-                return resp;
-            }
-            return {};
-        });
+                  const auto &requestHeaders = req->getHeader("Access-Control-Request-Headers");
+                  if (!requestHeaders.empty())
+                  {
+                      resp->addHeader("Access-Control-Allow-Headers", requestHeaders);
+                  }
+                  return resp;
+              }
+              // SECURITY: Reject unauthorized preflight requests with 403
+              auto resp = drogon::HttpResponse::newHttpResponse();
+              resp->setStatusCode(drogon::k403Forbidden);
+              return resp;
+          }
+          return {};
+      }
+    );
 
     // Register post-handling advice to add CORS headers to all responses
     drogon::app().registerPostHandlingAdvice(
-        [isAllowed](const drogon::HttpRequestPtr &req,
-                    const drogon::HttpResponsePtr &resp) {
-            const auto &origin = req->getHeader("Origin");
-            if (isAllowed(origin))
-            {
-                resp->addHeader("Access-Control-Allow-Origin", origin);
-                resp->addHeader("Access-Control-Allow-Methods",
-                                "GET, POST, OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers",
-                                "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Allow-Credentials", "true");
-            }
-        });
+      [isAllowed](const drogon::HttpRequestPtr &req, const drogon::HttpResponsePtr &resp) {
+          const auto &origin = req->getHeader("Origin");
+          if (isAllowed(origin))
+          {
+              resp->addHeader("Access-Control-Allow-Origin", origin);
+              resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+              resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+              resp->addHeader("Access-Control-Allow-Credentials", "true");
+          }
+      }
+    );
 }
 
 // Load configuration with ConfigManager
@@ -189,46 +181,46 @@ int main()
     drogon::app().loadConfigJson(config);
 
     // Log configuration values for debugging
-    LOG_DEBUG << "Database host: "
-              << common::config::ConfigManager::get<std::string>(
-                     config, "db_clients.0.host", "localhost");
+    LOG_DEBUG
+      << "Database host: "
+      << common::config::ConfigManager::get<std::string>(config, "db_clients.0.host", "localhost");
     LOG_DEBUG << "Database port: "
-              << common::config::ConfigManager::get<int>(config,
-                                                         "db_clients.0.port",
-                                                         5432);
+              << common::config::ConfigManager::get<int>(config, "db_clients.0.port", 5432);
     LOG_DEBUG << "Redis host: "
               << common::config::ConfigManager::get<std::string>(
-                     config, "redis_clients.0.host", "localhost");
+                   config, "redis_clients.0.host", "localhost"
+                 );
 
     // Setup CORS support
     setupCors();
 
     // Global Security Headers
     drogon::app().registerPostHandlingAdvice(
-        [](const drogon::HttpRequestPtr &req,
-           const drogon::HttpResponsePtr &resp) {
-            resp->addHeader("X-Content-Type-Options", "nosniff");
-            resp->addHeader("X-Frame-Options", "SAMEORIGIN");
-            resp->addHeader("Content-Security-Policy",
-                            "default-src 'self'; "
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
-                            "https://unpkg.com; "
-                            "style-src 'self' 'unsafe-inline' "
-                            "https://fonts.googleapis.com https://unpkg.com; "
-                            "font-src 'self' https://fonts.gstatic.com; "
-                            "img-src 'self' data: https: https://unpkg.com; "
-                            "connect-src 'self' https://unpkg.com; "
-                            "frame-ancestors 'self';");
+      [](const drogon::HttpRequestPtr &req, const drogon::HttpResponsePtr &resp) {
+          resp->addHeader("X-Content-Type-Options", "nosniff");
+          resp->addHeader("X-Frame-Options", "SAMEORIGIN");
+          resp->addHeader(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' "
+            "https://fonts.googleapis.com https://unpkg.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https: https://unpkg.com; "
+            "connect-src 'self' https://unpkg.com; "
+            "frame-ancestors 'self';"
+          );
 
-            // Only set HSTS header on HTTPS connections
-            // Check X-Forwarded-Proto header for reverse proxy scenarios
-            auto forwardedProto = req->getHeader("X-Forwarded-Proto");
-            if (forwardedProto == "https")
-            {
-                resp->addHeader("Strict-Transport-Security",
-                                "max-age=31536000; includeSubDomains");
-            }
-        });
+          // Only set HSTS header on HTTPS connections
+          // Check X-Forwarded-Proto header for reverse proxy scenarios
+          auto forwardedProto = req->getHeader("X-Forwarded-Proto");
+          if (forwardedProto == "https")
+          {
+              resp->addHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+          }
+      }
+    );
 
     // Report Hodor status after plugins have been initialized. Hodor is loaded
     // only by production configuration.
@@ -239,13 +231,11 @@ int main()
             if (hodor)
                 std::cout << "Hodor rate limiter enabled" << std::endl;
             else
-                std::cout << "Hodor rate limiter not enabled by this config"
-                          << std::endl;
+                std::cout << "Hodor rate limiter not enabled by this config" << std::endl;
         }
         catch (const std::exception &)
         {
-            std::cout << "Hodor rate limiter not enabled by this config"
-                      << std::endl;
+            std::cout << "Hodor rate limiter not enabled by this config" << std::endl;
         }
     });
 
@@ -255,9 +245,10 @@ int main()
     // Configure OpenAPI server from config
     const auto &listeners = drogon::app().getListeners();
     const auto &customConfig = drogon::app().getCustomConfig();
-    if (!listeners.empty() && customConfig.isMember("listeners") &&
-        customConfig["listeners"].isArray() &&
-        !customConfig["listeners"].empty())
+    if (
+      !listeners.empty() && customConfig.isMember("listeners") &&
+      customConfig["listeners"].isArray() && !customConfig["listeners"].empty()
+    )
     {
         const auto &listener = listeners[0];
         const auto &listenerConfig = customConfig["listeners"][0];
@@ -284,13 +275,13 @@ int main()
         }
 
         common::documentation::OpenApiGenerator::setServerConfig(
-            serverUrl, "OAuth2 Authorization Server");
+          serverUrl, "OAuth2 Authorization Server"
+        );
     }
 
     // Use current working directory (usually build/Release or project root)
     std::filesystem::path baseDir = std::filesystem::current_path();
-    std::string openapiPath =
-        (baseDir / "docs" / "api" / "openapi.json").string();
+    std::string openapiPath = (baseDir / "docs" / "api" / "openapi.json").string();
 
     if (!common::documentation::OpenApiGenerator::writeToFile(openapiPath))
     {

@@ -11,19 +11,24 @@ class Validator
 {
   public:
     // Basic validation methods
-    static ValidationResult notEmpty(const std::string &value,
-                                     const std::string &fieldName);
-    static ValidationResult length(const std::string &value,
-                                   const std::string &fieldName,
-                                   size_t minLen,
-                                   size_t maxLen);
-    static ValidationResult regex(const std::string &value,
-                                  const std::string &fieldName,
-                                  const std::string &pattern);
-    static ValidationResult numericRange(int value,
-                                         const std::string &fieldName,
-                                         int minVal,
-                                         int maxVal);
+    static ValidationResult notEmpty(const std::string &value, const std::string &fieldName);
+    static ValidationResult length(
+      const std::string &value,
+      const std::string &fieldName,
+      size_t minLen,
+      size_t maxLen
+    );
+    static ValidationResult regex(
+      const std::string &value,
+      const std::string &fieldName,
+      const std::string &pattern
+    );
+    static ValidationResult numericRange(
+      int value,
+      const std::string &fieldName,
+      int minVal,
+      int maxVal
+    );
 
     // OAuth2-specific validation
     static ValidationResult validateClientId(const std::string &clientId);
@@ -36,8 +41,9 @@ class Validator
 
     // Batch validation
     static std::vector<ValidationResult> validateAll(
-        const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
-        const std::vector<ValidationRuleType> &rules);
+      const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
+      const std::vector<ValidationRuleType> &rules
+    );
 };
 
 }  // namespace common::validation

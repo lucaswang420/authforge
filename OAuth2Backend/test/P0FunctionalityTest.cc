@@ -86,8 +86,8 @@ TEST(P0_3_PKCE, PlainMethodValidation)
     std::string codeChallenge = "testVerifier123";  // plain method
     std::string codeChallengeMethod = "plain";
 
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        codeVerifier, codeChallenge, codeChallengeMethod);
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(codeVerifier, codeChallenge, codeChallengeMethod);
 
     EXPECT_TRUE(isValid) << "Plain method validation should succeed";
 }
@@ -95,12 +95,14 @@ TEST(P0_3_PKCE, PlainMethodValidation)
 TEST(P0_3_PKCE, S256MethodValidation)
 {
     // Test S256 method validation
-    std::string codeVerifier = "dBjftJeRp4gWTkYbsm1nkjpKfuHYQoRin2057DeWNPBG-jOgNoFryB9oqLb7Jx1vjbhgHRLQ";  // RFC 7636 test vector
+    std::string codeVerifier =
+      "dBjftJeRp4gWTkYbsm1nkjpKfuHYQoRin2057DeWNPBG-"
+      "jOgNoFryB9oqLb7Jx1vjbhgHRLQ";  // RFC 7636 test vector
     std::string codeChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJstwvGElvfczsDiY54tlddqPv97LM";
     std::string codeChallengeMethod = "S256";
 
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        codeVerifier, codeChallenge, codeChallengeMethod);
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(codeVerifier, codeChallenge, codeChallengeMethod);
 
     EXPECT_TRUE(isValid) << "S256 method validation should succeed with RFC test vector";
 }
@@ -112,8 +114,8 @@ TEST(P0_3_PKCE, InvalidVerifier)
     std::string codeChallenge = "testChallenge";
     std::string codeChallengeMethod = "S256";
 
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        codeVerifier, codeChallenge, codeChallengeMethod);
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(codeVerifier, codeChallenge, codeChallengeMethod);
 
     EXPECT_FALSE(isValid) << "Invalid verifier should fail validation";
 }
@@ -125,8 +127,8 @@ TEST(P0_3_PKCE, MissingVerifierForChallenge)
     std::string codeChallenge = "testChallenge";
     std::string codeChallengeMethod = "S256";
 
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        codeVerifier, codeChallenge, codeChallengeMethod);
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(codeVerifier, codeChallenge, codeChallengeMethod);
 
     EXPECT_FALSE(isValid) << "Missing verifier should fail validation";
 }
@@ -151,8 +153,8 @@ TEST(P0_4_StateParameter, ValidStateFormats)
 TEST(P0_4_StateParameter, InvalidStateFormats)
 {
     // Test invalid state parameter formats
-    std::string state1 = "";  // too short
-    std::string state2 = "abc";  // too short
+    std::string state1 = "";                     // too short
+    std::string state2 = "abc";                  // too short
     std::string state3 = std::string(513, 'a');  // too long
 
     EXPECT_LT(state1.length(), 8);
@@ -211,9 +213,7 @@ TEST(P0_Integration, SubjectMappingWithPKCE)
     storage.initFromConfig(clientsConfig, adminConfig);
 
     // Create subject mapping
-    storage.createSubjectMapping("user1", 100, "local", [](bool success) {
-        EXPECT_TRUE(success);
-    });
+    storage.createSubjectMapping("user1", 100, "local", [](bool success) { EXPECT_TRUE(success); });
 
     // Verify mapping was created
     storage.getInternalUserId("user1", "local", [](auto userIdOpt) {
@@ -230,8 +230,8 @@ TEST(P0_Integration, PKCEWithSubjectMapping)
     std::string codeChallengeMethod = "S256";
 
     // Verify S256 validation works
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        codeVerifier, codeChallenge, codeChallengeMethod);
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(codeVerifier, codeChallenge, codeChallengeMethod);
 
     EXPECT_TRUE(isValid) << "PKCE validation should succeed with generated hash";
 
@@ -262,7 +262,7 @@ TEST(P0_Integration, StateWithScopeValidation)
     for (const auto &scope : scopes)
     {
         EXPECT_FALSE(OAuth2Plugin::scopeRequiresAdminRole(scope))
-            << "Basic request should not contain admin scopes";
+          << "Basic request should not contain admin scopes";
     }
 }
 
@@ -282,7 +282,8 @@ TEST(P0_Performance, SubjectGenerationPerformance)
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-    EXPECT_LT(duration.count(), 100) << "Subject generation should be very fast (<100ms for 1000 iterations)";
+    EXPECT_LT(duration.count(), 100) << "Subject generation should be very "
+                                        "fast (<100ms for 1000 iterations)";
 }
 
 TEST(P0_Performance, PKCEHashPerformance)
@@ -300,7 +301,8 @@ TEST(P0_Performance, PKCEHashPerformance)
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-    EXPECT_LT(duration.count(), 500) << "PKCE hash should be reasonably fast (<500ms for 100 iterations)";
+    EXPECT_LT(duration.count(), 500)
+      << "PKCE hash should be reasonably fast (<500ms for 100 iterations)";
 }
 
 // ========== Security Tests ==========
@@ -312,8 +314,8 @@ TEST(P0_Security, SubjectInjectionPrevention)
     std::string malicious2 = "local:alice\nevil";
     std::string malicious3 = "local:alice?admin=true";
 
-    // All should be valid subjects (we don't block special characters in subjects)
-    // but our validation should prevent injection in database queries
+    // All should be valid subjects (we don't block special characters in
+    // subjects) but our validation should prevent injection in database queries
     EXPECT_TRUE(SubjectGenerator::isValid(malicious1));
     EXPECT_TRUE(SubjectGenerator::isValid(malicious2));
     EXPECT_TRUE(SubjectGenerator::isValid(malicious3));
@@ -330,8 +332,8 @@ TEST(P0_Security, PKCEAttackPrevention)
     std::string stolenCodeChallenge = "interceptedChallenge";
     std::string wrongVerifier = "stolenVerifier";
 
-    bool isValid = OAuth2Plugin::validatePkceCodeVerifier(
-        wrongVerifier, stolenCodeChallenge, "S256");
+    bool isValid =
+      OAuth2Plugin::validatePkceCodeVerifier(wrongVerifier, stolenCodeChallenge, "S256");
 
     EXPECT_FALSE(isValid) << "Stolen verifier should fail PKCE validation";
 }

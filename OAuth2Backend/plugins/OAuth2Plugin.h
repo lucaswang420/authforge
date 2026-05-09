@@ -22,16 +22,20 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     /**
      * @brief Validate if client exists and secret matches (Async)
      */
-    void validateClient(const std::string &clientId,
-                        const std::string &clientSecret,
-                        std::function<void(bool)> &&callback);
+    void validateClient(
+      const std::string &clientId,
+      const std::string &clientSecret,
+      std::function<void(bool)> &&callback
+    );
 
     /**
      * @brief Validate redirect URI (Async)
      */
-    void validateRedirectUri(const std::string &clientId,
-                             const std::string &redirectUri,
-                             std::function<void(bool)> &&callback);
+    void validateRedirectUri(
+      const std::string &clientId,
+      const std::string &redirectUri,
+      std::function<void(bool)> &&callback
+    );
 
     /**
      * @brief Generate Authorization Code (Async)
@@ -47,13 +51,14 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * failure
      */
     void generateAuthorizationCode(
-        const std::string &clientId,
-        const std::string &subject,
-        const std::string &scope,
-        const std::string &redirectUri,
-        const std::string &codeChallenge,
-        const std::string &codeChallengeMethod,
-        std::function<void(bool, std::string, std::string)> &&callback);
+      const std::string &clientId,
+      const std::string &subject,
+      const std::string &scope,
+      const std::string &redirectUri,
+      const std::string &codeChallenge,
+      const std::string &codeChallengeMethod,
+      std::function<void(bool, std::string, std::string)> &&callback
+    );
 
     /**
      * @brief Exchange Code for Access Token (Async)
@@ -68,34 +73,39 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param callback Callback with token response or error
      */
     void exchangeCodeForToken(
-        const std::string &code,
-        const std::string &clientId,
-        const std::string &clientSecret,
-        const std::string &redirectUri,
-        const std::string &codeVerifier,  // P0-3: PKCE code verifier
-        std::function<void(const Json::Value &)> &&callback);
+      const std::string &code,
+      const std::string &clientId,
+      const std::string &clientSecret,
+      const std::string &redirectUri,
+      const std::string &codeVerifier,  // P0-3: PKCE code verifier
+      std::function<void(const Json::Value &)> &&callback
+    );
 
     /**
      * @brief Refresh Access Token (Async)
      * Returns JSON with {access_token, refresh_token, expires_in} or {error}
      */
     void refreshAccessToken(
-        const std::string &refreshToken,
-        const std::string &clientId,
-        std::function<void(const Json::Value &)> &&callback);
+      const std::string &refreshToken,
+      const std::string &clientId,
+      std::function<void(const Json::Value &)> &&callback
+    );
 
     /**
      * @brief Validate Access Token (Async)
      */
     void validateAccessToken(
-        const std::string &token,
-        std::function<void(std::shared_ptr<AccessToken>)> &&callback);
+      const std::string &token,
+      std::function<void(std::shared_ptr<AccessToken>)> &&callback
+    );
 
     /**
      * @brief Get User Roles (Async)
      */
-    void getUserRoles(const std::string &userId,
-                      std::function<void(std::vector<std::string>)> &&callback);
+    void getUserRoles(
+      const std::string &userId,
+      std::function<void(std::vector<std::string>)> &&callback
+    );
 
     // ========== P0-2: Consent Management Methods ==========
 
@@ -105,8 +115,9 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param callback Callback with optional internal user ID
      */
     void getInternalUserId(
-        const std::string &subject,
-        std::function<void(std::optional<int32_t>)> &&callback);
+      const std::string &subject,
+      std::function<void(std::optional<int32_t>)> &&callback
+    );
 
     /**
      * @brief Check if user has consented to a scope for a client (Async)
@@ -115,10 +126,12 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param scope Scope to check consent for
      * @param callback Callback with consent status
      */
-    void hasUserConsent(int32_t internalUserId,
-                        const std::string &clientId,
-                        const std::string &scope,
-                        std::function<void(bool)> &&callback);
+    void hasUserConsent(
+      int32_t internalUserId,
+      const std::string &clientId,
+      const std::string &scope,
+      std::function<void(bool)> &&callback
+    );
 
     /**
      * @brief Save user consent for a scope (Async)
@@ -127,10 +140,12 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param scope Scope to save consent for
      * @param callback Callback with success status
      */
-    void saveUserConsent(int32_t internalUserId,
-                         const std::string &clientId,
-                         const std::string &scope,
-                         std::function<void(bool)> &&callback);
+    void saveUserConsent(
+      int32_t internalUserId,
+      const std::string &clientId,
+      const std::string &scope,
+      std::function<void(bool)> &&callback
+    );
 
     // ========== P0-3: PKCE Validation Methods ==========
 
@@ -142,9 +157,10 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @return true if verifier is valid, false otherwise
      */
     static bool validatePkceCodeVerifier(
-        const std::string &codeVerifier,
-        const std::string &codeChallenge,
-        const std::string &codeChallengeMethod);
+      const std::string &codeVerifier,
+      const std::string &codeChallenge,
+      const std::string &codeChallengeMethod
+    );
 
     /**
      * @brief Generate SHA-256 hash for PKCE S256 method
@@ -162,9 +178,10 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param callback Callback with validation result and error message
      */
     void validateClientScopes(
-        const std::string &clientId,
-        const std::vector<std::string> &requestedScopes,
-        std::function<void(bool, std::string)> &&callback);
+      const std::string &clientId,
+      const std::vector<std::string> &requestedScopes,
+      std::function<void(bool, std::string)> &&callback
+    );
 
     /**
      * @brief Validate user roles for admin scopes (Tier 2)
@@ -173,9 +190,10 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param callback Callback with validation result and error message
      */
     void validateUserRolesForScopes(
-        const std::string &userId,
-        const std::vector<std::string> &scopes,
-        std::function<void(bool, std::string)> &&callback);
+      const std::string &userId,
+      const std::vector<std::string> &scopes,
+      std::function<void(bool, std::string)> &&callback
+    );
 
     /**
      * @brief Check if scope requires admin role
@@ -218,10 +236,12 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param internalUserId Internal user ID from users table
      * @param callback Callback invoked when mapping is ensured
      */
-    void ensureSubjectMapping(const std::string &subject,
-                              const std::string &username,
-                              int32_t internalUserId,
-                              std::function<void()> &&callback);
+    void ensureSubjectMapping(
+      const std::string &subject,
+      const std::string &username,
+      int32_t internalUserId,
+      std::function<void()> &&callback
+    );
 
     /**
      * @brief Handle first-time login for new users
@@ -229,7 +249,9 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
      * @param provider Provider name
      * @param callback Callback with internal user ID or 0 if failed
      */
-    void handleFirstTimeLogin(const std::string &subject,
-                              const std::string &provider,
-                              std::function<void(int32_t)> &&callback);
+    void handleFirstTimeLogin(
+      const std::string &subject,
+      const std::string &provider,
+      std::function<void(int32_t)> &&callback
+    );
 };
