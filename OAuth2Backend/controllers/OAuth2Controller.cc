@@ -292,6 +292,64 @@ void OAuth2Controller::authorize(
     std::string redirectUri = params["redirect_uri"];
     std::string scope = params["scope"];
     std::string state = params["state"];
+
+    // P0-4: State Parameter Enforcement
+    // OAuth2 RFC 6749 RECOMMENDS using state parameter to prevent CSRF attacks
+    // We enforce it for security compliance
+    if (state.empty())
+    {
+        LOG_WARN << "Authorization request missing state parameter (CSRF "
+                    "vulnerability) for client: "
+                 << clientId;
+        Metrics::incRequest("authorize", 400);
+        Metrics::incLoginFailure("missing_state_parameter");
+
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k400BadRequest);
+        resp->setBody(
+            "state parameter is required for CSRF protection. "
+            "Please include a state parameter in your authorization request.");
+        callback(resp);
+        return;
+    }
+
+    // Validate state parameter format and length (security best practices)
+    if (state.length() < 8 || state.length() > 512)
+    {
+        LOG_WARN << "Authorization request has invalid state parameter length "
+                    "(must be 8-512 chars) for client: "
+                 << clientId << ", state length: " << state.length();
+        Metrics::incRequest("authorize", 400);
+        Metrics::incLoginFailure("invalid_state_parameter");
+
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k400BadRequest);
+        resp->setBody("state parameter must be between 8 and 512 characters.");
+        callback(resp);
+        return;
+    }
+
+    // Check for potential state injection attacks (URL parameters in state)
+    if (state.find('?') != std::string::npos ||
+        state.find('#') != std::string::npos ||
+        state.find('&') != std::string::npos)
+    {
+        LOG_WARN << "Authorization request has potentially malicious state "
+                    "parameter (contains URL delimiters) for client: "
+                 << clientId << ", state: " << state.substr(0, 20) << "...";
+        Metrics::incRequest("authorize", 400);
+        Metrics::incLoginFailure("suspicious_state_parameter");
+
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k400BadRequest);
+        resp->setBody("state parameter contains invalid characters.");
+        callback(resp);
+        return;
+    }
+
+    LOG_DEBUG << "Authorization request with valid state parameter for client: "
+              << clientId << ", state: " << state.substr(0, 8) << "...";
+
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
