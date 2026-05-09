@@ -114,6 +114,10 @@ DROGON_TEST(OAuth2AuthorizationCodeFlow)
             req->setParameter("scope", "openid profile");
             req->setParameter("state", "test_state_123");
 
+            // Create session and set userId to simulate logged-in user
+            auto session = req->session();
+            session->insert("userId", testUserId);
+
             ctrl->authorize(req, [&](const HttpResponsePtr &resp) {
                 p.set_value(resp);
             });
