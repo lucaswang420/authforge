@@ -89,53 +89,20 @@ OAuth2Backend/
 - [+] 批量操作优化 (需说明必要性)
 - [+] 测试代码清理
 
-**Drogon ORM Mapper 完整实现示例**
+### ORM 使用要点
 
-以下示例展示了如何正确使用 ORM 替代 raw SQL，同时遵循异步回调规范：
+参考项目中的实际实现：
 
-```cpp
-// [+] 使用 ORM 替代 JOIN
-void getUserRoles(const std::string &userId, StringListCallback &&cb) {
-    auto sharedCb = std::make_shared<StringListCallback>(std::move(cb));
+- `PostgresOAuth2Storage.cc` - ORM 查询示例
+- `CachedOAuth2Storage.cc` - 缓存 + ORM 组合使用
+- `RedisOAuth2Storage.cc` - Redis 存储实现
 
-    // Step 1: 查询 UserRoles
-    Mapper<UserRoles> urMapper(dbClient);
-    urMapper.findBy(
-        Criteria(UserRoles::Cols::_user_id, CompareOperator::EQ, uid),
-        [sharedCb](const std::vector<UserRoles> &userRoles) {
-            // Step 2: 提取 roleIds
-            std::vector<int32_t> roleIds;
-            for (const auto &ur : userRoles) {
-                roleIds.push_back(ur.getValueOfRoleId());
-            }
+### 关键规范
 
-            // Step 3: 批量查询 Roles
-            Mapper<Roles> roleMapper(dbClient);
-            roleMapper.findBy(
-                Criteria(Roles::Cols::_id, CompareOperator::In, roleIds),
-                [sharedCb](const std::vector<Roles> &roles) {
-                    std::vector<std::string> names;
-                    for (const auto &role : roles) {
-                        names.push_back(role.getValueOfName());
-                    }
-                    (*sharedCb)(names);
-                },
-                [sharedCb](const DrogonDbException &e) {
-                    (*sharedCb)({});
-                });
-        },
-        [sharedCb](const DrogonDbException &e) {
-            (*sharedCb)({});
-        });
-}
-```
-
-**示例说明**：
-
-1. [+] **Callback 生命周期管理**: 使用 `std::make_shared<StringListCallback>(std::move(cb))` 确保 callback 对象在异步操作完成前不被销毁
-2. [+] **替代 JOIN 查询**: 将 `SELECT r.name FROM roles r JOIN user_roles ur` 拆分为两个 ORM 查询
-3. [+] **错误处理**: 所有异步回调都有错误处理分支，确保 `(*sharedCb)(...)` 总是被调用
-4. [+] **Lambda 捕获**: 所有回调都捕获 `[sharedCb]` 而非裸指针
+1. [+] **Callback 生命周期**: 使用 `std::make_shared<CallbackType>(std::move(cb))`
+2. [+] **替代 JOIN**: 拆分为多个 ORM 查询或使用 `Criteria::In`
+3. [+] **错误处理**: 所有异步回调都有错误处理分支
+4. [+] **Lambda 捕获**: 捕获 `[sharedCb]` 而非裸指针
 
 ### [MUST] 数据库连接管理
 - 读写分离: `dbClientMaster_` (写), `dbClientReader_` (读)
@@ -391,16 +358,6 @@ cd build && ctest -V -C Release --output-on-failure
 
 # 代码格式化
 git ls-files 'OAuth2Backend/*.cc' 'OAuth2Backend/*.h' | grep -v '^OAuth2Backend/models/' | xargs clang-format -i
-
-# 静态分析
-# Linux/macOS: 使用 CMake 编译数据库（推荐）
-cd build && clang-tidy -p . ../OAuth2Backend/**/*.cc
-
-# Windows: 使用 PowerShell 7+ 或 Git Bash
-# cd build && clang-tidy -p . ../OAuth2Backend/**/*.cc
-
-# 或者使用 find 命令（跨平台）
-find OAuth2Backend -name "*.cc" -exec clang-tidy {} -- -I OAuth2Backend/ \;
 
 # 启动开发服务器
 cd build && ./OAuth2Backend -c config.json

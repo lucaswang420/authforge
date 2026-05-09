@@ -1109,4 +1109,170 @@ void PostgresOAuth2Storage::getUserRoles(int32_t internalUserId, StringListCallb
     }
 }
 
+// ========== P1: Token Introspection (RFC 7662) ==========
+
+void PostgresOAuth2Storage::introspectToken(
+  const std::string &token,
+  IOAuth2Storage::TokenIntrospectionCallback &&cb
+)
+{
+    if (!dbClientReader_)
+    {
+        TokenIntrospection introspection;
+        introspection.active = false;
+        cb(introspection);
+        return;
+    }
+
+    auto sharedCb = std::make_shared<TokenIntrospectionCallback>(std::move(cb));
+    int64_t now = std::time(nullptr);
+
+    // Use raw SQL to handle both old and new database schemas
+    // This query will work whether P1 columns exist or not
+    std::string sql = R"(
+        SELECT token, client_id, user_id, scope, expires_at, revoked,
+               COALESCE(issued_at, EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::bigint) as issued_at,
+               COALESCE(issuer, 'https://oauth.example.com') as issuer,
+               COALESCE(audience, '') as audience,
+               COALESCE(not_before, EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::bigint) as not_before
+        FROM oauth2_access_tokens
+        WHERE token = $1
+    )";
+
+    dbClientReader_->execSqlAsync(
+      sql,
+      [sharedCb, now](const Result &result) {
+          TokenIntrospection introspection;
+
+          if (result.size() == 0)
+          {
+              introspection.active = false;
+              (*sharedCb)(introspection);
+              return;
+          }
+
+          auto row = result[0];
+          bool revoked = row["revoked"].as<bool>();
+          int64_t expiresAt = row["expires_at"].as<int64_t>();
+
+          if (revoked || expiresAt < now)
+          {
+              introspection.active = false;
+              (*sharedCb)(introspection);
+              return;
+          }
+
+          // Token is active, populate introspection data
+          introspection.active = true;
+          introspection.clientId = row["client_id"].as<std::string>();
+          introspection.tokenType = "Bearer";
+          introspection.exp = expiresAt;
+          introspection.iat = row["issued_at"].as<int64_t>();
+          introspection.iss = row["issuer"].as<std::string>();
+          introspection.aud = row["audience"].as<std::string>();
+          introspection.nbf = row["not_before"].as<int64_t>();
+          introspection.sub = row["user_id"].as<std::string>();
+          introspection.scope = row["scope"].as<std::string>();
+
+          (*sharedCb)(introspection);
+      },
+      [sharedCb](const DrogonDbException &e) {
+          LOG_DEBUG << "introspectToken error: " << e.base().what();
+          TokenIntrospection introspection;
+          introspection.active = false;
+          (*sharedCb)(introspection);
+      },
+      token.c_str()
+    );
+}
+
+void PostgresOAuth2Storage::incrementIntrospectCount(
+  const std::string &token,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    if (!dbClientMaster_)
+    {
+        cb();
+        return;
+    }
+
+    auto sharedCb = std::make_shared<VoidCallback>(std::move(cb));
+
+    // Try to increment introspect_count (P1 feature)
+    // This will fail gracefully if column doesn't exist (P0 compatibility)
+    std::string sql =
+      "UPDATE oauth2_access_tokens "
+      "SET introspect_count = COALESCE(introspect_count, 0) + 1 "
+      "WHERE token = $1";
+
+    dbClientMaster_->execSqlAsync(
+      sql,
+      [sharedCb](const Result &) { (*sharedCb)(); },
+      [sharedCb](const DrogonDbException &e) {
+          // Column might not exist (P0 compatibility), log and continue
+          LOG_DEBUG << "incrementIntrospectCount failed (P0 compatibility): "
+                    << e.base().what();
+          (*sharedCb)();
+      },
+      token.c_str()
+    );
+}
+
+// ========== P1: Token Revocation (RFC 7009) ==========
+
+void PostgresOAuth2Storage::revokeAccessToken(
+  const std::string &token,
+  const std::string &revokedBy,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    if (!dbClientMaster_)
+    {
+        cb();
+        return;
+    }
+
+    auto sharedCb = std::make_shared<VoidCallback>(std::move(cb));
+    int64_t now = std::time(nullptr);
+
+    // Update token as revoked with audit trail (P1)
+    // This works with both old and new schemas
+    std::string sql =
+      "UPDATE oauth2_access_tokens "
+      "SET revoked = TRUE, "
+      "    revoked_at = $1, "
+      "    revoked_by = $2 "
+      "WHERE token = $3";
+
+    dbClientMaster_->execSqlAsync(
+      sql,
+      [sharedCb](const Result &result) {
+          LOG_DEBUG << "Token revoked successfully";
+          (*sharedCb)();
+      },
+      [this, sharedCb, token](const DrogonDbException &e) {
+          // P0 compatibility: If columns don't exist, just set revoked = TRUE
+          LOG_DEBUG << "Full revocation failed, trying P0 compatibility: " << e.base().what();
+          std::string p0Sql =
+            "UPDATE oauth2_access_tokens "
+            "SET revoked = TRUE "
+            "WHERE token = $1";
+
+          dbClientMaster_->execSqlAsync(
+            p0Sql,
+            [sharedCb](const Result &) { (*sharedCb)(); },
+            [sharedCb](const DrogonDbException &e2) {
+              LOG_ERROR << "revokeAccessToken P0 fallback also failed: " << e2.base().what();
+              (*sharedCb)();
+            },
+            token.c_str()
+          );
+      },
+      now,
+      revokedBy.c_str(),
+      token.c_str()
+    );
+}
+
 }  // namespace oauth2

@@ -257,7 +257,17 @@ void MemoryOAuth2Storage::consumeAuthCode(
 void MemoryOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCallback &&cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    accessTokens_[token.token] = token;
+
+    // Ensure P1 fields have default values if not set
+    OAuth2AccessToken tokenWithDefaults = token;
+    if (tokenWithDefaults.issuedAt == 0)
+        tokenWithDefaults.issuedAt = getCurrentTimestamp();
+    if (tokenWithDefaults.issuer.empty())
+        tokenWithDefaults.issuer = "https://oauth.example.com";
+    if (tokenWithDefaults.notBefore == 0)
+        tokenWithDefaults.notBefore = getCurrentTimestamp();
+
+    accessTokens_[tokenWithDefaults.token] = tokenWithDefaults;
     if (cb)
         cb();
 }
@@ -541,6 +551,89 @@ void MemoryOAuth2Storage::getUserRoles(int32_t internalUserId, StringListCallbac
         // Default to regular user role if no specific configuration
         cb({"user"});
     }
+}
+
+// ========== P1: Token Introspection (RFC 7662) ==========
+
+void MemoryOAuth2Storage::introspectToken(
+  const std::string &token,
+  IOAuth2Storage::TokenIntrospectionCallback &&cb
+)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = accessTokens_.find(token);
+    if (it != accessTokens_.end())
+    {
+        const OAuth2AccessToken &accessToken = it->second;
+        int64_t now = getCurrentTimestamp();
+
+        // Check if token is revoked or expired
+        if (accessToken.revoked || accessToken.expiresAt < now)
+        {
+            TokenIntrospection introspection;
+            introspection.active = false;
+            cb(introspection);
+            return;
+        }
+
+        // Token is active, populate introspection data
+        TokenIntrospection introspection;
+        introspection.active = true;
+        introspection.clientId = accessToken.clientId;
+        introspection.tokenType = "Bearer";
+        introspection.exp = accessToken.expiresAt;
+        introspection.iat = accessToken.issuedAt;
+        introspection.iss = accessToken.issuer;
+        introspection.aud = accessToken.audience;
+        introspection.nbf = accessToken.notBefore;
+        introspection.sub = accessToken.userId;
+        introspection.scope = accessToken.scope;
+
+        cb(introspection);
+        return;
+    }
+
+    // Token not found
+    TokenIntrospection introspection;
+    introspection.active = false;
+    cb(introspection);
+}
+
+void MemoryOAuth2Storage::incrementIntrospectCount(
+  const std::string &token,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = accessTokens_.find(token);
+    if (it != accessTokens_.end())
+    {
+        it->second.introspectCount++;
+    }
+    if (cb)
+        cb();
+}
+
+// ========== P1: Token Revocation (RFC 7009) ==========
+
+void MemoryOAuth2Storage::revokeAccessToken(
+  const std::string &token,
+  const std::string &revokedBy,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = accessTokens_.find(token);
+    if (it != accessTokens_.end())
+    {
+        it->second.revoked = true;
+        it->second.revokedAt = getCurrentTimestamp();
+        it->second.revokedBy = revokedBy;
+        LOG_INFO << "Token revoked successfully in memory storage";
+    }
+    // Always return success per RFC 7009 (prevent token probing)
+    if (cb)
+        cb();
 }
 
 }  // namespace oauth2

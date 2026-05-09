@@ -5,6 +5,7 @@
 #include <optional>
 #include <memory>
 #include <functional>
+#include <json/json.h>
 #include "../common/types/OAuth2Types.h"
 
 namespace oauth2
@@ -40,7 +41,7 @@ struct OAuth2AuthCode
 };
 
 /**
- * @brief Access Token data structure
+ * @brief Access Token data structure (extended for P1 features)
  */
 struct OAuth2AccessToken
 {
@@ -50,10 +51,19 @@ struct OAuth2AccessToken
     std::string scope;
     int64_t expiresAt;  // Unix timestamp (seconds)
     bool revoked = false;
+
+    // P1: RFC 7662 Token Introspection fields
+    int64_t issuedAt = 0;     // Unix timestamp when token was issued (iat)
+    std::string issuer;       // Issuer identifier (iss)
+    std::string audience;     // Audience identifier (aud)
+    int64_t notBefore = 0;    // Token not valid before (nbf)
+    int introspectCount = 0;  // Number of introspection requests
+    int64_t revokedAt = 0;    // Unix timestamp when token was revoked
+    std::string revokedBy;    // Client ID that revoked the token
 };
 
 /**
- * @brief Refresh Token data structure
+ * @brief Refresh Token data structure (extended for P1 features)
  */
 struct OAuth2RefreshToken
 {
@@ -64,6 +74,64 @@ struct OAuth2RefreshToken
     std::string scope;
     int64_t expiresAt;
     bool revoked = false;
+
+    // P1: Token Revocation audit fields (RFC 7009)
+    int64_t revokedAt = 0;  // Unix timestamp when token was revoked
+    std::string revokedBy;  // Client ID that revoked the token
+};
+
+/**
+ * @brief Token Introspection response (RFC 7662)
+ *
+ * This structure represents the response format for token introspection
+ * as specified in RFC 7662 (OAuth 2.0 Token Introspection).
+ */
+struct TokenIntrospection
+{
+    bool active = false;               // Whether the token is currently active
+    std::string clientId;              // Client ID that was issued the token
+    std::string tokenType = "Bearer";  // Token type (always "Bearer" for OAuth 2.0)
+    int64_t exp = 0;                   // Expiration time (exp)
+    int64_t iat = 0;                   // Issued at time (iat)
+    int64_t nbf = 0;                   // Not before time (nbf)
+    std::string sub;                   // Subject (user ID)
+    std::string aud;                   // Audience (client ID)
+    std::string iss;                   // Issuer (authorization server URL)
+    std::string scope;                 // Granted scopes
+
+    /**
+     * @brief Convert to JSON for HTTP response
+     * @return JSON value object
+     */
+    Json::Value toJson() const
+    {
+        Json::Value json;
+        json["active"] = active;
+
+        if (active)
+        {
+            json["client_id"] = clientId;
+            json["token_type"] = tokenType;
+
+            if (exp > 0)
+                json["exp"] = static_cast<Json::Int64>(exp);
+            if (iat > 0)
+                json["iat"] = static_cast<Json::Int64>(iat);
+            if (nbf > 0)
+                json["nbf"] = static_cast<Json::Int64>(nbf);
+
+            if (!sub.empty())
+                json["sub"] = sub;
+            if (!aud.empty())
+                json["aud"] = aud;
+            if (!iss.empty())
+                json["iss"] = iss;
+            if (!scope.empty())
+                json["scope"] = scope;
+        }
+
+        return json;
+    }
 };
 
 /**
@@ -322,6 +390,37 @@ class IOAuth2Storage
       int32_t internalUserId,
       const std::string &clientId,
       const std::string &scope,
+      VoidCallback &&cb
+    ) = 0;
+
+    // ========== P1: Token Introspection (RFC 7662) ==========
+
+    /**
+     * @brief Introspect token metadata for RFC 7662 compliance
+     * @param token The access token to introspect
+     * @param cb Callback with introspection metadata or nullopt if invalid
+     */
+    using TokenIntrospectionCallback = std::function<void(std::optional<TokenIntrospection>)>;
+    virtual void introspectToken(const std::string &token, TokenIntrospectionCallback &&cb) = 0;
+
+    /**
+     * @brief Increment introspection count for monitoring
+     * @param token The access token
+     * @param cb Callback invoked when update completes
+     */
+    virtual void incrementIntrospectCount(const std::string &token, VoidCallback &&cb) = 0;
+
+    // ========== P1: Token Revocation (RFC 7009) ==========
+
+    /**
+     * @brief Revoke an access token with audit trail
+     * @param token The access token to revoke
+     * @param revokedBy Client ID performing the revocation
+     * @param cb Callback invoked when revocation completes
+     */
+    virtual void revokeAccessToken(
+      const std::string &token,
+      const std::string &revokedBy,
       VoidCallback &&cb
     ) = 0;
 

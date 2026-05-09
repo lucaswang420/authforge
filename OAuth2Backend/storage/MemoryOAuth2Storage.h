@@ -109,6 +109,17 @@ class MemoryOAuth2Storage : public IOAuth2Storage
       VoidCallback &&cb
     ) override;
 
+    // ========== P1: Token Introspection (RFC 7662) ==========
+    void introspectToken(const std::string &token, TokenIntrospectionCallback &&cb) override;
+    void incrementIntrospectCount(const std::string &token, VoidCallback &&cb) override;
+
+    // ========== P1: Token Revocation (RFC 7009) ==========
+    void revokeAccessToken(
+      const std::string &token,
+      const std::string &revokedBy,
+      VoidCallback &&cb
+    ) override;
+
   private:
     std::recursive_mutex mutex_;
     std::unordered_map<std::string, OAuth2Client> clients_;

@@ -319,4 +319,63 @@ void CachedOAuth2Storage::revokeUserConsent(
     impl_->revokeUserConsent(internalUserId, clientId, scope, std::move(cb));
 }
 
+// ========== P1: Token Introspection (RFC 7662) ==========
+
+void CachedOAuth2Storage::introspectToken(
+  const std::string &token,
+  IOAuth2Storage::TokenIntrospectionCallback &&cb
+)
+{
+    // Pass through to implementation
+    impl_->introspectToken(token, std::move(cb));
+}
+
+void CachedOAuth2Storage::incrementIntrospectCount(
+  const std::string &token,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    // Pass through to implementation
+    impl_->incrementIntrospectCount(token, std::move(cb));
+}
+
+// ========== P1: Token Revocation (RFC 7009) ==========
+
+void CachedOAuth2Storage::revokeAccessToken(
+  const std::string &token,
+  const std::string &revokedBy,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    // Revoke in implementation and invalidate cache
+    impl_->revokeAccessToken(
+      token,
+      revokedBy,
+      [this, token, cb = std::move(cb)]() mutable {
+          // Invalidate cache after revocation
+          if (redisClient_)
+          {
+              std::string key = "oauth2:token:" + token;
+              redisClient_->execCommandAsync(
+                [cb](const drogon::nosql::RedisResult &) {
+                    if (cb)
+                        cb();
+                },
+                [cb](const std::exception &e) {
+                    LOG_ERROR << "Failed to invalidate revoked token cache: " << e.what();
+                    if (cb)
+                        cb();
+                },
+                "DEL %s",
+                key.c_str()
+              );
+          }
+          else
+          {
+              if (cb)
+                  cb();
+          }
+      });
+}
+
 }  // namespace oauth2
