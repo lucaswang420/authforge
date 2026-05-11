@@ -89,12 +89,11 @@ cd build
 ### Linux
 
 ```bash
-cd OAuth2Backend
+cd OAuth2Backend/scripts
+./build.sh --build-drogon     # 自动构建 Drogon 和项目
+# 或手动安装依赖后:
 sudo apt-get install -y cmake g++ libjsoncpp-dev libpq-dev libhiredis-dev
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-./OAuth2Server
+./build.sh                    # 使用系统库构建
 ```
 
 ### macOS
