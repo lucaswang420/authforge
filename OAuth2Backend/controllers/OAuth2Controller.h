@@ -4,6 +4,7 @@
 #include "../plugins/OAuth2Plugin.h"
 #include "common/validation/Validator.h"
 #include "common/error/ErrorHandler.h"
+#include "common/error/OAuth2ErrorHandler.h"
 
 using namespace drogon;
 
@@ -99,22 +100,6 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     );
 
   private:
-    // Simple error response (for backward compatibility)
-    void errorResponse(
-      std::function<void(const HttpResponsePtr &)> &&callback,
-      const std::string &message,
-      int statusCode = 400
-    );
-
-    // OAuth2 RFC-compliant error response with error_code and optional description
-    void errorResponse(
-      std::function<void(const HttpResponsePtr &)> &&callback,
-      const std::string &errorCode,
-      const std::string &description,
-      int statusCode = 400
-    );
-
-    // Helper to create 200 OK response with no body (for revocation endpoint)
     static drogon::HttpResponsePtr createSuccessResponse();
 
     // ========== P1: Helper Methods ==========

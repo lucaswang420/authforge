@@ -1,4 +1,4 @@
-#include "OAuth2Controller.h"
+#include "OAuth2 plugin not available"Controller.h"
 #include "../services/AuthService.h"
 #include <drogon/drogon.h>
 #include "../plugins/OAuth2Metrics.h"
@@ -41,9 +41,9 @@ struct OAuth2ControllerDocs
         tokenEndpoint.method = "POST";
         tokenEndpoint.summary = "Exchange authorization code for access token";
         tokenEndpoint.description =
-          "OAuth2 token endpoint - exchanges authorization "
+          "OAuth2 plugin not available" token endpoint - exchanges authorization "
           "code or refresh token for access token";
-        tokenEndpoint.tags = {"OAuth2", "Token"};
+        tokenEndpoint.tags = {"OAuth2 plugin not available"", "Token"};
         tokenEndpoint.parameters =
           {{"grant_type",
             "Authorization code or refresh token (required)",
@@ -88,8 +88,8 @@ struct OAuth2ControllerDocs
         authorizeEndpoint.method = "GET";
         authorizeEndpoint.summary = "Request authorization";
         authorizeEndpoint.description =
-          "OAuth2 authorization endpoint - initiates authorization flow";
-        authorizeEndpoint.tags = {"OAuth2", "Authorization"};
+          "OAuth2 plugin not available" authorization endpoint - initiates authorization flow";
+        authorizeEndpoint.tags = {"OAuth2 plugin not available"", "Authorization"};
         authorizeEndpoint.parameters =
           {{"client_id",
             "Client identifier (required)",
@@ -144,7 +144,7 @@ struct OAuth2ControllerDocs
               "Provides user profile data including username, email, "
               "and assigned roles according to OpenID Connect "
               "standards.";
-            userInfoEndpoint.tags = {"OAuth2", "User"};
+            userInfoEndpoint.tags = {"OAuth2 plugin not available"", "User"};
             userInfoEndpoint.parameters = {};
             userInfoEndpoint.responses =
               {{200, "User information retrieved successfully"},
@@ -179,7 +179,7 @@ struct OAuth2ControllerDocs
             loginEndpoint.description =
               "Authenticates user credentials and generates "
               "authorization code";
-            loginEndpoint.tags = {"OAuth2", "Authentication"};
+            loginEndpoint.tags = {"OAuth2 plugin not available"", "Authentication"};
             loginEndpoint.parameters =
               {{"username",
                 "Username (required)",
@@ -254,37 +254,6 @@ struct OAuth2ControllerDocs
 OAuth2ControllerDocs docs_;
 }  // namespace
 
-void OAuth2Controller::errorResponse(
-  std::function<void(const HttpResponsePtr &)> &&callback,
-  const std::string &message,
-  int statusCode
-)
-{
-    Json::Value error;
-    error["error"] = message;
-    auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
-    resp->setStatusCode(static_cast<drogon::HttpStatusCode>(statusCode));
-    callback(resp);
-}
-
-void OAuth2Controller::errorResponse(
-  std::function<void(const HttpResponsePtr &)> &&callback,
-  const std::string &errorCode,
-  const std::string &description,
-  int statusCode
-)
-{
-    Json::Value error;
-    error["error"] = errorCode;
-    if (!description.empty())
-    {
-        error["error_description"] = description;
-    }
-    auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
-    resp->setStatusCode(static_cast<drogon::HttpStatusCode>(statusCode));
-    callback(resp);
-}
-
 drogon::HttpResponsePtr OAuth2Controller::createSuccessResponse()
 {
     auto resp = drogon::HttpResponse::newHttpResponse();
@@ -344,7 +313,7 @@ void OAuth2Controller::introspect(
 
     if (clientId.empty() || clientSecret.empty())
     {
-        errorResponse(std::move(callback), "invalid_client", "Client authentication required", 401);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "invalid_client", "Client authentication required");
         return;
     }
 
@@ -352,7 +321,7 @@ void OAuth2Controller::introspect(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        errorResponse(std::move(callback), "server_error", "OAuth2 plugin not available", 500);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "server_error", "OAuth2 plugin not available");
         return;
     }
 
@@ -361,7 +330,7 @@ void OAuth2Controller::introspect(
       common::validation::ValidatorHelper::validateOAuth2IntrospectParams(req);
     if (!validationErrors.empty())
     {
-        errorResponse(std::move(callback), "invalid_request", validationErrors[0], 400);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "invalid_request", validationErrors[0]);
         return;
     }
 
@@ -376,9 +345,8 @@ void OAuth2Controller::introspect(
           if (!valid)
           {
               oauth2::Metrics::incrementIntrospectErrors(clientId, "invalid_client");
-              errorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed", 401
-              );
+              common::error::OAuth2ErrorHandler::sendErrorResponse(
+                std::move(callback), "invalid_client", "Client authentication failed");
               return;
           }
 
@@ -458,7 +426,7 @@ void OAuth2Controller::revoke(
 
     if (clientId.empty() || clientSecret.empty())
     {
-        errorResponse(std::move(callback), "invalid_client", "Client authentication required", 401);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "invalid_client", "Client authentication required");
         return;
     }
 
@@ -466,7 +434,7 @@ void OAuth2Controller::revoke(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        errorResponse(std::move(callback), "server_error", "OAuth2 plugin not available", 500);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "server_error", "OAuth2 plugin not available");
         return;
     }
 
@@ -474,7 +442,7 @@ void OAuth2Controller::revoke(
     auto validationErrors = common::validation::ValidatorHelper::validateOAuth2RevokeParams(req);
     if (!validationErrors.empty())
     {
-        errorResponse(std::move(callback), "invalid_request", validationErrors[0], 400);
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "invalid_request", validationErrors[0]);
         return;
     }
 
@@ -489,9 +457,8 @@ void OAuth2Controller::revoke(
           if (!valid)
           {
               oauth2::Metrics::incrementRevocationErrors(clientId, "invalid_client");
-              errorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed", 401
-              );
+              common::error::OAuth2ErrorHandler::sendErrorResponse(
+                std::move(callback), "invalid_client", "Client authentication failed");
               return;
           }
 
@@ -512,12 +479,10 @@ void OAuth2Controller::revoke(
                 if (introspection->clientId != clientId)
                 {
                     oauth2::Metrics::incrementRevocationErrors(clientId, "unauthorized_client");
-                    errorResponse(
+                    common::error::OAuth2ErrorHandler::sendErrorResponse(
                       std::move(callback),
                       "unauthorized_client",
-                      "This client is not allowed to revoke the token",
-                      403
-                    );
+                      "This client is not allowed to revoke the token");
                     return;
                 }
 
@@ -550,10 +515,10 @@ requested\;
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        errorResponse(std::move(callback), \server_error\, \OAuth2
+        common::error::OAuth2ErrorHandler::sendErrorResponse(std::move(callback), "server_error", "OAuth2 plugin not available");
 plugin
 not
-available\, 500);
+available\);
         return;
     }
 
@@ -719,7 +684,7 @@ void OAuth2Controller::authorize(
     {
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k500InternalServerError);
-        resp->setBody("OAuth2Plugin not loaded");
+        resp->setBody("OAuth2 plugin not available"Plugin not loaded");
         callback(resp);
         return;
     }
@@ -1025,7 +990,7 @@ void OAuth2Controller::login(
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
-                  LOG_ERROR << "OAuth2Plugin not loaded during login";
+                  LOG_ERROR << "OAuth2 plugin not available"Plugin not loaded during login";
                   auto resp = HttpResponse::newHttpResponse();
                   resp->setStatusCode(k500InternalServerError);
                   resp->setBody("Internal Server Error: Plugin not loaded");
@@ -1148,7 +1113,7 @@ void OAuth2Controller::token(
     {
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k500InternalServerError);
-        resp->setBody("OAuth2Plugin not loaded");
+        resp->setBody("OAuth2 plugin not available"Plugin not loaded");
         callback(resp);
         return;
     }
@@ -1377,7 +1342,7 @@ void OAuth2Controller::logout(
     {
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k500InternalServerError);
-        resp->setBody("OAuth2Plugin not loaded");
+        resp->setBody("OAuth2 plugin not available"Plugin not loaded");
         callback(resp);
         return;
     }
@@ -1454,7 +1419,7 @@ void OAuth2Controller::health(
     // Returns 200 OK if service is healthy
     Json::Value json;
     json["status"] = "ok";
-    json["service"] = "OAuth2Server";
+    json["service"] = "OAuth2 plugin not available"Server";
     json["timestamp"] = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
                                                std::chrono::system_clock::now().time_since_epoch()
     )
@@ -1617,7 +1582,7 @@ void OAuth2Controller::consent(
     {
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k500InternalServerError);
-        resp->setBody("OAuth2Plugin not loaded");
+        resp->setBody("OAuth2 plugin not available"Plugin not loaded");
         callback(resp);
         return;
     }
