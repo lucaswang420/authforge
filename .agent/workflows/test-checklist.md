@@ -37,6 +37,8 @@ redis-cli ping
 # 如未初始化，执行（按顺序）：
 psql -U postgres -d oauth_test -f "d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\sql\001_oauth2_core.sql"
 psql -U postgres -d oauth_test -f "d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\sql\002_users_table.sql"
+psql -U postgres -d oauth_test -f "d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\sql\003_rbac_schema.sql"
+psql -U postgres -d oauth_test -f "d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\sql\004_oauth2_scopes.sql"
 ```
 
 ---

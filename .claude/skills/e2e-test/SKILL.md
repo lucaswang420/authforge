@@ -51,6 +51,7 @@ psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
 psql -U test -d oauth_test -f "OAuth2Backend/sql/001_oauth2_core.sql"
 psql -U test -d oauth_test -f "OAuth2Backend/sql/002_users_table.sql"
 psql -U test -d oauth_test -f "OAuth2Backend/sql/003_rbac_schema.sql"
+psql -U test -d oauth_test -f "OAuth2Backend/sql/004_oauth2_scopes.sql"
 
 # 编译服务（如果需要）
 cd OAuth2Backend

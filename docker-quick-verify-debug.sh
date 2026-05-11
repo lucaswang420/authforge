@@ -62,6 +62,7 @@ else
   psql -h postgres -U test -d oauth_test -f sql/001_oauth2_core.sql >/dev/null 2>&1
   psql -h postgres -U test -d oauth_test -f sql/002_users_table.sql >/dev/null 2>&1
   psql -h postgres -U test -d oauth_test -f sql/003_rbac_schema.sql >/dev/null 2>&1
+  psql -h postgres -U test -d oauth_test -f sql/004_oauth2_scopes.sql >/dev/null 2>&1
   echo "✓ Database initialized"
 fi
 

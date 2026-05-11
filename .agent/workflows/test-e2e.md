@@ -21,6 +21,7 @@ psql -U test -d postgres -c "CREATE DATABASE oauth_test;" 2>$null
 psql -U test -d oauth_test -f "OAuth2Backend\sql\001_oauth2_core.sql" 2>$null
 psql -U test -d oauth_test -f "OAuth2Backend\sql\002_users_table.sql" 2>$null
 psql -U test -d oauth_test -f "OAuth2Backend\sql\003_rbac_schema.sql" 2>$null
+psql -U test -d oauth_test -f "OAuth2Backend\sql\004_oauth2_scopes.sql" 2>$null
 
 # Build (Release)
 cd OAuth2Backend

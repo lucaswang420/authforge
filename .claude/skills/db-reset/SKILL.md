@@ -26,6 +26,7 @@ psql -h localhost -U test -d postgres -c "SELECT 1;" || echo "❌ Cannot connect
 ls OAuth2Backend/sql/001_oauth2_core.sql || echo "❌ SQL scripts not found"
 ls OAuth2Backend/sql/002_users_table.sql || echo "❌ SQL scripts not found"
 ls OAuth2Backend/sql/003_rbac_schema.sql || echo "❌ SQL scripts not found"
+ls OAuth2Backend/sql/004_oauth2_scopes.sql || echo "❌ SQL scripts not found"
 ```
 
 ## 完整工作流程
@@ -106,6 +107,14 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
+psql -h localhost -U test -d oauth_test -f "OAuth2Backend\sql\004_oauth2_scopes.sql"
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "✅ 004_oauth2_scopes.sql executed"
+} else {
+    Write-Host "❌ Failed to execute 004_oauth2_scopes.sql"
+    exit 1
+}
+
 Write-Host "`n🎉 Database reset completed!"
 ```
 
@@ -117,6 +126,7 @@ cd /path/to/OAuth2-plugin-example
 psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/001_oauth2_core.sql" && echo "✅ 001_oauth2_core.sql executed" || { echo "❌ Failed to execute 001_oauth2_core.sql"; exit 1; }
 psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/002_users_table.sql" && echo "✅ 002_users_table.sql executed" || { echo "❌ Failed to execute 002_users_table.sql"; exit 1; }
 psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/003_rbac_schema.sql" && echo "✅ 003_rbac_schema.sql executed" || { echo "❌ Failed to execute 003_rbac_schema.sql"; exit 1; }
+psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/004_oauth2_scopes.sql" && echo "✅ 004_oauth2_scopes.sql executed" || { echo "❌ Failed to execute 004_oauth2_scopes.sql"; exit 1; }
 
 echo "`n🎉 Database reset completed!"
 ```
@@ -166,6 +176,7 @@ psql -h localhost -U test -d oauth_test -c "SELECT * FROM permissions LIMIT 5;"
 | `001_oauth2_core.sql` | OAuth2 核心表 | oauth2_clients, oauth2_codes, oauth2_access_tokens, oauth2_refresh_tokens |
 | `002_users_table.sql` | 用户账号表 | users (id, username, password_hash, salt, email) |
 | `003_rbac_schema.sql` | RBAC 权限架构 | roles, permissions, user_roles, role_permissions + 默认数据 |
+| `004_oauth2_scopes.sql` | OAuth2 Scopes表 | Scopes, Subject映射, Consent + 默认数据 |
 
 ## 故障排除
 
@@ -283,6 +294,7 @@ psql -h localhost -U test -d postgres -c "SELECT * FROM pg_stat_activity WHERE d
 ✅ 001_oauth2_core.sql executed
 ✅ 002_users_table.sql executed
 ✅ 003_rbac_schema.sql executed
+✅ 004_oauth2_scopes.sql executed
 🎉 Database reset completed!
 ```
 

@@ -77,6 +77,7 @@ export PGPASSWORD="123456"
 psql -h localhost -U test -d oauth_test -f ../sql/001_oauth2_core.sql
 psql -h localhost -U test -d oauth_test -f ../sql/002_users_table.sql
 psql -h localhost -U test -d oauth_test -f ../sql/003_rbac_schema.sql
+psql -h localhost -U test -d oauth_test -f ../sql/004_oauth2_scopes.sql
 ```
 
 ### 8. 运行测试

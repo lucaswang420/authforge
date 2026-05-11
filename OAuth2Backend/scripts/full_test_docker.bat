@@ -147,6 +147,13 @@ if %ERRORLEVEL% neq 0 (
     goto cleanup_and_exit
 )
 
+echo Applying RBAC schema...
+docker exec -i oauth2-postgres psql -U test -d oauth_test < "%PROJECT_DIR%\sql\004_oauth2_scopes.sql" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [FAILED] Failed to apply OAuth2 scopes schema
+    goto cleanup_and_exit
+)
+
 echo [SUCCESS] Database initialized
 echo.
 
