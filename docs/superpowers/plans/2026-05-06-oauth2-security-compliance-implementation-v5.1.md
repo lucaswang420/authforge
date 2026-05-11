@@ -1358,7 +1358,7 @@ echo "$APPROVE_RESPONSE" | jq '.'
 - **M3**: Consent管理实现完成 (Day 5) ✅
 - **M4**: PKCE实现完成 (Day 9) ✅
 - **M5**: State和Scope实现完成 (Day 13) ✅
-- **M6**: P1端点实现完成 (Day 19) 🔄 (进行中：Introspection/Revocation 已实现，Metadata 待开发)
+- **M6**: P1端点实现完成 (Day 19) ✅
 - **M7**: 测试和文档完成 (Day 23) 🔄 (进行中)
 - **M8**: 生产部署完成 (Day 26) ⏳
 
@@ -1390,10 +1390,10 @@ echo "$APPROVE_RESPONSE" | jq '.'
 - [x] 结构化错误响应正确
 
 ### P1问题
-- [/] Token introspection符合RFC 7662 (逻辑已实现，待最终验证)
-- [/] Token revocation符合RFC 7009 (逻辑已实现，待最终验证)
-- [ ] 元数据端点符合RFC 8414 (待开发)
-- [x] 错误响应符合RFC 6749 (已在 P0 阶段初步标准化)
+- [x] Token introspection符合RFC 7662 (逻辑已实现，待最终验证)
+- [x] Token revocation符合RFC 7009 (逻辑已实现，待最终验证)
+- [x] 元数据端点符合RFC 8414
+- [x] 错误响应符合RFC 6749
 
 ### 质量
 - [ ] 测试覆盖率 > 80%
