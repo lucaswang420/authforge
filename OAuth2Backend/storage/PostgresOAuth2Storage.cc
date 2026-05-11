@@ -1258,14 +1258,16 @@ void PostgresOAuth2Storage::revokeAccessToken(
       "SET revoked = TRUE, revoked_at = $1, revoked_by = $2 "
       "WHERE token = $3";
 
-    // Actually, simple sequential updates or a single multi-table update (not supported in Postgres directly like this)
-    // Let's use a simpler approach: update both tables.
-    
+    // Actually, simple sequential updates or a single multi-table update (not supported in Postgres
+    // directly like this) Let's use a simpler approach: update both tables.
+
     dbClientMaster_->execSqlAsync(
-      "UPDATE oauth2_access_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 WHERE token = $3",
+      "UPDATE oauth2_access_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 WHERE "
+      "token = $3",
       [this, sharedCb, now, revokedBy, token](const Result &) {
           dbClientMaster_->execSqlAsync(
-            "UPDATE oauth2_refresh_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 WHERE token = $3",
+            "UPDATE oauth2_refresh_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 "
+            "WHERE token = $3",
             [sharedCb](const Result &) {
                 LOG_DEBUG << "Token revoked successfully (checked both tables)";
                 (*sharedCb)();

@@ -614,12 +614,14 @@ void MemoryOAuth2Storage::introspectToken(
         TokenIntrospection introspection;
         introspection.active = true;
         introspection.clientId = refreshToken.clientId;
-        introspection.tokenType = "Bearer";  // RFC 7662 says refresh tokens don't have a specific type but we use Bearer context
+        introspection.tokenType = "Bearer";  // RFC 7662 says refresh tokens don't have a specific
+                                             // type but we use Bearer context
         introspection.exp = refreshToken.expiresAt;
         introspection.sub = refreshToken.userId;
         introspection.scope = refreshToken.scope;
-        // Refresh tokens might not have iat/nbf/iss/aud in the current struct, but we return what we have
-        
+        // Refresh tokens might not have iat/nbf/iss/aud in the current struct, but we return what
+        // we have
+
         cb(introspection);
         return;
     }
@@ -654,7 +656,7 @@ void MemoryOAuth2Storage::revokeAccessToken(
 )
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    
+
     // 1. Try to revoke Access Token
     auto it = accessTokens_.find(token);
     if (it != accessTokens_.end())
@@ -664,7 +666,7 @@ void MemoryOAuth2Storage::revokeAccessToken(
         it->second.revokedBy = revokedBy;
         LOG_INFO << "Access token revoked successfully in memory storage";
     }
-    
+
     // 2. Try to revoke Refresh Token
     auto itRt = refreshTokens_.find(token);
     if (itRt != refreshTokens_.end())

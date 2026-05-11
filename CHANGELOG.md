@@ -9,6 +9,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### OAuth2 Standardization (2026-05-11)
+
+- **RFC 7662 Compliance**: Token Introspection Endpoint
+  - `/oauth2/introspect` endpoint for token metadata queries
+  - Client authentication via HTTP Basic Auth or POST body
+  - Support for access token and refresh token introspection
+  - P1 database fields: introspect_count, issued_at, not_before, issuer, audience
+  - Metrics integration for monitoring introspection operations
+  - Complete storage layer parity (PostgreSQL, Redis, Memory, Cached)
+
+- **RFC 7009 Compliance**: Token Revocation Endpoint
+  - `/oauth2/revoke` endpoint for token invalidation
+  - Client authentication and permission control
+  - Support for access token and refresh token revocation
+  - P1 database fields: revoked_at, revoked_by
+  - RFC-compliant error handling and idempotent behavior
+  - Complete storage layer parity across all implementations
+
+- **RFC 8414 Compliance**: Authorization Server Metadata Endpoint
+  - `/.well-known/oauth-authorization-server` discovery endpoint
+  - Comprehensive server metadata (issuer, endpoints, capabilities)
+  - PKCE support declaration (plain, S256 methods)
+  - Grant types and response types documentation
+  - Scope support and authentication methods
+  - Configuration-based metadata customization
+
+- **RFC 6749 Compliance**: Standardized Error Handling
+  - `common::error::OAuth2ErrorHandler` module for unified error responses
+  - Standard OAuth2 error codes (invalid_request, invalid_client, etc.)
+  - Proper HTTP status code mapping per RFC 6749
+  - Consistent error response format across all endpoints
+  - Enhanced error descriptions and optional error URIs
+
+- **P1 Database Schema Enhancement**
+  - Token audit fields: introspect_count, revoked_at, revoked_by
+  - Token metadata fields: issued_at, not_before, issuer, audience
+  - ORM model updates for all P1 fields
+  - Database migration script (004_oauth2_scopes.sql)
+  - Backward compatibility with existing tokens
+
+- **OpenAPI Documentation Updates**
+  - Complete API specs for introspection, revocation, and metadata endpoints
+  - RFC-compliant request/response examples
+  - Authentication method documentation
+  - Error response schemas for all new endpoints
+
+- **Testing & Quality Assurance**
+  - P1 functionality test suite (18 test cases)
+  - Token introspection tests (valid, invalid, expired, revoked tokens)
+  - Token revocation tests (permission control, idempotency)
+  - Client authentication tests (Basic Auth, POST body)
+  - Storage layer parity verification across all implementations
+  - 111 total test cases passing (379 assertions)
+
 #### OAuth2 Security & Compliance (2026-05-02)
 
 - **RFC 6749 Section 2.3.1 Compliance**: Client Authentication

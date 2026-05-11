@@ -29,7 +29,12 @@ DROGON_TEST(P1FeatureTest)
         std::promise<std::string> codeP;
         auto codeF = codeP.get_future();
         plugin->generateAuthorizationCode(
-          "test-client", "user1", "openid profile", "http://localhost/cb", "", "", 
+          "test-client",
+          "user1",
+          "openid profile",
+          "http://localhost/cb",
+          "",
+          "",
           [&](bool success, std::string code, std::string error) {
               codeP.set_value(success ? code : "");
           }
@@ -40,7 +45,11 @@ DROGON_TEST(P1FeatureTest)
         std::promise<Json::Value> tokenP;
         auto tokenF = tokenP.get_future();
         plugin->exchangeCodeForToken(
-          code, "test-client", "test-secret", "http://localhost/cb", "", 
+          code,
+          "test-client",
+          "test-secret",
+          "http://localhost/cb",
+          "",
           [&](const Json::Value &result) { tokenP.set_value(result); }
         );
         auto result = tokenF.get();
@@ -69,9 +78,7 @@ DROGON_TEST(P1FeatureTest)
         // Revoke Access Token
         std::promise<void> revokeP;
         auto revokeF = revokeP.get_future();
-        plugin->revokeAccessToken(accessToken, "test-client", [&]() {
-            revokeP.set_value();
-        });
+        plugin->revokeAccessToken(accessToken, "test-client", [&]() { revokeP.set_value(); });
         revokeF.get();
 
         // Verify revoked
@@ -81,12 +88,16 @@ DROGON_TEST(P1FeatureTest)
             introP2.set_value(intro);
         });
         auto intro2 = introF2.get();
-        // RFC 7662: active member is REQUIRED. If token is invalid, expired, or revoked, active is false.
-        if (intro2) {
+        // RFC 7662: active member is REQUIRED. If token is invalid, expired, or revoked, active is
+        // false.
+        if (intro2)
+        {
             CHECK(intro2->active == false);
-        } else {
+        }
+        else
+        {
             // Some implementations might return nullopt for non-existent tokens
-            CHECK(true); 
+            CHECK(true);
         }
     }
 
@@ -94,9 +105,7 @@ DROGON_TEST(P1FeatureTest)
     {
         std::promise<void> revokeRP;
         auto revokeRF = revokeRP.get_future();
-        plugin->revokeAccessToken(refreshToken, "test-client", [&]() {
-            revokeRP.set_value();
-        });
+        plugin->revokeAccessToken(refreshToken, "test-client", [&]() { revokeRP.set_value(); });
         revokeRF.get();
 
         // Attempt to use revoked refresh token
