@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include <drogon/drogon.h>
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
@@ -13,7 +14,7 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
     std::ifstream configFile(configPath);
     if (!configFile.is_open())
     {
-        std::cerr << "Error: Config file not found: " << configPath << std::endl;
+        LOG_ERROR << "Config file not found: " << configPath;
         return false;
     }
 
@@ -21,7 +22,7 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
     std::string errs;
     if (!Json::parseFromStream(builder, configFile, &config, &errs))
     {
-        std::cerr << "Error: Failed to parse config file: " << errs << std::endl;
+        LOG_ERROR << "Failed to parse config file: " << errs;
         return false;
     }
 

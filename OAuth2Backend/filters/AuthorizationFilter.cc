@@ -31,8 +31,8 @@ void AuthorizationFilter::loadConfig()
                 }
             }
             rules_.push_back(rule);
-            LOG_INFO << "RBAC Rule Loaded: " << pattern << " -> " << rule.allowedRoles.size()
-                     << " roles";
+            LOG_DEBUG << "RBAC Rule Loaded: " << pattern << " -> " << rule.allowedRoles.size()
+                      << " roles";
         }
     }
     initialized_ = true;

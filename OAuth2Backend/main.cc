@@ -53,12 +53,12 @@ void createLogDirFromConfig(const std::string &configPath)
                     if (!std::filesystem::exists(logPath))
                     {
                         std::filesystem::create_directories(logPath);
-                        std::cout << "Created log directory: " << logPath << std::endl;
+                        LOG_INFO << "Created log directory: " << logPath;
                     }
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "Failed to create log directory: " << e.what() << std::endl;
+                    LOG_ERROR << "Failed to create log directory: " << e.what();
                 }
             }
         }
@@ -157,7 +157,7 @@ Json::Value loadConfiguration(const std::string &configPath)
         exit(1);
     }
 
-    LOG_DEBUG << "Configuration loaded successfully";
+    LOG_INFO << "Configuration loaded successfully";
     return config;
 }
 
@@ -180,16 +180,16 @@ int main()
     Json::Value config = loadConfiguration(configPath);
     drogon::app().loadConfigJson(config);
 
-    // Log configuration values for debugging
-    LOG_DEBUG
+    // Log configuration values for startup information
+    LOG_INFO
       << "Database host: "
       << common::config::ConfigManager::get<std::string>(config, "db_clients.0.host", "localhost");
-    LOG_DEBUG << "Database port: "
-              << common::config::ConfigManager::get<int>(config, "db_clients.0.port", 5432);
-    LOG_DEBUG << "Redis host: "
-              << common::config::ConfigManager::get<std::string>(
-                   config, "redis_clients.0.host", "localhost"
-                 );
+    LOG_INFO << "Database port: "
+             << common::config::ConfigManager::get<int>(config, "db_clients.0.port", 5432);
+    LOG_INFO << "Redis host: "
+             << common::config::ConfigManager::get<std::string>(
+                  config, "redis_clients.0.host", "localhost"
+                );
 
     // Setup CORS support
     setupCors();
@@ -229,18 +229,18 @@ int main()
         {
             auto hodor = drogon::app().getPlugin<drogon::plugin::Hodor>();
             if (hodor)
-                std::cout << "Hodor rate limiter enabled" << std::endl;
+                LOG_INFO << "Hodor rate limiter enabled";
             else
-                std::cout << "Hodor rate limiter not enabled by this config" << std::endl;
+                LOG_INFO << "Hodor rate limiter not enabled by this config";
         }
         catch (const std::exception &)
         {
-            std::cout << "Hodor rate limiter not enabled by this config" << std::endl;
+            LOG_INFO << "Hodor rate limiter not enabled by this config";
         }
     });
 
     // Initialize API documentation
-    std::cout << "Initializing API documentation..." << std::endl;
+    LOG_INFO << "Initializing API documentation...";
 
     // Configure OpenAPI server from config
     const auto &listeners = drogon::app().getListeners();

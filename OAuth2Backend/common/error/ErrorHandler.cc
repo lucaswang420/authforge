@@ -109,7 +109,7 @@ void ErrorHandler::logError(const Error &error, const std::string &context)
             break;
         case ErrorCategory::AUTHENTICATION:
         case ErrorCategory::AUTHORIZATION:
-            LOG_INFO << ss.str();
+            LOG_ERROR << ss.str();
             break;
         default:
             LOG_ERROR << ss.str();

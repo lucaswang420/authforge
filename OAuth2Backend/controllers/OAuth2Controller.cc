@@ -1213,7 +1213,7 @@ void OAuth2Controller::token(
         }
         catch (const std::exception &e)
         {
-            LOG_ERROR << "Token endpoint: Base64 decode failed - " << e.what();
+            LOG_WARN << "Token endpoint: Base64 decode failed - " << e.what();
         }
     }
 

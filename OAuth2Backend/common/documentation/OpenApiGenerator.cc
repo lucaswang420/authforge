@@ -1,4 +1,5 @@
 #include "OpenApiGenerator.h"
+#include <drogon/drogon.h>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -352,7 +353,7 @@ bool OpenApiGenerator::writeToFile(const std::string &outputPath)
         if (!dirPath.empty() && !std::filesystem::exists(dirPath))
         {
             std::filesystem::create_directories(dirPath);
-            std::cout << "Created directory: " << dirPath.string() << std::endl;
+            LOG_INFO << "Created directory: " << dirPath.string();
         }
 
         Json::Value spec = generateOpenApiSpec();
@@ -364,19 +365,19 @@ bool OpenApiGenerator::writeToFile(const std::string &outputPath)
         std::ofstream outputFile(outputPath);
         if (!outputFile.is_open())
         {
-            std::cerr << "Failed to open file for writing: " << outputPath << std::endl;
+            LOG_ERROR << "Failed to open file for writing: " << outputPath;
             return false;
         }
 
         writer->write(spec, &outputFile);
         outputFile.close();
 
-        std::cout << "OpenAPI specification written to: " << outputPath << std::endl;
+        LOG_INFO << "OpenAPI specification written to: " << outputPath;
         return true;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error writing OpenAPI spec: " << e.what() << std::endl;
+        LOG_ERROR << "Error writing OpenAPI spec: " << e.what();
         return false;
     }
 }
