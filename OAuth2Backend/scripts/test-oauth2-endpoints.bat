@@ -55,6 +55,7 @@ echo.
 
 REM Test variables
 set SERVER_READY=0
+set LOGIN_SUCCESS=0
 set AUTH_CODE=
 set ACCESS_TOKEN=
 set PASSED=0
@@ -67,7 +68,8 @@ REM ========================================
 set TEST_NAME=Health Check
 echo [*] Test 1: %TEST_NAME%
 
-powershell -Command "$response = Invoke-RestMethod -Uri '%BASE_URL%/health' -Method Get; Write-Host '   Status:' $response.status; Write-Host '   Service:' $response.service; if ($response.storage_type) { Write-Host '   Storage:' $response.storage_type }" >nul 2>&1
+REM Try to get health status and capture both output and exit code
+for /f "tokens=*" %%a in ('powershell -Command "try { $response = Invoke-RestMethod -Uri '%BASE_URL%/health' -Method Get -ErrorAction Stop; Write-Output $response.status; exit 0 } catch { Write-Output ''; exit 1 }"') do set STATUS=%%a
 
 if %ERRORLEVEL% neq 0 (
     echo [-] Health check failed: Could not connect to server
@@ -79,11 +81,17 @@ if %ERRORLEVEL% neq 0 (
     goto summary
 )
 
-echo [+] Health check successful
-for /f "tokens=*" %%a in ('powershell -Command "$response = Invoke-RestMethod -Uri '%BASE_URL%/health' -Method Get; Write-Output $response.status"') do set STATUS=%%a
+if "%STATUS%"=="" (
+    echo [-] Health check failed: Invalid response from server
+    set /a FAILED+=1
+    goto summary
+)
+
+REM Get additional health info
 for /f "tokens=*" %%a in ('powershell -Command "$response = Invoke-RestMethod -Uri '%BASE_URL%/health' -Method Get; Write-Output $response.service"') do set SERVICE=%%a
 for /f "tokens=*" %%a in ('powershell -Command "$response = Invoke-RestMethod -Uri '%BASE_URL%/health' -Method Get; if ($response.storage_type) { Write-Output $response.storage_type }"') do set STORAGE=%%a
 
+echo [+] Health check successful
 echo    Status: %STATUS%
 echo    Service: %SERVICE%
 if not "%STORAGE%"=="" echo    Storage: %STORAGE%
@@ -115,6 +123,7 @@ if "%AUTH_CODE%"=="" (
 echo [+] Login successful
 echo    Code: %AUTH_CODE%
 
+set LOGIN_SUCCESS=1
 set /a PASSED+=1
 echo.
 
@@ -340,10 +349,12 @@ if %SERVER_READY%==1 (
     echo Health Check        FAIL
 )
 
-if %SERVER_READY%==1 (
+if %SERVER_READY%==0 (
+    echo OAuth2 Login        SKIP - Blocked by health check failure
+) else if %LOGIN_SUCCESS%==1 (
     echo OAuth2 Login        PASS
 ) else (
-    echo OAuth2 Login        SKIP - Blocked by health check failure
+    echo OAuth2 Login        FAIL - No authorization code
 )
 
 if "%AUTH_CODE%"=="" (
