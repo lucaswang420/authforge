@@ -83,6 +83,30 @@ void MemoryOAuth2Storage::initFromConfig(
             client.redirectUris.push_back(clientData["redirect_uri"].asString());
         }
 
+        // Handle allowed_scopes (single or array)
+        if (clientData["allowed_scopes"].isArray())
+        {
+            for (const auto &scope : clientData["allowed_scopes"])
+            {
+                client.allowedScopes.push_back(scope.asString());
+            }
+        }
+        else if (clientData["allowed_scopes"].isString())
+        {
+            client.allowedScopes.push_back(clientData["allowed_scopes"].asString());
+        }
+        // If no allowed_scopes specified, add default scopes for backward compatibility
+        else if (clientId == "vue-client")
+        {
+            client.allowedScopes.push_back("openid");
+            client.allowedScopes.push_back("profile");
+            client.allowedScopes.push_back("email");
+            LOG_DEBUG << "MemoryOAuth2Storage: Added default scopes for vue-client";
+        }
+
+        LOG_DEBUG << "MemoryOAuth2Storage: Loaded client " << clientId << " with "
+                  << client.allowedScopes.size() << " allowed scopes";
+
         clients_[clientId] = client;
     }
 

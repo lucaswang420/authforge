@@ -76,7 +76,7 @@ void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallbac
         Mapper<Oauth2Clients> mapper(dbClientReader_);
         mapper.findOne(
           Criteria(Oauth2Clients::Cols::_client_id, CompareOperator::EQ, clientId),
-          [sharedCb, clientId](const Oauth2Clients &row) {
+          [sharedCb, clientId, this](const Oauth2Clients &row) {
               OAuth2Client client;
               client.clientId = row.getValueOfClientId();
               LOG_DEBUG << "Postgres getClient: Found -> " << client.clientId;
@@ -105,19 +105,38 @@ void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallbac
               {
                   client.redirectUris.push_back(uri);
               }
-              (*sharedCb)(client);
+
+              // Fetch allowed scopes from oauth2_client_scopes table
+              LOG_DEBUG << "Postgres getClient: Fetching allowed scopes for " << client.clientId;
+              row.getScope(
+                dbClientReader_,
+                [client, sharedCb](
+                  const std::vector<std::pair<Oauth2Scopes, Oauth2ClientScopes>> &scopes
+                ) mutable {
+                    for (const auto &scopePair : scopes)
+                    {
+                        const Oauth2Scopes &scope = scopePair.first;
+                        client.allowedScopes.push_back(scope.getValueOfName());
+                        LOG_DEBUG << "Postgres getClient: Allowed scope -> "
+                                  << scope.getValueOfName();
+                    }
+
+                    LOG_DEBUG << "Postgres getClient: Total allowed scopes -> "
+                              << client.allowedScopes.size();
+                    (*sharedCb)(client);
+                },
+                [sharedCb](const DrogonDbException &e) {
+                    LOG_WARN << "Postgres getClient: Failed to fetch scopes for " << clientId
+                             << ", returning client with empty scopes: " << e.base().what();
+                    // Even if scope fetch fails, return the client with empty scopes
+                    // This maintains backward compatibility
+                    (*sharedCb)(std::nullopt);
+                }
+              );
           },
           [sharedCb, clientId](const DrogonDbException &e) {
               LOG_DEBUG << "Postgres getClient: Not found or Error -> " << clientId << " ("
                         << e.base().what() << ")";
-              // FindOne throws or calls unexpected error callback if not
-              // found? Actually generated findOne typically throws if 0 rows
-              // in sync. Async: Exception callback is called for DB errors.
-              // If not found, does it call exception or success?
-              // Mapper::findOne async usually expects exactly one. If not
-              // found, it often calls exception callback with specific
-              // UnexpectedRows or similar. Wait, standard Mapper findOne
-              // calls exception callback if row count != 1.
               (*sharedCb)(std::nullopt);
           }
         );
