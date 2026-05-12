@@ -125,7 +125,7 @@ void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallbac
                               << client.allowedScopes.size();
                     (*sharedCb)(client);
                 },
-                [sharedCb](const DrogonDbException &e) {
+                [sharedCb, clientId](const DrogonDbException &e) {
                     LOG_WARN << "Postgres getClient: Failed to fetch scopes for " << clientId
                              << ", returning client with empty scopes: " << e.base().what();
                     // Even if scope fetch fails, return the client with empty scopes

@@ -29,7 +29,7 @@ CREATE TABLE oauth2_client_scopes (
 
 -- User Consent Table
 -- 记录用户对客户端授予的scope权限 (用于审计和合规)
--- ✅ 修正: 使用internal_user_id而非subject，确保与RBAC系统的兼容性
+-- 修正: 使用internal_user_id而非subject，确保与RBAC系统的兼容性
 CREATE TABLE oauth2_user_consents (
     id SERIAL PRIMARY KEY,
     internal_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- ✅ 使用内部user_id
@@ -39,7 +39,7 @@ CREATE TABLE oauth2_user_consents (
     UNIQUE(internal_user_id, client_id, scope_name)
 );
 
--- ✅ 新增: Subject映射表 - 用于将OAuth2 subject映射到内部user_id
+-- 新增: Subject映射表 - 用于将OAuth2 subject映射到内部user_id
 CREATE TABLE oauth2_subject_mappings (
     id SERIAL PRIMARY KEY,
     subject VARCHAR(128) NOT NULL,             -- OAuth2/OpenID Connect subject (仅在provider内唯一)
@@ -68,12 +68,33 @@ INSERT INTO oauth2_scopes (name, description, mapped_role, is_default, requires_
 ('read', '只读权限 - 映射到RBAC user role', 'user', FALSE, FALSE),
 ('write', '写入权限 - 映射到RBAC user role', 'user', FALSE, FALSE);
 
+-- Verify oauth2_scopes insertion
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM oauth2_scopes WHERE is_default = TRUE) = 0 THEN
+        RAISE EXCEPTION 'No default scopes found in oauth2_scopes table.';
+    END IF;
+END $$;
+
 -- Grant default scopes to vue-client
 INSERT INTO oauth2_client_scopes (client_id, scope_name)
 SELECT 'vue-client', name
 FROM oauth2_scopes
 WHERE is_default = TRUE
-ON CONFLICT DO NOTHING;
+ON CONFLICT (client_id, scope_name) DO NOTHING;
+
+-- Verify vue-client scope assignment
+DO $$
+DECLARE
+    scope_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO scope_count FROM oauth2_client_scopes WHERE client_id = 'vue-client';
+    IF scope_count = 0 THEN
+        RAISE EXCEPTION 'vue-client has no scopes assigned!';
+    ELSE
+        RAISE NOTICE 'Successfully assigned % scopes to vue-client', scope_count;
+    END IF;
+END $$;
 
 -- Add comments for documentation
 COMMENT ON TABLE oauth2_scopes IS 'OAuth2 scopes定义表 - 存储OAuth2协议的权限范围，独立于RBAC系统';
@@ -86,9 +107,9 @@ COMMENT ON COLUMN oauth2_subject_mappings.internal_user_id IS '内部用户ID - 
 COMMENT ON COLUMN oauth2_subject_mappings.provider IS '身份提供商 - local, google, wechat等';
 
 -- 说明：
--- 1. ⚠️ 破坏性变更: oauth2_clients.allowed_scopes字段已彻底移除
--- 2. ✅ Subject映射: 通过oauth2_subject_mappings表解决subject与users.id的类型不匹配
--- 3. ✅ 类型一致: oauth2_user_consents使用INTEGER internal_user_id，确保与RBAC系统兼容
+-- 1. 破坏性变更: oauth2_clients.allowed_scopes字段已彻底移除
+-- 2. Subject映射: 通过oauth2_subject_mappings表解决subject与users.id的类型不匹配
+-- 3. 类型一致: oauth2_user_consents使用INTEGER internal_user_id，确保与RBAC系统兼容
 -- 4. OAuth2 scopes和RBAC是两个独立的权限系统
 -- 5. 通过mapped_role字段将OAuth2 scope映射到RBAC role
 -- 6. requires_admin_role字段用于标记需要特殊权限的scopes

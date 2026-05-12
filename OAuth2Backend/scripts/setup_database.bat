@@ -5,6 +5,7 @@ cd /d "%~dp0.."
 echo Setting up oauth_test database...
 
 set PGPASSWORD=123456
+set PGCLIENTENCODING=UTF8
 
 echo Dropping existing database...
 psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;" >nul 2>&1
@@ -14,8 +15,8 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo Creating new database...
-psql -U test -d postgres -c "CREATE DATABASE oauth_test;" >nul 2>&1
+echo Creating new database with UTF-8 encoding...
+psql -U test -d postgres -c "CREATE DATABASE oauth_test ENCODING 'UTF8' TEMPLATE template0;" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Error: Failed to create database
     endlocal
@@ -23,7 +24,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Applying OAuth2 core schema...
-psql -U test -d oauth_test -f sql/001_oauth2_core.sql >nul 2>&1
+psql -U test -d oauth_test -f sql/001_oauth2_core.sql
 if %errorlevel% neq 0 (
     echo Error: Failed to apply OAuth2 core schema
     endlocal
@@ -31,7 +32,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Creating users table...
-psql -U test -d oauth_test -f sql/002_users_table.sql >nul 2>&1
+psql -U test -d oauth_test -f sql/002_users_table.sql
 if %errorlevel% neq 0 (
     echo Error: Failed to create users table
     endlocal
@@ -39,7 +40,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Applying RBAC schema...
-psql -U test -d oauth_test -f sql/003_rbac_schema.sql >nul 2>&1
+psql -U test -d oauth_test -f sql/003_rbac_schema.sql
 if %errorlevel% neq 0 (
     echo Error: Failed to apply RBAC schema
     endlocal
@@ -47,7 +48,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Applying OAuth2 scopes...
-psql -U test -d oauth_test -f sql/004_oauth2_scopes.sql >nul 2>&1
+psql -U test -d oauth_test -f sql/004_oauth2_scopes.sql
 if %errorlevel% neq 0 (
     echo Error: Failed to apply OAuth2 scopes
     endlocal
