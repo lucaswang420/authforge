@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Frontend Security Enhancements (2026-05-12)
+
+- **PKCE Support (RFC 7636)**: Enhanced security for public clients
+  - Automatic code_verifier and code_challenge generation
+  - SHA-256 hash-based PKCE implementation
+  - Session-based code_verifier storage with auto-cleanup
+  - Seamless integration with OAuth2 authorization flow
+
+- **Token Management (RFC 7662 & RFC 7009)**: Complete token lifecycle management
+  - Token introspection for real-time validation
+  - Token revocation for secure logout
+  - Secure token storage with expiration tracking
+  - Automatic token validation and refresh
+
+- **Authorization Server Metadata (RFC 8414)**: Dynamic configuration discovery
+  - Server metadata fetch support
+  - Dynamic endpoint discovery capability
+  - Configuration-driven OAuth2 flow
+
+- **Error Handling (RFC 6749)**: Standardized error responses
+  - RFC-compliant error parsing (JSON and form-encoded)
+  - User-friendly error messages
+  - Technical error details for debugging
+
+- **User Experience Improvements**:
+  - Permission visualization (roles and scopes)
+  - Token metadata display (issued/expired/scope/issuer)
+  - Enhanced loading states and error feedback
+  - Improved UI for PKCE-enabled authentication
+
+- **New OAuth2 Helper Utilities**: `src/utils/oauth2Helper.js`
+  - PKCE code generation and validation
+  - Token introspection and revocation
+  - RFC-compliant error handling
+  - Secure token storage and validation
+  - Authorization URL builder with PKCE support
+
 #### OAuth2 Standardization (2026-05-11)
 
 - **RFC 7662 Compliance**: Token Introspection Endpoint
