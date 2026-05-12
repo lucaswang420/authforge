@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import getConfig from '@/config/auth.config'
+import { buildAuthorizationUrl, generateState } from '@/utils/oauth2Helper'
 
 const router = useRouter()
 const loading = ref(false)
@@ -28,15 +29,22 @@ const loginWithDrogon = async () => {
     error.value = ''
     localStorage.setItem('auth_provider', 'drogon')
 
-    const state = crypto.randomUUID()
-    localStorage.setItem('auth_state_drogon', state)
-
-    const clientId = config.oauth2.clientId
-    const redirectUri = window.location.origin + config.app.callbackPath
-    const scope = config.oauth2.scope
-    const authUrl = `${config.oauth2.authorizeEndpoint}?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`
-
     try {
+        // Generate secure state parameter
+        const state = generateState()
+        localStorage.setItem('auth_state_drogon', state)
+
+        // Build authorization URL with PKCE support
+        const authUrl = await buildAuthorizationUrl({
+            endpoint: config.oauth2.authorizeEndpoint,
+            clientId: config.oauth2.clientId,
+            redirectUri: window.location.origin + config.app.callbackPath,
+            scope: config.oauth2.scope,
+            state: state,
+            usePKCE: true // Enable PKCE for enhanced security
+        })
+
+        // Verify backend is available before redirect
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 5000)
 
@@ -65,7 +73,7 @@ const loginWithWeChat = () => {
     }
 
     localStorage.setItem('auth_provider', 'wechat')
-    const state = crypto.randomUUID()
+    const state = generateState()
     localStorage.setItem('auth_state_wechat', state)
 
     const params = new URLSearchParams({
@@ -87,7 +95,7 @@ const loginWithGoogle = () => {
     }
 
     localStorage.setItem('auth_provider', 'google')
-    const state = crypto.randomUUID()
+    const state = generateState()
     localStorage.setItem('auth_state_google', state)
 
     const params = new URLSearchParams({
@@ -111,7 +119,7 @@ const loginWithGoogle = () => {
         <div class="logo" aria-hidden="true">OAuth</div>
         <h1>OAuth2 Platform</h1>
         <p class="tagline">Secure authentication for modern applications</p>
-        
+
         <div class="features">
           <div class="feature">
             <span class="feature-icon" aria-hidden="true">SEC</span>
@@ -128,10 +136,10 @@ const loginWithGoogle = () => {
             </div>
           </div>
           <div class="feature">
-            <span class="feature-icon" aria-hidden="true">SSO</span>
+            <span class="feature-icon" aria-hidden="true">PKCE</span>
             <div>
-              <strong>Multi-Provider</strong>
-              <p>Connect with Google, WeChat, and more</p>
+              <strong>Enhanced Security</strong>
+              <p>PKCE support for public client protection</p>
             </div>
           </div>
         </div>
@@ -158,7 +166,7 @@ const loginWithGoogle = () => {
             <span v-else aria-hidden="true">OAuth</span>
             Sign in with Drogon
           </button>
-          
+
           <button @click="loginWithGoogle" class="btn btn-social btn-google">
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -168,7 +176,7 @@ const loginWithGoogle = () => {
             </svg>
             Sign in with Google
           </button>
-          
+
           <button @click="loginWithWeChat" class="btn btn-social btn-wechat">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.296.295a.32.32 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05a5.79 5.79 0 0 1-.271-1.752c0-3.293 2.931-5.964 6.548-5.964.343 0 .677.035 1.007.074-.64-2.93-3.793-5.19-7.564-5.19z"/>
@@ -188,8 +196,8 @@ const loginWithGoogle = () => {
         </div>
 
         <p class="terms text-sm text-muted text-center mt-3">
-          By signing in, you agree to our 
-          <a href="#">Terms of Service</a> and 
+          By signing in, you agree to our
+          <a href="#">Terms of Service</a> and
           <a href="#">Privacy Policy</a>
         </p>
       </div>
@@ -350,15 +358,15 @@ const loginWithGoogle = () => {
   .auth-page {
     flex-direction: column;
   }
-  
+
   .brand-panel {
     padding: 3rem 2rem;
   }
-  
+
   .brand-content h1 {
     font-size: 2rem;
   }
-  
+
   .features {
     display: none;
   }

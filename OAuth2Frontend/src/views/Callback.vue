@@ -1,119 +1,146 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  exchangeCodeForToken,
+  storeTokens,
+  introspectToken,
+  parseOAuth2Error,
+  getValidAccessToken
+} from '@/utils/oauth2Helper'
 
 const route = useRoute()
 const router = useRouter()
 const status = ref('Processing...')
 const userInfo = ref(null)
+const tokenInfo = ref(null)
 const error = ref(null)
 
 onMounted(async () => {
-    const code = route.query.code;
-    const state = route.query.state;
+    const code = route.query.code
+    const state = route.query.state
 
     if (!code) {
-        error.value = "No authorization code found in URL";
-        return;
+        error.value = "No authorization code found in URL"
+        status.value = "Error"
+        return
     }
 
-    const provider = localStorage.getItem('auth_provider') || 'drogon';
-    status.value = `Verifying ${provider} Login...`;
-    
+    const provider = localStorage.getItem('auth_provider') || 'drogon'
+    status.value = `Verifying ${provider} Login...`
+
     try {
         if (provider === 'wechat' || provider === 'google') {
             // Validate state for external providers
-            const savedState = localStorage.getItem(`auth_state_${provider}`);
+            const savedState = localStorage.getItem(`auth_state_${provider}`)
             if (state !== savedState) {
-                throw new Error("Invalid state parameter (CSRF Protection)");
+                throw new Error("Invalid state parameter (CSRF Protection)")
             }
-            localStorage.removeItem(`auth_state_${provider}`);
-            
+            localStorage.removeItem(`auth_state_${provider}`)
+
             // Call our Backend to perform the server-side exchange for external providers
-            const loginEndpoint = provider === 'wechat' ? '/api/wechat/login' : '/api/google/login';
-            
+            const loginEndpoint = provider === 'wechat' ? '/api/wechat/login' : '/api/google/login'
+
             const response = await fetch(loginEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ code: code })
-            });
+            })
 
             if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`${provider} Login Failed: ${errText}`);
+                const errText = await response.text()
+                throw new Error(`${provider} Login Failed: ${errText}`)
             }
 
-            userInfo.value = await response.json();
-            
+            userInfo.value = await response.json()
+
             // Normalize display fields
             if (provider === 'wechat') {
-                userInfo.value.displayName = userInfo.value.nickname;
-                userInfo.value.avatarUrl = userInfo.value.headimgurl;
+                userInfo.value.displayName = userInfo.value.nickname
+                userInfo.value.avatarUrl = userInfo.value.headimgurl
             } else {
-                userInfo.value.displayName = userInfo.value.name;
-                userInfo.value.avatarUrl = userInfo.value.picture;
+                userInfo.value.displayName = userInfo.value.name
+                userInfo.value.avatarUrl = userInfo.value.picture
             }
-            
-            status.value = "Success!";
-            return; 
+
+            status.value = "Success!"
+            return
         }
 
         // Standard OAuth / Drogon Flow
         // Validate state
-        const savedState = localStorage.getItem('auth_state_drogon');
+        const savedState = localStorage.getItem('auth_state_drogon')
         if (state !== savedState) {
-            throw new Error("Invalid state parameter (CSRF Protection)");
+            throw new Error("Invalid state parameter (CSRF Protection)")
         }
-        localStorage.removeItem('auth_state_drogon');
+        localStorage.removeItem('auth_state_drogon')
 
-        const tokenUrl = '/oauth2/token';
-        const tokenBody = {
-            grant_type: 'authorization_code',
+        status.value = "Exchanging authorization code..."
+
+        // Exchange code for token (with PKCE support)
+        const tokenData = await exchangeCodeForToken({
             code: code,
-            client_id: 'vue-client',
-            // client_secret removed - vue-client is PUBLIC (no secret required)
-            redirect_uri: window.location.origin + '/callback'
-        };
+            redirectUri: window.location.origin + '/callback',
+            clientId: 'vue-client'
+        })
 
-        // Exchange Code
-        const tokenResponse = await fetch(tokenUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(tokenBody)
-        });
+        // Store tokens securely
+        storeTokens(tokenData)
 
-        if (!tokenResponse.ok) {
-            throw new Error(`Token exchange failed: ${tokenResponse.status}`);
+        status.value = "Validating token..."
+
+        // Introspect token to get detailed information
+        const accessToken = getValidAccessToken()
+        if (accessToken) {
+            try {
+                tokenInfo.value = await introspectToken(accessToken)
+
+                // Add token metadata to user info
+                if (tokenInfo.active) {
+                    userInfo.value = {
+                        ...tokenInfo,
+                        displayName: tokenInfo.sub || tokenInfo.client_id,
+                        tokenMetadata: {
+                            issuedAt: new Date(tokenInfo.iat * 1000).toLocaleString(),
+                            expiresAt: new Date(tokenInfo.exp * 1000).toLocaleString(),
+                            scope: tokenInfo.scope,
+                            issuer: tokenInfo.iss
+                        }
+                    }
+                }
+            } catch (introspectError) {
+                console.warn('Token introspection failed, continuing with user info fetch:', introspectError)
+            }
         }
 
-        const tokenData = await tokenResponse.json();
-        const accessToken = tokenData.access_token;
-
-        // Store access token in localStorage
-        localStorage.setItem('access_token', accessToken);
-
-        status.value = "Fetching user info...";
-
-        // Fetch User Info
+        // Fetch detailed user info
+        status.value = "Fetching user profile..."
         const userResponse = await fetch('/oauth2/userinfo', {
             headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        
+        })
+
         if (!userResponse.ok) {
-            throw new Error(`User Info failed: ${userResponse.status}`);
+            throw new Error(`User Info failed: ${userResponse.status}`)
         }
 
-        userInfo.value = await userResponse.json();
-        
-        if (userInfo.value.name) {
-            userInfo.value.displayName = userInfo.value.name;
+        const detailedUserInfo = await userResponse.json()
+
+        // Merge detailed user info with token info
+        userInfo.value = {
+            ...userInfo.value,
+            ...detailedUserInfo,
+            displayName: detailedUserInfo.name || detailedUserInfo.sub || userInfo.value.displayName
         }
 
-        status.value = "Success!";
+        // Store user info
+        localStorage.setItem('user_info', JSON.stringify(userInfo.value))
+
+        status.value = "Success!"
 
     } catch (e) {
-        error.value = e.message;
-        status.value = "Error";
+        error.value = e.message
+        status.value = "Error"
+        console.error('Authentication error:', e)
     }
 })
 </script>
@@ -122,7 +149,7 @@ onMounted(async () => {
   <div class="callback-container">
     <div class="glass-card">
         <div class="logo" aria-hidden="true">OAuth</div>
-        
+
         <!-- Loading State -->
         <div v-if="!userInfo && !error" class="status-box">
             <div class="spinner"></div>
@@ -136,19 +163,60 @@ onMounted(async () => {
             <p>{{ error }}</p>
             <router-link to="/" class="btn-primary">Return Home</router-link>
         </div>
-        
+
         <!-- Success State -->
         <div v-if="userInfo" class="success-box">
             <div class="icon" aria-hidden="true">OK</div>
             <h3>Login Successful!</h3>
             <p class="welcome-text">Welcome back, <strong>{{ userInfo.displayName }}</strong></p>
-            
+
             <div class="user-profile">
                 <img v-if="userInfo.avatarUrl" :src="userInfo.avatarUrl" alt="Avatar" class="avatar">
                 <div v-else class="avatar-placeholder">{{ userInfo.displayName ? userInfo.displayName[0].toUpperCase() : 'U' }}</div>
-                
+
                 <div class="user-details">
+                    <h4>Profile Information</h4>
                     <pre>{{ JSON.stringify(userInfo, null, 2) }}</pre>
+
+                    <!-- Token Metadata (if available) -->
+                    <div v-if="userInfo.tokenMetadata" class="token-metadata">
+                        <h4>Token Information</h4>
+                        <div class="metadata-grid">
+                            <div class="metadata-item">
+                                <span class="label">Issued At:</span>
+                                <span class="value">{{ userInfo.tokenMetadata.issuedAt }}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="label">Expires At:</span>
+                                <span class="value">{{ userInfo.tokenMetadata.expiresAt }}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="label">Scope:</span>
+                                <span class="value">{{ userInfo.tokenMetadata.scope }}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="label">Issuer:</span>
+                                <span class="value">{{ userInfo.tokenMetadata.issuer }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Roles and Scopes (if available) -->
+                    <div v-if="userInfo.roles || userInfo.scope" class="permissions">
+                        <h4>Permissions</h4>
+                        <div v-if="userInfo.roles" class="permission-group">
+                            <span class="permission-label">Roles:</span>
+                            <div class="permission-badges">
+                                <span v-for="role in userInfo.roles" :key="role" class="badge badge-role">{{ role }}</span>
+                            </div>
+                        </div>
+                        <div v-if="userInfo.scope" class="permission-group">
+                            <span class="permission-label">Scopes:</span>
+                            <div class="permission-badges">
+                                <span v-for="scope in userInfo.scope.split(' ')" :key="scope" class="badge badge-scope">{{ scope }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -186,7 +254,7 @@ onMounted(async () => {
     border-radius: 20px;
     padding: 3rem;
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     text-align: center;
     animation: fadeIn 0.5s ease-out;
@@ -257,6 +325,17 @@ onMounted(async () => {
     margin: 0 auto 1rem;
 }
 
+.user-details {
+    text-align: left;
+    margin-top: 1rem;
+}
+
+.user-details h4 {
+    color: #667eea;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
 pre {
     background: rgba(0, 0, 0, 0.3);
     padding: 1rem;
@@ -267,6 +346,68 @@ pre {
     color: #a0aec0;
     max-height: 200px;
     width: 100%;
+}
+
+.token-metadata, .permissions {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.metadata-item {
+    display: contents;
+}
+
+.metadata-item .label {
+    color: #a0aec0;
+    font-size: 0.875rem;
+}
+
+.metadata-item .value {
+    color: #e2e8f0;
+    font-size: 0.875rem;
+}
+
+.permission-group {
+    margin-bottom: 0.5rem;
+}
+
+.permission-label {
+    display: block;
+    color: #a0aec0;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.permission-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-role {
+    background: rgba(102, 126, 234, 0.3);
+    color: #667eea;
+}
+
+.badge-scope {
+    background: rgba(118, 75, 162, 0.3);
+    color: #764ba2;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
