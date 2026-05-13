@@ -6,7 +6,7 @@
 
 using namespace drogon::orm;
 
-DROGON_TEST(SchemaSetup)
+DROGON_TEST(Database_P0_Schema_Setup_Works)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();

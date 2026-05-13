@@ -7,7 +7,7 @@
 
 using namespace services;
 
-DROGON_TEST(AuthService_GetUserInfo_Success)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_Success)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
@@ -52,7 +52,7 @@ DROGON_TEST(AuthService_GetUserInfo_Success)
     CHECK(json["sub"].asString() == std::to_string(testUserId));
 }
 
-DROGON_TEST(AuthService_GetUserInfo_UserNotFound)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_UserNotFound)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
@@ -83,7 +83,7 @@ DROGON_TEST(AuthService_GetUserInfo_UserNotFound)
     CHECK(userInfo.has_value() == false);
 }
 
-DROGON_TEST(AuthService_GetUserInfo_InvalidUserId)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_InvalidUserId)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
@@ -114,7 +114,7 @@ DROGON_TEST(AuthService_GetUserInfo_InvalidUserId)
     CHECK(userInfo.has_value() == false);
 }
 
-DROGON_TEST(AuthService_GetUserInfo_UserWithRoles)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_UserWithRoles)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
@@ -157,7 +157,7 @@ DROGON_TEST(AuthService_GetUserInfo_UserWithRoles)
     }
 }
 
-DROGON_TEST(AuthService_GetUserInfo_ResponseStructure)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_ResponseStructure)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
@@ -203,7 +203,7 @@ DROGON_TEST(AuthService_GetUserInfo_ResponseStructure)
     CHECK(json["sub"].isString() == true);  // Subject - user ID
 }
 
-DROGON_TEST(AuthService_GetUserInfo_DatabaseErrorHandling)
+DROGON_TEST(Integration_P0_AuthService_GetUserInfo_DatabaseErrorHandling)
 {
     // Skip this test in memory storage mode (no database)
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();

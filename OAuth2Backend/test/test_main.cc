@@ -340,7 +340,7 @@ int main(int argc, char **argv)
         auto loop = drogon::app().getLoop();
         if (loop && loop->isRunning())
         {
-            loop->queueInLoop([]() { drogon::app().quit(); });
+            loop->queueInLoop([=]() { drogon::app().quit(); });
         }
     }
     catch (const std::exception &e)

@@ -6,7 +6,7 @@
 
 using namespace common::documentation;
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_String)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_String)
 {
     // Test string parameter (default type)
     EndpointInfo endpoint;
@@ -41,7 +41,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_String)
     CHECK(parameters[0]["required"].asBool() == true);
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Integer)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Integer)
 {
     // Test integer parameter
     EndpointInfo endpoint;
@@ -76,7 +76,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Integer)
     CHECK(parameters[0]["schema"]["default"].asInt() == 25);
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Boolean)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Boolean)
 {
     // Test boolean parameter
     EndpointInfo endpoint;
@@ -112,7 +112,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Boolean)
     CHECK(parameters[0]["schema"]["default"].asBool() == true);
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Number)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Number)
 {
     // Test number parameter (floating point)
     EndpointInfo endpoint;
@@ -147,7 +147,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Number)
     CHECK(parameters[0]["schema"]["default"].asDouble() > 99.0);
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Enum)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Enum)
 {
     // Test enum parameter
     EndpointInfo endpoint;
@@ -190,7 +190,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Enum)
     CHECK(enumValues[3].asString() == "cancelled");
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Format)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Format)
 {
     // Test parameter with format specification
     EndpointInfo endpoint;
@@ -225,7 +225,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Format)
     CHECK(parameters[0]["schema"]["format"].asString() == "email");
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Location)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Location)
 {
     // Test different parameter locations
     EndpointInfo endpoint;
@@ -308,7 +308,7 @@ DROGON_TEST(OpenApiGenerator_ParameterTypes_Location)
     CHECK(foundHeaderParam == true);
 }
 
-DROGON_TEST(OpenApiGenerator_ResponseExamples_Basic)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ResponseExamples_Basic)
 {
     // Test response examples
     EndpointInfo endpoint;
@@ -361,7 +361,7 @@ DROGON_TEST(OpenApiGenerator_ResponseExamples_Basic)
     CHECK(example404["code"].asInt() == 404);
 }
 
-DROGON_TEST(OpenApiGenerator_ParameterTypes_Complex)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ParameterTypes_Complex)
 {
     // Test complex endpoint with multiple parameter types
     EndpointInfo endpoint;

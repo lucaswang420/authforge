@@ -140,9 +140,8 @@ void MemoryOAuth2Storage::initFromConfig(
     {
         // Default admin configuration for backward compatibility
         LOG_WARN << "MemoryOAuth2Storage: No admin configuration provided, "
-                 << "using default admin user 'admin' and '1'";
+                 << "using default admin user 'admin'";
         userRoles_["admin"] = {"admin", "user"};
-        userRoles_["1"] = {"admin", "user"};
     }
 }
 

@@ -6,7 +6,7 @@ using namespace drogon;
 using namespace drogon::orm;
 using namespace common::error;
 
-DROGON_TEST(ErrorCodeToHttpMapping)
+DROGON_TEST(Unit_P1_ErrorHandler_CodeToHttpMapping_Legacy)
 {
     Error authError{ErrorCode::INVALID_CREDENTIALS, ErrorCategory::AUTHENTICATION, "", "", ""};
     CHECK(authError.toHttpStatusCode() == 401);
@@ -18,14 +18,14 @@ DROGON_TEST(ErrorCodeToHttpMapping)
     CHECK(notFoundError.toHttpStatusCode() == 400);
 }
 
-DROGON_TEST(ConvertDbExceptionToError)
+DROGON_TEST(Unit_P1_ErrorHandler_ConvertDbExceptionToError_Legacy)
 {
     // Skip this test for now - DrogonDbException constructor issues
     // The implementation is tested indirectly through other tests
     CHECK(1 == 1);  // Placeholder
 }
 
-DROGON_TEST(ErrorToJsonFormat)
+DROGON_TEST(Unit_P1_ErrorHandler_ToJsonFormat_Legacy)
 {
     Error error{
       ErrorCode::MISSING_REQUIRED_FIELD,
@@ -43,7 +43,7 @@ DROGON_TEST(ErrorToJsonFormat)
     CHECK(json["error"]["request_id"].asString() == "req_123");
 }
 
-DROGON_TEST(HandleValidationError)
+DROGON_TEST(Unit_P1_ErrorHandler_ValidationError_Legacy)
 {
     auto error = ErrorHandler::handleValidationError("client_id", "is required");
     CHECK(error.category == ErrorCategory::VALIDATION);
@@ -52,19 +52,19 @@ DROGON_TEST(HandleValidationError)
     CHECK(error.details == "field: client_id");
 }
 
-DROGON_TEST(DatabaseTimeoutToHttp504)
+DROGON_TEST(Unit_P1_ErrorHandler_TimeoutToHttp504_Legacy)
 {
     Error timeoutError{ErrorCode::TIMEOUT, ErrorCategory::NETWORK, "", "", ""};
     CHECK(timeoutError.toHttpStatusCode() == 504);
 }
 
-DROGON_TEST(DatabaseErrorToHttp500)
+DROGON_TEST(Unit_P1_ErrorHandler_ErrorToHttp500_Legacy)
 {
     Error dbError{ErrorCode::DB_QUERY_ERROR, ErrorCategory::DATABASE, "", "", ""};
     CHECK(dbError.toHttpStatusCode() == 500);
 }
 
-DROGON_TEST(UnknownErrorToHttp500)
+DROGON_TEST(Unit_P1_ErrorHandler_ErrorToHttp500_Legacy)
 {
     Error internalError{ErrorCode::DB_QUERY_ERROR, ErrorCategory::INTERNAL, "", "", ""};
     CHECK(internalError.toHttpStatusCode() == 500);

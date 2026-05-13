@@ -6,7 +6,7 @@
 
 using namespace common::documentation;
 
-DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_Structure)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ValidateOpenApiSpec_Structure)
 {
     // Generate OpenAPI specification
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
@@ -34,7 +34,7 @@ DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_Structure)
     CHECK(spec["components"].isMember("schemas"));
 }
 
-DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_InfoFields)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ValidateOpenApiSpec_InfoFields)
 {
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
 
@@ -49,7 +49,7 @@ DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_InfoFields)
     CHECK(spec["info"]["description"].isString());
 }
 
-DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_ServerConfig)
+DROGON_TEST(Unit_P2_OpenApiGenerator_ValidateOpenApiSpec_ServerConfig)
 {
     // Set server configuration for test
     OpenApiGenerator::setServerConfig("http://localhost:5555", "Test OAuth2 Server");
@@ -67,7 +67,7 @@ DROGON_TEST(OpenApiGenerator_ValidateOpenApiSpec_ServerConfig)
     CHECK(spec["servers"][0]["description"].asString() == "Test OAuth2 Server");
 }
 
-DROGON_TEST(OpenApiGenerator_AddEndpoint_Basic)
+DROGON_TEST(Unit_P2_OpenApiGenerator_AddEndpoint_Basic)
 {
     // Clear existing endpoints
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
@@ -94,7 +94,7 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_Basic)
     CHECK(newSpec["paths"].isMember(testEndpoint.path));
 }
 
-DROGON_TEST(OpenApiGenerator_AddEndpoint_RequiredFields)
+DROGON_TEST(Unit_P2_OpenApiGenerator_AddEndpoint_RequiredFields)
 {
     // Add endpoint with all required fields
     EndpointInfo endpoint;
@@ -133,7 +133,7 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_RequiredFields)
     CHECK(pathItem["tags"].size() > 0);
 }
 
-DROGON_TEST(OpenApiGenerator_AddEndpoint_ParametersStructure)
+DROGON_TEST(Unit_P2_OpenApiGenerator_AddEndpoint_ParametersStructure)
 {
     // Add endpoint with parameters
     EndpointInfo endpoint;
@@ -174,7 +174,7 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ParametersStructure)
     }
 }
 
-DROGON_TEST(OpenApiGenerator_AddEndpoint_ResponsesStructure)
+DROGON_TEST(Unit_P2_OpenApiGenerator_AddEndpoint_ResponsesStructure)
 {
     // Add endpoint with multiple response codes
     EndpointInfo endpoint;
@@ -214,7 +214,7 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_ResponsesStructure)
     CHECK(responses["201"]["description"].asString() == "Resource created");
 }
 
-DROGON_TEST(OpenApiGenerator_AddEndpoint_Authentication)
+DROGON_TEST(Unit_P2_OpenApiGenerator_AddEndpoint_Authentication)
 {
     // Add endpoint that requires authentication
     EndpointInfo authEndpoint;
@@ -264,7 +264,7 @@ DROGON_TEST(OpenApiGenerator_AddEndpoint_Authentication)
     CHECK(noAuthPathItem["summary"].asString() == "No authentication test");
 }
 
-DROGON_TEST(OpenApiGenerator_SetApiInfo)
+DROGON_TEST(Unit_P2_OpenApiGenerator_SetApiInfo_Legacy)
 {
     // Set custom API info
     std::string testTitle = "Test API Title";
@@ -281,7 +281,7 @@ DROGON_TEST(OpenApiGenerator_SetApiInfo)
     CHECK(spec["info"]["description"].asString() == testDescription);
 }
 
-DROGON_TEST(OpenApiGenerator_Components_Schemas)
+DROGON_TEST(Unit_P2_OpenApiGenerator_Components_Schemas)
 {
     // Generate spec and verify component schemas
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
@@ -303,7 +303,7 @@ DROGON_TEST(OpenApiGenerator_Components_Schemas)
     CHECK(errorProps.isMember("request_id"));
 }
 
-DROGON_TEST(OpenApiGenerator_CompleteSpec_Integrity)
+DROGON_TEST(Unit_P2_OpenApiGenerator_CompleteSpec_Integrity)
 {
     // Generate complete spec
     Json::Value spec = OpenApiGenerator::generateOpenApiSpec();
@@ -327,7 +327,7 @@ DROGON_TEST(OpenApiGenerator_CompleteSpec_Integrity)
     CHECK(openapiVersion.find("3.0") == 0);
 }
 
-DROGON_TEST(OpenApiGenerator_WriteToFile_CreateDirectory)
+DROGON_TEST(Unit_P2_OpenApiGenerator_WriteToFile_CreateDirectory)
 {
     // Test writing to a new directory
     std::string testPath = "test_output/openapi_test.json";
