@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Creating new database with UTF-8 encoding...
-psql -U test -d postgres -c "CREATE DATABASE oauth_test ENCODING 'UTF8' TEMPLATE template0;" >nul 2>&1
+psql -U test -d postgres -c "CREATE DATABASE oauth_test;" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Error: Failed to create database
     endlocal
