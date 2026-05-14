@@ -1,76 +1,78 @@
-# Build Stage
-FROM ubuntu:22.04 AS builder
+# ==========================================
+# Unified Dockerfile for OAuth2-plugin-example
+# Supports multiple targets: backend-dev, backend-runtime, frontend-runtime
+# ==========================================
 
+# Global Arguments for customization
+ARG UBUNTU_MIRROR=archive.ubuntu.com
+ARG DROGON_REPO=https://github.com/drogonframework/drogon.git
+ARG DROGON_VERSION=v1.9.12
+ARG NODE_VERSION=18-alpine
+
+# --- Stage 1: Backend Build Environment (Base) ---
+FROM ubuntu:22.04 AS backend-base
+ARG UBUNTU_MIRROR
 ENV DEBIAN_FRONTEND=noninteractive
-
-# 1. Install System Dependencies (Drogon + OAuth2Backend Requirements)
+RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
+    sed -i "s|security.ubuntu.com|${UBUNTU_MIRROR}|g" /etc/apt/sources.list
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git \
-    python3-pip \
-    libjsoncpp-dev \
-    uuid-dev \
-    zlib1g-dev \
-    libssl-dev \
-    libbrotli-dev \
-    libc-ares-dev \
-    libpq-dev \
-    libhiredis-dev \
-    libsqlite3-dev \
-    libcurl4-openssl-dev \
-    pkg-config \
-    wget \
+    build-essential cmake git python3-pip libjsoncpp-dev uuid-dev zlib1g-dev \
+    libssl-dev libbrotli-dev libc-ares-dev libpq-dev libhiredis-dev \
+    libsqlite3-dev libcurl4-openssl-dev pkg-config wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install Drogon (Source Build for v1.9.12)
+# Install Drogon
+ARG DROGON_REPO
+ARG DROGON_VERSION
 WORKDIR /tmp/drogon
-RUN git clone https://github.com/drogonframework/drogon.git . \
-    && git checkout v1.9.12 \
-    && git submodule update --init \
-    && mkdir build && cd build \
-    && cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-    && make -j$(nproc) \
-    && make install
+RUN git clone ${DROGON_REPO} . && \
+    git checkout ${DROGON_VERSION} && \
+    git submodule update --init --recursive && \
+    mkdir build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF && \
+    make -j$(nproc) && make install && \
+    ldconfig && rm -rf /tmp/drogon
 
-# 3. Prepare Application
+# --- Stage 2: Backend Development (Target: backend-dev) ---
+FROM backend-base AS backend-dev
+WORKDIR /app/OAuth2Backend
+CMD ["/bin/bash"]
+
+# --- Stage 3: Backend Application Builder ---
+FROM backend-base AS backend-builder
 WORKDIR /app
 COPY . .
-
-# 4. Build Application using build.sh (Native Mode)
 WORKDIR /app/OAuth2Backend
-RUN sed -i 's/\r$//' scripts/build.sh && chmod +x scripts/build.sh && ./scripts/build.sh Release
+RUN mkdir -p build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON && \
+    make -j$(nproc)
 
-# Runtime Stage
-FROM ubuntu:22.04
-
+# --- Stage 4: Backend Runtime (Target: backend-runtime) ---
+FROM ubuntu:22.04 AS backend-runtime
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install runtime libs (Must match Build Stage)
 RUN apt-get update && apt-get install -y \
-    libjsoncpp25 \
-    zlib1g \
-    libssl3 \
-    libbrotli1 \
-    libc-ares2 \
-    libpq5 \
-    libhiredis0.14 \
-    libsqlite3-0 \
-    libcurl4 \
-    libuuid1 \
-    ca-certificates \
+    libjsoncpp25 zlib1g libssl3 libbrotli1 libc-ares2 libpq5 \
+    libhiredis0.14 libsqlite3-0 libcurl4 libuuid1 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
-
-# Copy executable and config
-COPY --from=builder /app/OAuth2Backend/build/OAuth2Server .
-COPY --from=builder /app/OAuth2Backend/config.prod.json ./config.json
-# Copy web content
-COPY --from=builder /app/OAuth2Backend/views ./views
-# Create log and upload dirs
+COPY --from=backend-builder /app/OAuth2Backend/build/OAuth2Server .
+COPY --from=backend-builder /app/OAuth2Backend/config.prod.json ./config.json
+COPY --from=backend-builder /app/OAuth2Backend/views ./views
 RUN mkdir -p logs uploads
-
 EXPOSE 5555
-
 CMD ["./OAuth2Server"]
+
+# --- Stage 5: Frontend Builder ---
+FROM node:${NODE_VERSION} AS frontend-builder
+WORKDIR /app/OAuth2Frontend
+COPY OAuth2Frontend/package*.json ./
+RUN npm install
+COPY OAuth2Frontend/ .
+RUN npm run build
+
+# --- Stage 6: Frontend Runtime (Target: frontend-runtime) ---
+FROM nginx:stable-alpine AS frontend-runtime
+COPY --from=frontend-builder /app/OAuth2Frontend/dist /usr/share/nginx/html
+COPY OAuth2Frontend/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

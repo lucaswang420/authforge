@@ -1,5 +1,8 @@
+import apiClient from './api'
+
 /**
  * OAuth2 Helper Utilities
+
  *
  * Implements OAuth2.0 security enhancements and RFC compliance:
  * - PKCE (RFC 7636) for public clients
@@ -120,18 +123,17 @@ export async function exchangeCodeForToken(options) {
     sessionStorage.removeItem('pkce_code_verifier')
   }
 
-  const response = await fetch('/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(tokenBody)
-  })
-
-  if (!response.ok) {
-    const error = await parseOAuth2Error(response)
-    throw new Error(`Token exchange failed: ${error.error} - ${error.error_description}`)
+  try {
+    const response = await apiClient.post('/oauth2/token', new URLSearchParams(tokenBody), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      throw new Error(`Token exchange failed: ${error.response.data.error || error.message}`)
+    }
+    throw error
   }
-
-  return await response.json()
 }
 
 /**
@@ -163,17 +165,14 @@ export async function parseOAuth2Error(response) {
  * @returns {Promise<Object>} token info
  */
 export async function introspectToken(token) {
-  const response = await fetch('/oauth2/introspect', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ token })
-  })
-
-  if (!response.ok) {
-    throw new Error(`Token introspection failed: ${response.status}`)
+  try {
+    const response = await apiClient.post('/oauth2/introspect', new URLSearchParams({ token }), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(`Token introspection failed: ${error.message}`)
   }
-
-  return await response.json()
 }
 
 /**
@@ -182,14 +181,14 @@ export async function introspectToken(token) {
  * @returns {Promise<boolean>} success
  */
 export async function revokeToken(token) {
-  const response = await fetch('/oauth2/revoke', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ token })
-  })
-
-  // RFC 7009: 200 OK even if token doesn't exist
-  return response.ok
+  try {
+    await apiClient.post('/oauth2/revoke', new URLSearchParams({ token }), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    return true
+  } catch (error) {
+    return false
+  }
 }
 
 /**
@@ -197,13 +196,12 @@ export async function revokeToken(token) {
  * @returns {Promise<Object>} server metadata
  */
 export async function fetchServerMetadata() {
-  const response = await fetch('/.well-known/oauth-authorization-server')
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch metadata: ${response.status}`)
+  try {
+    const response = await apiClient.get('/.well-known/oauth-authorization-server')
+    return response.data
+  } catch (error) {
+    throw new Error(`Failed to fetch metadata: ${error.message}`)
   }
-
-  return await response.json()
 }
 
 /**

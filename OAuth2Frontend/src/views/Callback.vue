@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import apiClient from '../utils/api'
 import {
   exchangeCodeForToken,
   storeTokens,
@@ -113,17 +114,11 @@ onMounted(async () => {
             }
         }
 
-        // Fetch detailed user info
+        // Fetch detailed user info using apiClient
         status.value = "Fetching user profile..."
-        const userResponse = await fetch('/oauth2/userinfo', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        })
+        const userResponse = await apiClient.get('/oauth2/userinfo')
 
-        if (!userResponse.ok) {
-            throw new Error(`User Info failed: ${userResponse.status}`)
-        }
-
-        const detailedUserInfo = await userResponse.json()
+        const detailedUserInfo = userResponse.data
 
         // Merge detailed user info with token info
         userInfo.value = {

@@ -1,0 +1,125 @@
+cmake_minimum_required(VERSION 3.5)
+project(OAuth2Test_test CXX)
+
+# Optional flags
+option(OAUTH2_MEMORY_TESTS_ONLY "Build only tests that do not require external databases" OFF)
+option(OAUTH2_TEST_COVERAGE "Enable code coverage reporting" OFF)
+
+# Collect source files from the plugin project
+file(GLOB PLUGIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/*.cc")
+file(GLOB STORAGE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/storage/*.cc")
+file(GLOB SERVICE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/services/*.cc")
+file(GLOB MODEL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models/*.cc")
+file(GLOB COMMON_SRC 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/config/*.cc" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/error/*.cc" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/validation/*.cc" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/documentation/*.cc"
+)
+
+# Collect Server source files
+file(GLOB CTL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../controllers/*.cc")
+file(GLOB FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../filters/*.cc")
+file(GLOB SERVER_SERVICE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../AuthService.cc")
+
+# Collect hierarchical test sources
+file(GLOB_RECURSE UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/unit/*.cc")
+file(GLOB_RECURSE INTEGRATION_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/integration/*.cc")
+file(GLOB_RECURSE E2E_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/e2e/*.cc")
+file(GLOB_RECURSE SECURITY_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/security/*.cc")
+file(GLOB_RECURSE PERFORMANCE_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/performance/*.cc")
+
+# Root test sources
+set(ROOT_TEST_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc"
+)
+
+if(NOT OAUTH2_MEMORY_TESTS_ONLY)
+    list(APPEND ROOT_TEST_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/SchemaSetup.cc"
+    )
+endif()
+
+# Combine all test sources
+set(ALL_TEST_SOURCES
+    ${ROOT_TEST_SOURCES}
+    ${UNIT_TESTS}
+    ${INTEGRATION_TESTS}
+    ${E2E_TESTS}
+    ${SECURITY_TESTS}
+    ${PERFORMANCE_TESTS}
+)
+
+add_executable(${PROJECT_NAME} 
+    ${ALL_TEST_SOURCES} 
+    ${PLUGIN_SRC} 
+    ${STORAGE_SRC} 
+    ${SERVICE_SRC} 
+    ${MODEL_SRC} 
+    ${CTL_SRC} 
+    ${FILTER_SRC} 
+    ${COMMON_SRC}
+    ${SERVER_SERVICE_SRC}
+)
+
+drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../views
+                    ${CMAKE_CURRENT_BINARY_DIR})
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/storage
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/../controllers
+)
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
+
+# Platform specific options
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+        _CRT_SECURE_NO_WARNINGS
+    )
+elseif(APPLE)
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+    )
+endif()
+
+# Coverage support
+if(OAUTH2_TEST_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${PROJECT_NAME} PRIVATE --coverage -fno-inline -fno-inline-small-functions -fno-default-inline)
+        target_link_options(${PROJECT_NAME} PRIVATE --coverage)
+        message(STATUS "Code coverage enabled for ${PROJECT_NAME}")
+    endif()
+endif()
+
+add_test(NAME OAuth2Tests COMMAND ${PROJECT_NAME} WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+# Copy config to the test executable directory
+if(MSVC OR XCODE)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/../config.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/config.json
+    )
+else()
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/../config.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/config.json
+    )
+endif()

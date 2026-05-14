@@ -9,38 +9,50 @@
 
 ## 快速开始
 
-### 后端（3步启动）
+本项目提供了一个全栈集成示例（包含 OAuth2 插件库、服务器后端和 Vue 前端）。
+
+### 使用 Docker Compose（推荐）
+
+这是最快的体验方式，会自动拉起前端、后端、PostgreSQL、Redis 和 Prometheus。
 
 ```bash
-# 1. 构建项目
-cd OAuth2Backend
-./build.bat                    # Windows
-# 或: cmake -B build && cmake --build build  # Linux/macOS
-
-# 2. 配置（可选）
-cp config.json config.json.local  # 编辑配置文件
-
-# 3. 启动服务器
-cd build && ./OAuth2Server      # 监听 http://localhost:5555
+docker-compose up -d
 ```
 
-### 前端（2步启动）
+访问 `http://localhost:8080` 体验前端页面。
 
-```bash
-# 1. 安装依赖
-cd OAuth2Frontend && npm install
+### 本地编译
 
-# 2. 启动开发服务器
-npm run dev                    # 访问 http://localhost:5173
+在 Windows 环境下，你可以使用项目根目录提供的统一管理脚本：
+
+```powershell
+# 编译后端（包含 OAuth2Plugin 库和 OAuth2Server 示例）
+.\manage.ps1 build-backend
+
+# 运行后端测试
+.\manage.ps1 test-backend
+
+# 运行前端开发服务器
+.\manage.ps1 dev-frontend
 ```
 
-### Docker（推荐用于生产）
+对于 Linux/macOS 用户，可以进入 `scripts/backend/` 执行对应的 `.sh` 脚本。
 
-```bash
-docker-compose up -d           # 启动完整服务栈（后端+前端+数据库）
-```
+### 项目结构
+
+- `OAuth2Plugin/`: 核心插件库（包含 Models, Services, Storage 等），可独立安装供其他 Drogon 项目引用。
+- `OAuth2Server/`: 演示如何集成和使用插件库的后端应用程序。
+- `OAuth2Frontend/`: 与后端交互的 Vue 3 客户端。
+- `docs/`: 集中存放项目架构、API 和部署文档。
 
 ## 核心特性
+
+- **🚀 真正的独立插件架构**：核心 OAuth2 逻辑封装为独立的 CMake 库，支持 `install` 并供第三方项目无缝集成。
+- **🔐 完整 RFC 规范支持**：全面实现 PKCE (RFC 7636)、Token Introspection (RFC 7662) 和 Revocation (RFC 7009)。
+- **🚀 多级缓存存储策略**：支持 PostgreSQL 结合 L1 内存与 L2 Redis 双级缓存，应对高并发请求。
+- **📦 现代化工程流**：提供统一的 `manage.ps1` 控制脚本及多阶段 Docker 镜像构建体系。
+- **🤖 全局异常拦截**：后端实现了全局 `ExceptionHandler`，所有未处理异常均会被转化为标准的 OAuth2 JSON 错误响应。
+- **✨ 前端无感续期**：Vue 客户端引入了拦截器自动刷新 Token，优化了用户会话体验。
 
 ### OAuth2 标准合规性 ✅
 
@@ -89,7 +101,7 @@ cd build
 ### Linux
 
 ```bash
-cd OAuth2Backend/scripts
+cd OAuth2Server/scripts
 ./build.sh --build-drogon     # 自动构建 Drogon 和项目
 # 或手动安装依赖后:
 sudo apt-get install -y cmake g++ libjsoncpp-dev libpq-dev libhiredis-dev
@@ -160,38 +172,38 @@ token=ACCESS_TOKEN
 ## API 文档
 
 - **Swagger UI**: <http://localhost:5555/docs/api>
-- **OpenAPI 规范**: [openapi.yaml](OAuth2Backend/openapi.yaml)
+- **OpenAPI 规范**: [openapi.yaml](OAuth2Server/openapi.yaml)
 
 ## 文档
 
 ### 快速开始指南
 
-- [后端配置指南](OAuth2Backend/docs/configuration_guide.md)
+- [后端配置指南](docs/backend/configuration_guide.md)
 - [前端配置说明](OAuth2Frontend/README.md)
 
 ### 核心功能
 
-- [OAuth2 端点参考](OAuth2Backend/docs/api_reference.md)
-- [RBAC 权限系统](OAuth2Backend/docs/rbac_guide.md)
-- [Token 管理最佳实践](OAuth2Backend/docs/security_architecture.md#token-lifecycle)
+- [OAuth2 端点参考](docs/backend/api_reference.md)
+- [RBAC 权限系统](docs/backend/rbac_guide.md)
+- [Token 管理最佳实践](docs/backend/security_architecture.md#token-lifecycle)
 
 ### 部署运维
 
-- [Docker 部署指南](OAuth2Backend/docs/docker_deployment.md)
-- [配置环境变量](OAuth2Backend/docs/configuration_guide.md#environment-variables)
-- [CI/CD 流水线](OAuth2Backend/docs/ci_cd_guide.md)
+- [Docker 部署指南](docs/backend/docker_deployment.md)
+- [配置环境变量](docs/backend/configuration_guide.md#environment-variables)
+- [CI/CD 流水线](docs/backend/ci_cd_guide.md)
 
 ### 技术架构
 
-- [安全架构详解](OAuth2Backend/docs/security_architecture.md)
-- [数据持久化方案](OAuth2Backend/docs/data_persistence.md)
-- [可观测性配置](OAuth2Backend/docs/observability.md)
+- [安全架构详解](docs/backend/security_architecture.md)
+- [数据持久化方案](docs/backend/data_persistence.md)
+- [可观测性配置](docs/backend/observability.md)
 
 ## 测试
 
 ```bash
 # 运行所有测试
-cd OAuth2Backend/build
+cd OAuth2Server/build
 ctest
 
 # 运行性能基准测试

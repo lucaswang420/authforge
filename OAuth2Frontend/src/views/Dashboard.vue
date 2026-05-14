@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import apiClient from '../utils/api'
 
 const router = useRouter()
 const userInfo = ref(null)
@@ -20,33 +21,16 @@ onMounted(async () => {
     }
 
     try {
-        // Fetch user info
-        const response = await fetch('/oauth2/userinfo', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        })
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                // Token expired or invalid, clear and redirect to login
-                localStorage.removeItem('access_token')
-                localStorage.removeItem('user_info')
-                error.value = 'Session expired. Please login again.'
-                // Don't redirect here, let router guard handle it
-                loading.value = false
-                return
-            }
-            throw new Error(`Failed to fetch user info: ${response.status}`)
-        }
-
-        userInfo.value = await response.json()
+        // Fetch user info using apiClient (it will automatically add Bearer token and handle 401 retries)
+        const response = await apiClient.get('/oauth2/userinfo')
+        userInfo.value = response.data
 
         // Store user info in localStorage
         localStorage.setItem('user_info', JSON.stringify(userInfo.value))
 
     } catch (err) {
-        error.value = err.message
+        // If it's a 401, apiClient interceptor will handle the redirection after failed refresh
+        error.value = err.response?.data?.error || err.message
     } finally {
         loading.value = false
     }
@@ -59,12 +43,7 @@ const handleLogout = async () => {
         // Optional: Call backend logout endpoint to revoke token
         if (accessToken) {
             try {
-                await fetch('/oauth2/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                })
+                await apiClient.post('/oauth2/logout');
             } catch (err) {
                 console.warn('Backend logout failed (non-critical):', err)
                 // Continue with local logout even if backend call fails

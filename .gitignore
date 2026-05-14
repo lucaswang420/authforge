@@ -52,3 +52,6 @@ test-results/
 
 # Bug Fix Reports - local documentation only
 reports/
+
+build/
+CMakeUserPresets.json

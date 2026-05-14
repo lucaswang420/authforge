@@ -2,10 +2,11 @@
 services:
   oauth2-frontend:
     build:
-      context: ./OAuth2Frontend
+      context: .
       dockerfile: Dockerfile
+      target: frontend-runtime
     image: oauth2-frontend-release:latest
-    container_name: oauth2-frontend-release
+    container_name: oauth2-frontend
     restart: always
     ports:
       - "8080:80"
@@ -18,8 +19,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: oauth2-backend-release:v1.9.12
-    container_name: oauth2-backend-release
+      target: backend-runtime
+    image: oauth2-backend-release:latest
+    container_name: oauth2-backend
     restart: always
     ports:
       - "5555:5555"
