@@ -8,6 +8,8 @@
 #include <sstream>
 #include <oauth2/ConfigManager.h>
 #include <oauth2/OpenApiGenerator.h>
+#include <oauth2/controllers/OAuth2StandardController.h>
+#include <oauth2/filters/OAuth2Middleware.h>
 #include "controllers/OAuth2Controller.h"
 
 using namespace drogon;

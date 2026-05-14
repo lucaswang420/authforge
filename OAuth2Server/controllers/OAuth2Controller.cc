@@ -346,10 +346,19 @@ void OAuth2Controller::registerUser(
     });
 }
 
+#include <oauth2/filters/OAuth2Middleware.h>
+// ...
+
 void OAuth2Controller::logout(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) {
-    auto resp = HttpResponse::newHttpResponse();
-    resp->setStatusCode(k200OK);
-    callback(resp);
+    auto middleware = std::make_shared<oauth2::filters::OAuth2Middleware>();
+    middleware->doFilter(req, 
+        [&](const HttpResponsePtr &resp) { callback(resp); }, // Filter 拦截失败（返回 401/error）
+        [&]() { // Filter 校验通过
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            callback(resp);
+        }
+    );
 }
 
 void OAuth2Controller::health(

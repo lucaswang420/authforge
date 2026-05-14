@@ -1,7 +1,18 @@
 @echo off
 setlocal
 
-cd /d "%~dp0.."
+call "%~dp0\env_common.bat"
+if %errorlevel% neq 0 exit /b 1
+
+REM Check for PostgreSQL client
+where psql >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [Error] psql (PostgreSQL client) not found in PATH.
+    exit /b 1
+)
+
+set PROJECT_DIR=%~dp0..\..
+set SQL_DIR=%PROJECT_DIR%\OAuth2Server\sql
 echo Setting up oauth_test database...
 
 set PGPASSWORD=123456
@@ -9,50 +20,18 @@ set PGCLIENTENCODING=UTF8
 
 echo Dropping existing database...
 psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Error: Failed to drop database
-    endlocal
-    exit /b 1
-)
 
 echo Creating new database with UTF-8 encoding...
 psql -U test -d postgres -c "CREATE DATABASE oauth_test;" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Error: Failed to create database
-    endlocal
-    exit /b 1
-)
 
-echo Applying OAuth2 core schema...
-psql -U test -d oauth_test -f sql/001_oauth2_core.sql
-if %errorlevel% neq 0 (
-    echo Error: Failed to apply OAuth2 core schema
-    endlocal
-    exit /b 1
-)
-
-echo Creating users table...
-psql -U test -d oauth_test -f sql/002_users_table.sql
-if %errorlevel% neq 0 (
-    echo Error: Failed to create users table
-    endlocal
-    exit /b 1
-)
-
-echo Applying RBAC schema...
-psql -U test -d oauth_test -f sql/003_rbac_schema.sql
-if %errorlevel% neq 0 (
-    echo Error: Failed to apply RBAC schema
-    endlocal
-    exit /b 1
-)
-
-echo Applying OAuth2 scopes...
-psql -U test -d oauth_test -f sql/004_oauth2_scopes.sql
-if %errorlevel% neq 0 (
-    echo Error: Failed to apply OAuth2 scopes
-    endlocal
-    exit /b 1
+echo Applying SQL schemas from %SQL_DIR%...
+for %%f in ("%SQL_DIR%\*.sql") do (
+    echo Applying %%~nxf...
+    psql -U test -d oauth_test -f "%%f"
+    if !errorlevel! neq 0 (
+        echo [Error] Failed to apply %%~nxf
+        exit /b 1
+    )
 )
 
 echo Database setup complete!

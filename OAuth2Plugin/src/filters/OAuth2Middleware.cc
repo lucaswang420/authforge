@@ -1,7 +1,7 @@
 #include <oauth2/filters/OAuth2Middleware.h>
 #include <drogon/drogon.h>
 
-void OAuth2Middleware::doFilter(
+void oauth2::filters::OAuth2Middleware::doFilter(
   const HttpRequestPtr &req,
   FilterCallback &&fcb,
   FilterChainCallback &&fccb

@@ -1,84 +1,55 @@
 @echo off
 setlocal
 
-REM ========================================================================
-REM OAuth Plugin - ORM Model Generation Script
-REM ========================================================================
-REM
-REM WARNING: Models are currently in use by the service layer!
-REM
-REM Only regenerate models if:
-REM 1. Database schema has changed
-REM 2. You need to add new models
-REM 3. Models are corrupted or missing
-REM
-REM After regeneration, you may need to update service files to use
-REM the new model interfaces.
-REM
-REM Usage:
-REM   generate_models.bat         - Interactive mode (with confirmation)
-REM   generate_models.bat -y      - Non-interactive mode (auto-confirm)
-REM   generate_models.bat --force - Same as -y
-REM
-REM ========================================================================
+call "%~dp0\env_common.bat"
+if %errorlevel% neq 0 exit /b 1
 
-REM Parse command line arguments
+REM Check for drogon_ctl
+where drogon_ctl >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [Error] drogon_ctl not found in PATH.
+    exit /b 1
+)
+
+set PROJECT_DIR=%~dp0..\..
+set MODELS_DIR=%PROJECT_DIR%\OAuth2Plugin\src\models
+set MODELS_BACKUP=%PROJECT_DIR%\OAuth2Plugin\src\models_backup
+set MODEL_JSON=%PROJECT_DIR%\OAuth2Server\model.json
+
+echo.
+echo ========================================
+echo OAuth2 Plugin Model Generation
+echo ========================================
+echo.
+
+REM Parse arguments
 set AUTO_MODE=0
 if "%1"=="-y" set AUTO_MODE=1
 if "%1"=="--force" set AUTO_MODE=1
-if "%1"=="-Y" set AUTO_MODE=1
-if "%1"=="-yes" set AUTO_MODE=1
-
-echo.
-echo ========================================
-echo OAuth Plugin Model Generation
-echo ========================================
-echo.
 
 if %AUTO_MODE%==0 (
-  echo WARNING: This will regenerate ORM models currently in use!
-  echo.
-  echo Press Ctrl+C to cancel, or
+  echo WARNING: This will regenerate ORM models in %MODELS_DIR%
   pause
-  echo.
-) else (
-  echo Auto-confirmed mode: skipping user prompts
-  echo.
-)
-
-cd /d "%~dp0.."
-
-REM Check if drogon_ctl is available
-where drogon_ctl >nul 2>&1
-if %errorlevel% neq 0 (
-  echo Error: drogon_ctl not found in PATH
-  echo Please install Drogon framework or add it to PATH
-  exit /b 1
 )
 
 REM Backup existing models
-if exist "models" (
-  echo Backing up existing models to models_backup...
-  if exist "models_backup" rmdir /s /q models_backup
-  xcopy /e /i /y models models_backup >nul
+if exist "%MODELS_DIR%" (
+  echo Backing up existing models...
+  if exist "%MODELS_BACKUP%" rmdir /s /q "%MODELS_BACKUP%"
+  mkdir "%MODELS_BACKUP%"
+  xcopy /e /i /y "%MODELS_DIR%" "%MODELS_BACKUP%" >nul
 )
 
-echo Generating ORM models from model.json...
-echo.
-
+echo Generating ORM models from %MODEL_JSON%...
+cd /d "%PROJECT_DIR%"
 if %AUTO_MODE%==1 (
-  echo y | drogon_ctl create model models
+  echo y | drogon_ctl create model "%MODELS_DIR%" "%MODEL_JSON%"
 ) else (
-  drogon_ctl create model models
+  drogon_ctl create model "%MODELS_DIR%" "%MODEL_JSON%"
 )
+
 if %errorlevel% neq 0 (
-  echo.
-  echo Error: drogon_ctl failed
-  echo Restoring backup...
-  if exist "models_backup" (
-    rmdir /s /q models
-    move models_backup models
-  )
+  echo [Error] Model generation failed.
   exit /b 1
 )
 
@@ -86,17 +57,5 @@ echo.
 echo ========================================
 echo Model generation complete!
 echo ========================================
-echo.
-echo Generated models: models/
-echo Backup saved to: models_backup/
-echo.
-echo NOTE: If model interfaces changed, you may need to update:
-echo   - services/*.cc
-echo   - controllers/*.cc
-echo   - plugins/*.cc
-echo.
-echo Please review the changes and rebuild the project.
-echo.
-
 endlocal
 exit /b 0

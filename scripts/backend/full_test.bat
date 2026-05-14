@@ -114,21 +114,46 @@ echo ========================================
 echo Step 5: Starting OAuth2 server
 echo ========================================
 
-REM Determine server executable path
-set SERVER_EXE=
-if exist "%PROJECT_DIR%\build\Release\OAuth2Server.exe" (
-    set SERVER_EXE=%PROJECT_DIR%\build\Release\OAuth2Server.exe
-) else if exist "%PROJECT_DIR%\build\Debug\OAuth2Server.exe" (
-    set SERVER_EXE=%PROJECT_DIR%\build\Debug\OAuth2Server.exe
-) else if exist "%PROJECT_DIR%\build\OAuth2Backend.exe" (
-    set SERVER_EXE=%PROJECT_DIR%\build\OAuth2Backend.exe
+@echo off
+setlocal enabledelayedexpansion
+
+call "%~dp0\env_common.bat"
+if %errorlevel% neq 0 exit /b 1
+
+set "PROJECT_DIR=%~dp0..\.."
+set BUILD_TYPE=Release
+set BUILD_ARG=-release
+
+:parse_args
+if "%1"=="" goto end_parse
+if /i "%1"=="-debug" (
+    set BUILD_TYPE=Debug
+    set BUILD_ARG=-debug
+    shift
+    goto parse_args
+)
+shift
+goto parse_args
+:end_parse
+
+REM ... (keep Step 1, 2, 3, 4 unchanged) ...
+
+REM ========================================
+REM Step 5: Start Server
+REM ========================================
+echo ========================================
+echo Step 5: Starting OAuth2 server
+echo ========================================
+
+set "SERVER_EXE=%PROJECT_DIR%\build\OAuth2Server\%BUILD_TYPE%\OAuth2Server.exe"
+if exist "%SERVER_EXE%" (
+    echo Starting server: %SERVER_EXE%
+    start "" "%SERVER_EXE%" -c "%PROJECT_DIR%\OAuth2Server\config.json"
 ) else (
-    echo [FAILED] Server executable not found
+    echo [FAILED] Server executable not found at %SERVER_EXE%
     goto cleanup_and_exit
 )
 
-echo Starting server: %SERVER_EXE%
-start "" "%SERVER_EXE%" -c "%PROJECT_DIR%\config.json"
 
 REM Wait for server to start
 echo Waiting for server to start...

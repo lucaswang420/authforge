@@ -196,14 +196,18 @@ DROGON_TEST(E2E_P0_OAuth2Flow_AuthCode_Works)
         // Step 4: User Info
         LOG_INFO << "--- Step 4: User Info Endpoint ---";
         {
+            auto client = HttpClient::newHttpClient("http://127.0.0.1:5555");
+            auto req = HttpRequest::newHttpRequest();
+            req->setMethod(Get);
+            req->setPath("/oauth2/userinfo");
+            req->addHeader("Authorization", "Bearer invalid_token");
+
             std::promise<HttpResponsePtr> p;
             auto f = p.get_future();
 
-            auto req = HttpRequest::newHttpRequest();
-            req->setMethod(Get);
-            req->addHeader("Authorization", "Bearer invalid_token");
-
-            stdCtrl->userInfo(req, [&](const HttpResponsePtr &resp) { p.set_value(resp); });
+            client->sendRequest(req, [&](ReqResult result, const HttpResponsePtr &resp) {
+                p.set_value(resp);
+            });
 
             if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
             {

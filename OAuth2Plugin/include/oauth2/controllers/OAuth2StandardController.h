@@ -14,9 +14,9 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
     METHOD_LIST_BEGIN
     ADD_METHOD_TO(OAuth2StandardController::authorize, "/oauth2/authorize", drogon::Get);
     ADD_METHOD_TO(OAuth2StandardController::token, "/oauth2/token", drogon::Post);
-    ADD_METHOD_TO(OAuth2StandardController::userInfo, "/oauth2/userinfo", drogon::Get, drogon::Options, "OAuth2Middleware");
-    ADD_METHOD_TO(OAuth2StandardController::introspect, "/oauth2/introspect", drogon::Post);
-    ADD_METHOD_TO(OAuth2StandardController::revoke, "/oauth2/revoke", drogon::Post);
+    ADD_METHOD_TO(OAuth2StandardController::userInfo, "/oauth2/userinfo", drogon::Get, "oauth2::filters::OAuth2Middleware");
+    ADD_METHOD_TO(OAuth2StandardController::introspect, "/oauth2/introspect", drogon::Post, "oauth2::filters::OAuth2Middleware");
+    ADD_METHOD_TO(OAuth2StandardController::revoke, "/oauth2/revoke", drogon::Post, "oauth2::filters::OAuth2Middleware");
     ADD_METHOD_TO(OAuth2StandardController::metadata, "/.well-known/oauth-authorization-server", drogon::Get);
     METHOD_LIST_END
 

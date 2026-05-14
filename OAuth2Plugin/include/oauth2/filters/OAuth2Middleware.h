@@ -5,7 +5,10 @@
 
 using namespace drogon;
 
-class OAuth2Middleware : public HttpFilter<OAuth2Middleware>
+namespace oauth2::filters
+{
+
+class OAuth2Middleware : public drogon::HttpFilter<OAuth2Middleware>
 {
   public:
     OAuth2Middleware()
@@ -18,3 +21,5 @@ class OAuth2Middleware : public HttpFilter<OAuth2Middleware>
       FilterChainCallback &&fccb
     ) override;
 };
+
+} // namespace oauth2::filters
