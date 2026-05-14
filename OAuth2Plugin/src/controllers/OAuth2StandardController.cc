@@ -954,7 +954,7 @@ void OAuth2StandardController::userInfo(
 }
 
 void OAuth2StandardController::checkUserConsentAndProceed(
-  oauth2::OAuth2Plugin *plugin,
+  ::OAuth2Plugin *plugin,
   const std::string &clientId,
   const std::string &userId,
   int32_t internalUserId,

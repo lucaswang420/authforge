@@ -53,6 +53,7 @@ void TokenService::generateAuthorizationCode(
     });
 }
 
+
 static Json::Value makeError(const std::string &error, const std::string &desc = "")
 {
     Json::Value json;
