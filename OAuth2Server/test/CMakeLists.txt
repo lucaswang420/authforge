@@ -10,6 +10,8 @@ file(GLOB PLUGIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/*.cc")
 file(GLOB STORAGE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/storage/*.cc")
 file(GLOB SERVICE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/services/*.cc")
 file(GLOB MODEL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models/*.cc")
+file(GLOB PLUGIN_CTL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/controllers/*.cc")
+file(GLOB PLUGIN_FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/filters/*.cc")
 file(GLOB COMMON_SRC 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/*.cc"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/config/*.cc" 
@@ -57,6 +59,8 @@ add_executable(${PROJECT_NAME}
     ${STORAGE_SRC} 
     ${SERVICE_SRC} 
     ${MODEL_SRC} 
+    ${PLUGIN_CTL_SRC}
+    ${PLUGIN_FILTER_SRC}
     ${CTL_SRC} 
     ${FILTER_SRC} 
     ${COMMON_SRC}

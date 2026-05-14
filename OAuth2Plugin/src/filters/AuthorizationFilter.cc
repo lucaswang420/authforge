@@ -1,4 +1,4 @@
-#include "AuthorizationFilter.h"
+#include <oauth2/filters/AuthorizationFilter.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <drogon/drogon.h>
 

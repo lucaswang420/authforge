@@ -1,4 +1,4 @@
-#include "OAuth2Middleware.h"
+#include <oauth2/filters/OAuth2Middleware.h>
 #include <drogon/drogon.h>
 
 void OAuth2Middleware::doFilter(
