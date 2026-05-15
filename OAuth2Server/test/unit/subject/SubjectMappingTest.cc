@@ -140,9 +140,7 @@ DROGON_TEST(Unit_P0_SubjectMapping_GetNonExistentMapping_Works)
     Json::Value adminConfig;
     storage.initFromConfig(clientsConfig, adminConfig);
 
-    storage.getInternalUserId("nonexistent", "local", [&](auto userIdOpt) {
-        CHECK(!(userIdOpt));
-    });
+    storage.getInternalUserId("nonexistent", "local", [&](auto userIdOpt) { CHECK(!(userIdOpt)); });
 }
 
 DROGON_TEST(Unit_P0_SubjectMapping_UpdateExistingMapping_Works)
@@ -181,9 +179,7 @@ DROGON_TEST(Unit_P0_UserConsent_SaveAndCheckConsent_Works)
     storage.saveUserConsent(1, "vue-client", "openid", [&](bool success) { CHECK(success); });
 
     // Check consent exists
-    storage.hasUserConsent(1, "vue-client", "openid", [&](bool hasConsent) {
-        CHECK(hasConsent);
-    });
+    storage.hasUserConsent(1, "vue-client", "openid", [&](bool hasConsent) { CHECK(hasConsent); });
 
     // Check non-existent consent
     storage.hasUserConsent(1, "vue-client", "admin", [&](bool hasConsent) {
@@ -202,9 +198,7 @@ DROGON_TEST(Unit_P0_UserConsent_RevokeConsent_Works)
     storage.saveUserConsent(1, "vue-client", "profile", [&](bool) {});
 
     // Verify it exists
-    storage.hasUserConsent(1, "vue-client", "profile", [&](bool hasConsent) {
-        CHECK(hasConsent);
-    });
+    storage.hasUserConsent(1, "vue-client", "profile", [&](bool hasConsent) { CHECK(hasConsent); });
 
     // Revoke consent
     storage.revokeUserConsent(1, "vue-client", "profile", [&]() {});

@@ -21,17 +21,21 @@ DROGON_TEST(Performance_P1_Benchmark_SubjectGeneration_StressTest)
         auto start = std::chrono::steady_clock::now();
         std::string subject = SubjectGenerator::forLocalUser("user_" + std::to_string(i));
         auto end = std::chrono::steady_clock::now();
-        
-        latencies.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
-        
+
+        latencies.push_back(
+          std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()
+        );
+
         // Sanity check
-        if (i % 1000 == 0) {
+        if (i % 1000 == 0)
+        {
             CHECK(subject.substr(0, 6) == "local:");
         }
     }
 
     auto end_all = std::chrono::steady_clock::now();
-    auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_all - start_all).count();
+    auto total_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_all - start_all).count();
 
     // Calculate statistics
     double avg = std::accumulate(latencies.begin(), latencies.end(), 0.0) / iterations;
@@ -56,16 +60,18 @@ DROGON_TEST(Performance_P1_Benchmark_SubjectParsing_StressTest)
     for (int i = 0; i < iterations; ++i)
     {
         auto [provider, sub] = SubjectGenerator::parse("google:abc_123_xyz_" + std::to_string(i));
-        if (i == 0) {
+        if (i == 0)
+        {
             CHECK(provider == "google");
         }
     }
 
     auto end_all = std::chrono::steady_clock::now();
-    auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_all - start_all).count();
+    auto total_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_all - start_all).count();
 
     LOG_INFO << "Subject Parsing Performance:";
     LOG_INFO << "  Total time for " << iterations << " iterations: " << total_ms << "ms";
-    
-    CHECK(total_ms < 1000); // Should be well under 1 second
+
+    CHECK(total_ms < 1000);  // Should be well under 1 second
 }

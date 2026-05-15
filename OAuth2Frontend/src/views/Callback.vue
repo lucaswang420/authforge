@@ -21,6 +21,9 @@ onMounted(async () => {
     const code = route.query.code
     const state = route.query.state
 
+    // Debug: Log URL parameters
+    console.log('Callback URL parameters:', { code, state, allQuery: route.query })
+
     if (!code) {
         error.value = "No authorization code found in URL"
         status.value = "Error"
@@ -29,6 +32,10 @@ onMounted(async () => {
 
     const provider = localStorage.getItem('auth_provider') || 'drogon'
     status.value = `Verifying ${provider} Login...`
+
+    // Debug: Log PKCE verifier
+    const codeVerifier = sessionStorage.getItem('pkce_code_verifier')
+    console.log('PKCE code_verifier:', codeVerifier ? 'exists' : 'missing')
 
     try {
         if (provider === 'wechat' || provider === 'google') {
@@ -65,6 +72,10 @@ onMounted(async () => {
             }
 
             status.value = "Success!"
+            // Auto-redirect to dashboard after successful authentication
+            setTimeout(() => {
+                router.push('/dashboard')
+            }, 1500)
             return
         }
 
@@ -88,49 +99,46 @@ onMounted(async () => {
         // Store tokens securely
         storeTokens(tokenData)
 
-        status.value = "Validating token..."
-
-        // Introspect token to get detailed information
-        const accessToken = getValidAccessToken()
-        if (accessToken) {
-            try {
-                tokenInfo.value = await introspectToken(accessToken)
-
-                // Add token metadata to user info
-                if (tokenInfo.active) {
-                    userInfo.value = {
-                        ...tokenInfo,
-                        displayName: tokenInfo.sub || tokenInfo.client_id,
-                        tokenMetadata: {
-                            issuedAt: new Date(tokenInfo.iat * 1000).toLocaleString(),
-                            expiresAt: new Date(tokenInfo.exp * 1000).toLocaleString(),
-                            scope: tokenInfo.scope,
-                            issuer: tokenInfo.iss
-                        }
-                    }
-                }
-            } catch (introspectError) {
-                console.warn('Token introspection failed, continuing with user info fetch:', introspectError)
-            }
-        }
-
-        // Fetch detailed user info using apiClient
+        // Skip token introspection for simplicity - go directly to user info
         status.value = "Fetching user profile..."
-        const userResponse = await apiClient.get('/oauth2/userinfo')
 
-        const detailedUserInfo = userResponse.data
+        try {
+            const userResponse = await apiClient.get('/oauth2/userinfo')
+            const detailedUserInfo = userResponse.data
 
-        // Merge detailed user info with token info
-        userInfo.value = {
-            ...userInfo.value,
-            ...detailedUserInfo,
-            displayName: detailedUserInfo.name || detailedUserInfo.sub || userInfo.value.displayName
+            // Merge user info with token data
+            userInfo.value = {
+                ...tokenData,
+                ...detailedUserInfo,
+                displayName: detailedUserInfo.name || detailedUserInfo.sub || tokenData.sub
+            }
+
+            // Store user info
+            localStorage.setItem('user_info', JSON.stringify(userInfo.value))
+
+            status.value = "Success!"
+
+            // Auto-redirect to dashboard after successful authentication
+            setTimeout(() => {
+                router.push('/dashboard')
+            }, 1500)
+
+        } catch (userInfoError) {
+            // If user info fetch fails, still show success with basic token info
+            console.warn('User info fetch failed, using token data:', userInfoError)
+            userInfo.value = {
+                ...tokenData,
+                displayName: tokenData.sub || 'User'
+            }
+
+            localStorage.setItem('user_info', JSON.stringify(userInfo.value))
+            status.value = "Success!"
+
+            // Auto-redirect to dashboard after successful authentication
+            setTimeout(() => {
+                router.push('/dashboard')
+            }, 1500)
         }
-
-        // Store user info
-        localStorage.setItem('user_info', JSON.stringify(userInfo.value))
-
-        status.value = "Success!"
 
     } catch (e) {
         error.value = e.message

@@ -10,6 +10,9 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     static void initApiDocs();
 
     METHOD_LIST_BEGIN
+    // Login Form Display (GET)
+    ADD_METHOD_TO(OAuth2Controller::showLoginPage, "/login", Get);
+
     // Login Form Submission (Internal)
     ADD_METHOD_TO(OAuth2Controller::login, "/oauth2/login", Post);
 
@@ -23,7 +26,12 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
 
     // Logout Endpoint (Protected)
     // POST /oauth2/logout
-    ADD_METHOD_TO(OAuth2Controller::logout, "/oauth2/logout", Post, "oauth2::filters::OAuth2Middleware");
+    ADD_METHOD_TO(
+      OAuth2Controller::logout,
+      "/oauth2/logout",
+      Post,
+      "oauth2::filters::OAuth2Middleware"
+    );
 
     // Health Check Endpoint (for monitoring/orchestration)
     // GET /health
@@ -31,6 +39,11 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     METHOD_LIST_END
 
     void login(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+
+    void showLoginPage(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
 
     void registerUser(
       const HttpRequestPtr &req,

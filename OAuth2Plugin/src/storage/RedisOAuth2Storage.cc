@@ -1110,4 +1110,18 @@ void RedisOAuth2Storage::revokeAccessToken(
     );
 }
 
+void RedisOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)
+{
+    // Redis storage doesn't maintain user details
+    // Return nullopt to indicate user info not available
+    cb(std::nullopt);
+}
+
+void RedisOAuth2Storage::getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb)
+{
+    // Redis storage doesn't maintain user details
+    // Return nullopt to indicate user info not available
+    cb(std::nullopt);
+}
+
 }  // namespace oauth2

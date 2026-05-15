@@ -170,8 +170,9 @@ struct OAuth2ControllerDocs
                 common::documentation::ParameterType::STRING,
                 common::documentation::ParameterLocation::QUERY,
                 true}};
-            consentEndpoint.responses =
-              {{302, "Redirect to client with authorization code or error"}};
+            consentEndpoint.responses = {
+              {302, "Redirect to client with authorization code or error"}
+            };
             consentEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(consentEndpoint);
         }
@@ -206,6 +207,7 @@ void OAuth2Controller::login(
     // Prefer POST body (JSON or form data) over URL parameters for security
     std::string username, password;
     std::string clientId, redirectUri, scope, state;
+    std::string codeChallenge, codeChallengeMethod;
 
     // Try JSON body first
     if (req->contentType() == CT_APPLICATION_JSON)
@@ -219,6 +221,8 @@ void OAuth2Controller::login(
             redirectUri = json->get("redirect_uri", "").asString();
             scope = json->get("scope", "").asString();
             state = json->get("state", "").asString();
+            codeChallenge = json->get("code_challenge", "").asString();
+            codeChallengeMethod = json->get("code_challenge_method", "").asString();
         }
     }
     // Fallback to form data (Drogon automatically parses form-urlencoded)
@@ -231,14 +235,21 @@ void OAuth2Controller::login(
         redirectUri = params["redirect_uri"];
         scope = params["scope"];
         state = params["state"];
+        codeChallenge = params["code_challenge"];
+        codeChallengeMethod = params["code_challenge_method"];
     }
 
     AuthService::validateUser(
       username,
       password,
-      [req, clientId, scope, redirectUri, state, callback = std::move(callback)](
-        std::optional<int> userId
-      ) mutable {
+      [req,
+       clientId,
+       scope,
+       redirectUri,
+       state,
+       codeChallenge,
+       codeChallengeMethod,
+       callback = std::move(callback)](std::optional<int> userId) mutable {
           if (userId)
           {
               req->session()->insert("userId", std::to_string(*userId));
@@ -257,13 +268,17 @@ void OAuth2Controller::login(
                 clientId,
                 std::to_string(*userId),  // Subject
                 scope,
-                redirectUri,  // CRITICAL: Pass redirect_uri for RFC 6749
-                              // Section 4.1.3 validation
-                "",           // codeChallenge (empty for now)
-                "",           // codeChallengeMethod (empty for now)
-                [req, redirectUri, state, callback = std::move(callback)](
-                  bool success, std::string code, std::string error
-                ) mutable {
+                redirectUri,          // CRITICAL: Pass redirect_uri for RFC 6749
+                                      // Section 4.1.3 validation
+                codeChallenge,        // PKCE code challenge
+                codeChallengeMethod,  // PKCE code challenge method
+                [req,
+                 redirectUri,
+                 state,
+                 codeChallenge,
+                 codeChallengeMethod,
+                 callback =
+                   std::move(callback)](bool success, std::string code, std::string error) mutable {
                     if (!success)
                     {
                         LOG_ERROR << "Failed to generate authorization code: " << error;
@@ -347,17 +362,23 @@ void OAuth2Controller::registerUser(
 }
 
 #include <oauth2/filters/OAuth2Middleware.h>
+
 // ...
 
-void OAuth2Controller::logout(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) {
+void OAuth2Controller::logout(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
     auto middleware = std::make_shared<oauth2::filters::OAuth2Middleware>();
-    middleware->doFilter(req, 
-        [&](const HttpResponsePtr &resp) { callback(resp); }, // Filter 拦截失败（返�?401/error�?
-        [&]() { // Filter 校验通过
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k200OK);
-            callback(resp);
-        }
+    middleware->doFilter(
+      req,
+      [&](const HttpResponsePtr &resp) { callback(resp); },  // Filter 拦截失败（返�?401/error�?
+      [&]() {                                                // Filter 校验通过
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          callback(resp);
+      }
     );
 }
 
@@ -580,3 +601,48 @@ void OAuth2Controller::consent(
     );
 }
 
+void OAuth2Controller::showLoginPage(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    // Get OAuth2 parameters from URL
+    auto params = req->getParameters();
+    std::string clientId = params["client_id"];
+    std::string redirectUri = params["redirect_uri"];
+    std::string scope = params["scope"];
+    std::string state = params["state"];
+    std::string responseType = params["response_type"];
+    std::string codeChallenge = params["code_challenge"];
+    std::string codeChallengeMethod = params["code_challenge_method"];
+
+    LOG_INFO << "Showing login page with OAuth2 parameters: client_id=" << clientId
+             << ", code_challenge=" << (codeChallenge.empty() ? "not provided" : "provided");
+
+    // Create template data
+    DrTemplateData data;
+    data["client_id"] = clientId;
+    data["redirect_uri"] = redirectUri;
+    data["scope"] = scope;
+    data["state"] = state;
+    data["response_type"] = responseType;
+    data["code_challenge"] = codeChallenge;
+    data["code_challenge_method"] = codeChallengeMethod.empty() ? "plain" : codeChallengeMethod;
+
+    // Render login.csp template
+    try
+    {
+        auto resp = HttpResponse::newHttpViewResponse("login", data);
+        callback(resp);
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "Failed to render login page: " << e.what();
+        Json::Value jsonErr;
+        jsonErr["error"] = "server_error";
+        jsonErr["error_description"] = "Failed to render login page";
+        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+    }
+}

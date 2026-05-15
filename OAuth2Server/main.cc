@@ -201,9 +201,10 @@ int main()
       [](const drogon::HttpRequestPtr &req, const drogon::HttpResponsePtr &resp) {
           resp->addHeader("X-Content-Type-Options", "nosniff");
           resp->addHeader("X-Frame-Options", "SAMEORIGIN");
-          
+
           // Only apply CSP to HTML pages to avoid breaking API calls
-          if (resp->getContentType() == drogon::CT_TEXT_HTML) {
+          if (resp->getContentType() == drogon::CT_TEXT_HTML)
+          {
               resp->addHeader(
                 "Content-Security-Policy",
                 "default-src 'self'; "
@@ -302,28 +303,33 @@ int main()
     // Static files are served from document_root configured in config.json
 
     // Global Exception Handler
-    drogon::app().setExceptionHandler([](const std::exception &e,
-                                         const drogon::HttpRequestPtr &req,
-                                         std::function<void(const drogon::HttpResponsePtr &)> &&callback) {
-        LOG_ERROR << "Unhandled exception: " << e.what() << " on path: " << req->path();
-        
-        Json::Value errorJson;
-        errorJson["error"] = "server_error";
-        errorJson["error_description"] = "An internal server error occurred.";
-        
-        auto resp = drogon::HttpResponse::newHttpJsonResponse(errorJson);
-        resp->setStatusCode(drogon::k500InternalServerError);
-        resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-        
-        // Add CORS headers for the error response
-        const auto &origin = req->getHeader("Origin");
-        if (!origin.empty()) {
-            resp->addHeader("Access-Control-Allow-Origin", origin);
-            resp->addHeader("Access-Control-Allow-Credentials", "true");
-        }
-        
-        callback(resp);
-    });
+    drogon::app().setExceptionHandler(
+      [](
+        const std::exception &e,
+        const drogon::HttpRequestPtr &req,
+        std::function<void(const drogon::HttpResponsePtr &)> &&callback
+      ) {
+          LOG_ERROR << "Unhandled exception: " << e.what() << " on path: " << req->path();
+
+          Json::Value errorJson;
+          errorJson["error"] = "server_error";
+          errorJson["error_description"] = "An internal server error occurred.";
+
+          auto resp = drogon::HttpResponse::newHttpJsonResponse(errorJson);
+          resp->setStatusCode(drogon::k500InternalServerError);
+          resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+
+          // Add CORS headers for the error response
+          const auto &origin = req->getHeader("Origin");
+          if (!origin.empty())
+          {
+              resp->addHeader("Access-Control-Allow-Origin", origin);
+              resp->addHeader("Access-Control-Allow-Credentials", "true");
+          }
+
+          callback(resp);
+      }
+    );
 
     drogon::app().run();
     return 0;

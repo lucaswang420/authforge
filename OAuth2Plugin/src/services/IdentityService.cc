@@ -5,8 +5,7 @@
 namespace oauth2
 {
 
-IdentityService::IdentityService(IOAuth2Storage *storage)
-    : storage_(storage)
+IdentityService::IdentityService(IOAuth2Storage *storage) : storage_(storage)
 {
 }
 
@@ -41,9 +40,7 @@ void IdentityService::ensureSubjectMapping(
     storage_->getInternalUserId(
       sub,
       provider,
-      [this, sub, provider, internalUserId, callback = std::move(callback)](
-        auto existingUserId
-      ) {
+      [this, sub, provider, internalUserId, callback = std::move(callback)](auto existingUserId) {
           if (existingUserId)
           {
               callback();
@@ -51,10 +48,7 @@ void IdentityService::ensureSubjectMapping(
           }
 
           storage_->createSubjectMapping(
-            sub,
-            internalUserId,
-            provider,
-            [callback = std::move(callback)](bool success) {
+            sub, internalUserId, provider, [callback = std::move(callback)](bool success) {
                 callback();
             }
           );
@@ -81,10 +75,7 @@ void IdentityService::handleFirstTimeLogin(
     int32_t newUserId = nextUserId++;
 
     storage_->createSubjectMapping(
-      sub,
-      newUserId,
-      prov,
-      [newUserId, callback = std::move(callback)](bool success) {
+      sub, newUserId, prov, [newUserId, callback = std::move(callback)](bool success) {
           callback(success ? newUserId : 0);
       }
     );
@@ -202,4 +193,4 @@ bool IdentityService::scopeRequiresAdminRole(const std::string &scope)
     return false;
 }
 
-} // namespace oauth2
+}  // namespace oauth2

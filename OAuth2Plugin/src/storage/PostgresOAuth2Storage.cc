@@ -48,16 +48,18 @@ void PostgresOAuth2Storage::initFromConfig(const Json::Value &config)
     dbClientName_ = config.get("db_client_name", "default").asString();
     dbClientReaderName_ = config.get("db_client_reader", dbClientName_).asString();
 
-    LOG_INFO << "PostgresOAuth2Storage initFromConfig: Looking for Master=" << dbClientName_ 
+    LOG_INFO << "PostgresOAuth2Storage initFromConfig: Looking for Master=" << dbClientName_
              << ", Reader=" << dbClientReaderName_;
 
     try
     {
         dbClientMaster_ = drogon::app().getDbClient(dbClientName_);
         dbClientReader_ = drogon::app().getDbClient(dbClientReaderName_);
-        
-        if (!dbClientMaster_) LOG_ERROR << "dbClientMaster_ is NULL after lookup for name: " << dbClientName_;
-        if (!dbClientReader_) LOG_ERROR << "dbClientReader_ is NULL after lookup for name: " << dbClientReaderName_;
+
+        if (!dbClientMaster_)
+            LOG_ERROR << "dbClientMaster_ is NULL after lookup for name: " << dbClientName_;
+        if (!dbClientReader_)
+            LOG_ERROR << "dbClientReader_ is NULL after lookup for name: " << dbClientReaderName_;
     }
     catch (const std::exception &e)
     {
@@ -68,16 +70,20 @@ void PostgresOAuth2Storage::initFromConfig(const Json::Value &config)
 void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallback &&cb)
 {
     LOG_DEBUG << "Postgres getClient: " << clientId;
-    
+
     // Lazy initialization of DB clients if they are null
     if (!dbClientReader_)
     {
-        try {
+        try
+        {
             dbClientMaster_ = drogon::app().getDbClient(dbClientName_);
             dbClientReader_ = drogon::app().getDbClient(dbClientReaderName_);
             LOG_INFO << "Postgres DB Clients initialized lazily for getClient";
-        } catch (...) {
-            LOG_ERROR << "Postgres getClient: Failed to get DB clients lazily. Name=" << dbClientReaderName_;
+        }
+        catch (...)
+        {
+            LOG_ERROR << "Postgres getClient: Failed to get DB clients lazily. Name="
+                      << dbClientReaderName_;
             cb(std::nullopt);
             return;
         }
@@ -180,16 +186,20 @@ void PostgresOAuth2Storage::validateClient(
 )
 {
     LOG_DEBUG << "Postgres validateClient: " << clientId;
-    
+
     // Lazy initialization of DB clients if they are null
     if (!dbClientReader_)
     {
-        try {
+        try
+        {
             dbClientMaster_ = drogon::app().getDbClient(dbClientName_);
             dbClientReader_ = drogon::app().getDbClient(dbClientReaderName_);
             LOG_INFO << "Postgres DB Clients initialized lazily for validateClient";
-        } catch (...) {
-            LOG_ERROR << "Postgres validateClient: Failed to get DB clients lazily. Name=" << dbClientReaderName_;
+        }
+        catch (...)
+        {
+            LOG_ERROR << "Postgres validateClient: Failed to get DB clients lazily. Name="
+                      << dbClientReaderName_;
             cb(false);
             return;
         }
@@ -256,7 +266,8 @@ void PostgresOAuth2Storage::validateClient(
                 (constantTimeMemcmp(computedHash.c_str(), storedHash.c_str(), cmpLen) == 0) &&
                 computedHash.length() == storedHash.length();
 
-              if (!match) {
+              if (!match)
+              {
                   LOG_WARN << "Postgres validateClient: Secret MISMATCH for client " << clientId;
               }
 
@@ -265,8 +276,8 @@ void PostgresOAuth2Storage::validateClient(
               (*sharedCb)(match);
           },
           [sharedCb, clientId](const DrogonDbException &e) {
-              LOG_ERROR << "Postgres validateClient Error (Database Exception) for " << clientId << ": "
-                        << e.base().what();
+              LOG_ERROR << "Postgres validateClient Error (Database Exception) for " << clientId
+                        << ": " << e.base().what();
               (*sharedCb)(false);
           }
         );
@@ -1366,6 +1377,71 @@ void PostgresOAuth2Storage::revokeAccessToken(
       now,
       revokedBy.c_str(),
       token.c_str()
+    );
+}
+
+void PostgresOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)
+{
+    // Try numeric userId first
+    try
+    {
+        int32_t numericUserId = std::stoi(userId);
+        getUserInfo(numericUserId, std::move(cb));
+        return;
+    }
+    catch (...)
+    {
+        // Not a numeric ID, return nullopt
+        cb(std::nullopt);
+    }
+}
+
+void PostgresOAuth2Storage::getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb)
+{
+    // Query user info from database
+    std::string query = "SELECT username, email FROM users WHERE id = $1";
+
+    dbClientReader_->execSqlAsync(
+      query,
+      [internalUserId, cb = std::move(cb)](const Result &result) mutable {
+          try
+          {
+              if (result.size() == 0)
+              {
+                  cb(std::nullopt);
+                  return;
+              }
+
+              auto row = result[0];
+              Json::Value userInfo;
+              userInfo["id"] = internalUserId;
+
+              // Get username (first column)
+              if (!row["username"].isNull())
+              {
+                  userInfo["username"] = row["username"].as<std::string>();
+              }
+
+              // Get email (second column, optional)
+              if (!row["email"].isNull())
+              {
+                  userInfo["email"] = row["email"].as<std::string>();
+              }
+
+              cb(userInfo);
+          }
+          catch (const std::exception &e)
+          {
+              LOG_ERROR << "Failed to parse user info for user: " << internalUserId
+                        << ", error: " << e.what();
+              cb(std::nullopt);
+          }
+      },
+      [cb](const DrogonDbException &e) mutable {
+          LOG_ERROR << "Database error getting user info: " << e.base().what();
+          cb(std::nullopt);
+      },
+      internalUserId
     );
 }
 

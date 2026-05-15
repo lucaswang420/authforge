@@ -74,6 +74,19 @@ export async function buildAuthorizationUrl(options) {
     usePKCE = true
   } = options
 
+  // Build full authorization URL
+  // If endpoint is relative, prepend with API base URL
+  let fullEndpoint = endpoint
+  if (endpoint.startsWith('/')) {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5555'
+    // Remove trailing slash from API base URL if present
+    const baseUrl = apiBaseUrl.replace(/\/$/, '')
+    fullEndpoint = `${baseUrl}${endpoint}`
+    console.log('Building auth URL with relative endpoint:', { endpoint, apiBaseUrl, fullEndpoint })
+  } else {
+    console.log('Building auth URL with absolute endpoint:', endpoint)
+  }
+
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
@@ -94,7 +107,9 @@ export async function buildAuthorizationUrl(options) {
     params.append('code_challenge_method', 'S256')
   }
 
-  return `${endpoint}?${params.toString()}`
+  const finalUrl = `${fullEndpoint}?${params.toString()}`
+  console.log('Final authorization URL:', finalUrl)
+  return finalUrl
 }
 
 /**
@@ -118,15 +133,20 @@ export async function exchangeCodeForToken(options) {
 
   // Add PKCE code verifier if available
   const codeVerifier = sessionStorage.getItem('pkce_code_verifier')
+  console.log('Token exchange - code_verifier:', codeVerifier ? 'exists' : 'missing')
   if (codeVerifier) {
     tokenBody.code_verifier = codeVerifier
+    console.log('Token exchange body with PKCE:', tokenBody)
     sessionStorage.removeItem('pkce_code_verifier')
+  } else {
+    console.log('Token exchange body without PKCE:', tokenBody)
   }
 
   try {
     const response = await apiClient.post('/oauth2/token', new URLSearchParams(tokenBody), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
+    console.log('Token exchange successful:', response.data)
     return response.data
   } catch (error) {
     if (error.response) {

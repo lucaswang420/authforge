@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import getConfig from '@/config/auth.config'
-import { buildAuthorizationUrl, generateState } from '@/utils/oauth2Helper'
+import { buildAuthorizationUrl, generateState, generateCodeVerifier, generateCodeChallenge } from '@/utils/oauth2Helper'
 
 const router = useRouter()
 const loading = ref(false)
@@ -10,6 +10,11 @@ const error = ref('')
 
 // Get configuration
 const config = getConfig()
+
+// Debug: Log configuration on component load
+console.log('Login component loaded with config:', config)
+console.log('Authorize endpoint:', config.oauth2.authorizeEndpoint)
+console.log('API base URL:', config.app.apiBaseUrl)
 
 // Check if user is already logged in
 onMounted(() => {
@@ -30,32 +35,44 @@ const loginWithDrogon = async () => {
     localStorage.setItem('auth_provider', 'drogon')
 
     try {
+        // Debug: Log configuration
+        console.log('OAuth2 Config:', {
+            endpoint: config.oauth2.authorizeEndpoint,
+            clientId: config.oauth2.clientId,
+            apiBaseUrl: config.app.apiBaseUrl,
+            fullConfig: config
+        })
+
         // Generate secure state parameter
         const state = generateState()
         localStorage.setItem('auth_state_drogon', state)
 
-        // Build authorization URL with PKCE support
-        const authUrl = await buildAuthorizationUrl({
-            endpoint: config.oauth2.authorizeEndpoint,
-            clientId: config.oauth2.clientId,
-            redirectUri: window.location.origin + config.app.callbackPath,
+        // Generate PKCE parameters for security
+        const codeVerifier = generateCodeVerifier()
+        const codeChallenge = await generateCodeChallenge(codeVerifier)
+        sessionStorage.setItem('pkce_code_verifier', codeVerifier)
+
+        // Build OAuth2 authorization parameters with PKCE
+        const params = new URLSearchParams({
+            client_id: config.oauth2.clientId,
+            redirect_uri: window.location.origin + config.app.callbackPath,
             scope: config.oauth2.scope,
             state: state,
-            usePKCE: true // Enable PKCE for enhanced security
+            response_type: 'code',
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256'
         })
 
-        // Verify backend is available before redirect
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        // Redirect directly to backend login page
+        // Backend will handle OAuth2 authorization flow after login
+        const apiBaseUrl = config.app.apiBaseUrl || 'http://localhost:5555'
+        const loginUrl = `${apiBaseUrl}/login?${params.toString()}`
 
-        await fetch(config.oauth2.authorizeEndpoint, {
-            method: 'HEAD',
-            signal: controller.signal,
-            mode: 'no-cors'
-        })
-        clearTimeout(timeoutId)
+        console.log('Redirecting to backend login with PKCE:', loginUrl)
 
-        window.location.href = authUrl
+        // Direct redirect without CORS preflight check
+        // The backend will handle the login page
+        window.location.href = loginUrl
     } catch (err) {
         loading.value = false
         if (err.name === 'AbortError') {

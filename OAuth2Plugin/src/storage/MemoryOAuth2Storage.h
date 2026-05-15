@@ -120,6 +120,10 @@ class MemoryOAuth2Storage : public IOAuth2Storage
       VoidCallback &&cb
     ) override;
 
+    // ========== User Info Operations ==========
+    void getUserInfo(const std::string &userId, OptionalJsonCallback &&cb) override;
+    void getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb) override;
+
   private:
     std::recursive_mutex mutex_;
     std::unordered_map<std::string, OAuth2Client> clients_;

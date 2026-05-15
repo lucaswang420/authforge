@@ -12,10 +12,12 @@ namespace oauth2
 class TokenService
 {
   public:
-    explicit TokenService(IOAuth2Storage *storage, 
-                         int64_t authCodeTtl = 600,
-                         int64_t accessTokenTtl = 3600,
-                         int64_t refreshTokenTtl = 2592000);
+    explicit TokenService(
+      IOAuth2Storage *storage,
+      int64_t authCodeTtl = 600,
+      int64_t accessTokenTtl = 3600,
+      int64_t refreshTokenTtl = 2592000
+    );
 
     /**
      * @brief Generate Authorization Code
@@ -91,4 +93,4 @@ class TokenService
     int64_t refreshTokenTtl_;
 };
 
-} // namespace oauth2
+}  // namespace oauth2

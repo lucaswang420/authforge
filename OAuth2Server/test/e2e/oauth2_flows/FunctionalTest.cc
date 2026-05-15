@@ -83,9 +83,8 @@ DROGON_TEST(E2E_P0_AuthFlow_CompleteAuthorizationCodeFlow_Success)
     );
 
     // Should return authorization code in redirect
-    CHECK((bool)(
-      loginResp.find("code=") != std::string::npos || loginResp.find("302") != std::string::npos
-    ));
+    CHECK((bool)(loginResp.find("code=") != std::string::npos ||
+                 loginResp.find("302") != std::string::npos));
 
     // Note: Due to rate limiting in tests, we may not get actual code
     // The important thing is the system handles the request correctly
@@ -155,10 +154,8 @@ DROGON_TEST(E2E_P1_ErrorHandling_InvalidCredentials_ReturnsError)
       "client_id=vue-client&redirect_uri=http://localhost:5173/callback"
     );
 
-    CHECK((bool)(
-      response.find("Invalid Credentials") != std::string::npos ||
-      response.find("Login Failed") != std::string::npos
-    ));
+    CHECK((bool)(response.find("Invalid Credentials") != std::string::npos ||
+                 response.find("Login Failed") != std::string::npos));
 }
 
 // ============================================================================
@@ -240,10 +237,8 @@ DROGON_TEST(E2E_P1_HealthCheck_HealthCheckFields_Success)
     CHECK(response.find("\"status\"") != std::string::npos);
     CHECK(response.find("\"service\"") != std::string::npos);
     CHECK(response.find("\"timestamp\"") != std::string::npos);
-    CHECK((bool)(
-      response.find("\"database\"") != std::string::npos ||
-      response.find("\"storage_type\"") != std::string::npos
-    ));
+    CHECK((bool)(response.find("\"database\"") != std::string::npos ||
+                 response.find("\"storage_type\"") != std::string::npos));
 }
 
 DROGON_TEST(E2E_P1_HealthCheck_HealthCheckNotLeakingSensitiveInfo_Success)
@@ -268,10 +263,8 @@ DROGON_TEST(E2E_P0_Rbac_UnauthorizedAccess_Denied)
     // Expected: Should return 401 Unauthorized
     std::string response = makeRequest("GET", "/api/admin/dashboard");
 
-    CHECK((bool)(
-      response.find("unauthorized") != std::string::npos ||
-      response.find("401") != std::string::npos
-    ));
+    CHECK((bool)(response.find("unauthorized") != std::string::npos ||
+                 response.find("401") != std::string::npos));
 }
 
 DROGON_TEST(E2E_P0_Rbac_InvalidToken_Denied)
@@ -280,10 +273,8 @@ DROGON_TEST(E2E_P0_Rbac_InvalidToken_Denied)
     // Expected: Should return 401 or invalid_token error
     std::string response = makeRequest("GET", "/api/admin/dashboard", "", "Bearer invalid-token");
 
-    CHECK((bool)(
-      response.find("invalid_token") != std::string::npos ||
-      response.find("unauthorized") != std::string::npos
-    ));
+    CHECK((bool)(response.find("invalid_token") != std::string::npos ||
+                 response.find("unauthorized") != std::string::npos));
 }
 
 // ============================================================================

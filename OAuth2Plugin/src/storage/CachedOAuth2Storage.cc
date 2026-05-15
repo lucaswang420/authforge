@@ -20,10 +20,10 @@ CachedOAuth2Storage::CachedOAuth2Storage(
   std::unique_ptr<IOAuth2Storage> impl,
   drogon::nosql::RedisClientPtr redisClient
 )
-    : impl_(std::move(impl)), 
+    : impl_(std::move(impl)),
       redisClient_(std::move(redisClient)),
-      tokenCache_(drogon::app().getLoop(), 1.0, 4, 30), // Clean up expired every 30s
-      clientCache_(drogon::app().getLoop(), 1.0, 4, 60) // Clean up expired every 60s
+      tokenCache_(drogon::app().getLoop(), 1.0, 4, 30),  // Clean up expired every 30s
+      clientCache_(drogon::app().getLoop(), 1.0, 4, 60)  // Clean up expired every 60s
 {
 }
 
@@ -36,13 +36,16 @@ void CachedOAuth2Storage::getClient(const std::string &clientId, ClientCallback 
         return;
     }
 
-    impl_->getClient(clientId, [this, clientId, cb = std::move(cb)](const std::optional<OAuth2Client> &client) mutable {
-        if (client)
-        {
-            clientCache_.insert(clientId, *client, 60); // Cache for 60 seconds
-        }
-        cb(client);
-    });
+    impl_->getClient(
+      clientId,
+      [this, clientId, cb = std::move(cb)](const std::optional<OAuth2Client> &client) mutable {
+          if (client)
+          {
+              clientCache_.insert(clientId, *client, 60);  // Cache for 60 seconds
+          }
+          cb(client);
+      }
+    );
 }
 
 void CachedOAuth2Storage::validateClient(
@@ -84,7 +87,8 @@ void CachedOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCa
     // Write to L1 Cache
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                  std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+    )
+                 .count();
     long long ttl = token.expiresAt - now;
     if (ttl > 0)
     {
@@ -141,16 +145,24 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
 
     if (!redisClient_)
     {
-        impl_->getAccessToken(token, [this, token, cb = std::move(cb)](const std::optional<OAuth2AccessToken> &optToken) mutable {
-            if (optToken) {
-                auto now = std::chrono::duration_cast<std::chrono::seconds>(
-                             std::chrono::system_clock::now().time_since_epoch()
-                ).count();
-                long long ttl = optToken->expiresAt - now;
-                if (ttl > 0) tokenCache_.insert(token, *optToken, ttl);
-            }
-            cb(optToken);
-        });
+        impl_->getAccessToken(
+          token,
+          [this,
+           token,
+           cb = std::move(cb)](const std::optional<OAuth2AccessToken> &optToken) mutable {
+              if (optToken)
+              {
+                  auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::system_clock::now().time_since_epoch()
+                  )
+                               .count();
+                  long long ttl = optToken->expiresAt - now;
+                  if (ttl > 0)
+                      tokenCache_.insert(token, *optToken, ttl);
+              }
+              cb(optToken);
+          }
+        );
         return;
     }
 
@@ -168,7 +180,8 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
                     {
                         auto now = std::chrono::duration_cast<std::chrono::seconds>(
                                      std::chrono::system_clock::now().time_since_epoch()
-                        ).count();
+                        )
+                                     .count();
                         long long ttl = optToken->expiresAt - now;
                         if (ttl > 0)
                         {
@@ -217,9 +230,11 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
                   // Fill L1 Cache
                   auto now = std::chrono::duration_cast<std::chrono::seconds>(
                                std::chrono::system_clock::now().time_since_epoch()
-                  ).count();
+                  )
+                               .count();
                   long long ttl = t.expiresAt - now;
-                  if (ttl > 0) tokenCache_.insert(token, t, ttl);
+                  if (ttl > 0)
+                      tokenCache_.insert(token, t, ttl);
 
                   (*sharedCb)(t);
               }
@@ -395,7 +410,7 @@ void CachedOAuth2Storage::revokeAccessToken(
     impl_->revokeAccessToken(token, revokedBy, [this, token, cb = std::move(cb)]() mutable {
         // Invalidate L1 Cache
         tokenCache_.erase(token);
-        
+
         // Invalidate L2 Cache after revocation
         if (redisClient_)
         {
@@ -420,6 +435,18 @@ void CachedOAuth2Storage::revokeAccessToken(
                 cb();
         }
     });
+}
+
+void CachedOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)
+{
+    // Pass through to implementation
+    impl_->getUserInfo(userId, std::move(cb));
+}
+
+void CachedOAuth2Storage::getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb)
+{
+    // Pass through to implementation
+    impl_->getUserInfo(internalUserId, std::move(cb));
 }
 
 }  // namespace oauth2

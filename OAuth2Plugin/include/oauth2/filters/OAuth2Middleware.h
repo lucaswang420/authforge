@@ -22,4 +22,4 @@ class OAuth2Middleware : public drogon::HttpFilter<OAuth2Middleware>
     ) override;
 };
 
-} // namespace oauth2::filters
+}  // namespace oauth2::filters

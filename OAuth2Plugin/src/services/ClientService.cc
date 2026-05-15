@@ -4,8 +4,7 @@
 namespace oauth2
 {
 
-ClientService::ClientService(IOAuth2Storage *storage)
-    : storage_(storage)
+ClientService::ClientService(IOAuth2Storage *storage) : storage_(storage)
 {
 }
 
@@ -36,8 +35,7 @@ void ClientService::validateRedirectUri(
     }
 
     storage_->getClient(
-      clientId,
-      [callback = std::move(callback), redirectUri](std::optional<OAuth2Client> client) {
+      clientId, [callback = std::move(callback), redirectUri](std::optional<OAuth2Client> client) {
           if (!client)
           {
               callback(false);
@@ -70,7 +68,8 @@ void ClientService::validateClientScopes(
 
     storage_->getClient(
       clientId,
-      [callback = std::move(callback), requestedScopes](std::optional<OAuth2Client> client) mutable {
+      [callback = std::move(callback),
+       requestedScopes](std::optional<OAuth2Client> client) mutable {
           if (!client)
           {
               callback(false, "Client not found");
@@ -112,4 +111,4 @@ void ClientService::validateClientScopes(
     );
 }
 
-} // namespace oauth2
+}  // namespace oauth2

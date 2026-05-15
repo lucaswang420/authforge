@@ -21,10 +21,25 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     void shutdown() override;
 
     // ========== Service Accessors ==========
-    std::shared_ptr<oauth2::TokenService> getTokenService() const { return tokenService_; }
-    std::shared_ptr<oauth2::ClientService> getClientService() const { return clientService_; }
-    std::shared_ptr<oauth2::IdentityService> getIdentityService() const { return identityService_; }
-    oauth2::IOAuth2Storage* getStorage() const { return storage_.get(); }
+    std::shared_ptr<oauth2::TokenService> getTokenService() const
+    {
+        return tokenService_;
+    }
+
+    std::shared_ptr<oauth2::ClientService> getClientService() const
+    {
+        return clientService_;
+    }
+
+    std::shared_ptr<oauth2::IdentityService> getIdentityService() const
+    {
+        return identityService_;
+    }
+
+    oauth2::IOAuth2Storage *getStorage() const
+    {
+        return storage_.get();
+    }
 
     // ========== Async API with Callbacks ==========
 

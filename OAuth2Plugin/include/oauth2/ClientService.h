@@ -35,4 +35,4 @@ class ClientService
     IOAuth2Storage *storage_;
 };
 
-} // namespace oauth2
+}  // namespace oauth2

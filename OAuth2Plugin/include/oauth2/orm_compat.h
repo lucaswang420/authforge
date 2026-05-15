@@ -22,27 +22,28 @@
 namespace std
 {
 // Minimal codecvt_utf8_utf16 implementation for Drogon ORM compatibility
-template <typename Elem,
-          unsigned long Maxcode = 0x10ffff,
-          std::codecvt_mode Mode = (std::codecvt_mode)0>
+template <
+  typename Elem,
+  unsigned long Maxcode = 0x10ffff,
+  std::codecvt_mode Mode = (std::codecvt_mode)0>
 class codecvt_utf8_utf16 : public std::codecvt<Elem, char, std::mbstate_t>
 {
   public:
-    explicit codecvt_utf8_utf16(size_t refs = 0)
-        : std::codecvt<Elem, char, std::mbstate_t>(refs)
+    explicit codecvt_utf8_utf16(size_t refs = 0) : std::codecvt<Elem, char, std::mbstate_t>(refs)
     {
     }
 
   protected:
     // The critical method: convert UTF-8 to UTF-16 for string length validation
     typename std::codecvt<Elem, char, std::mbstate_t>::result do_in(
-        std::mbstate_t &state,
-        const char *from,
-        const char *from_end,
-        const char *&from_next,
-        Elem *to,
-        Elem *to_end,
-        Elem *&to_next) const override
+      std::mbstate_t &state,
+      const char *from,
+      const char *from_end,
+      const char *&from_next,
+      Elem *to,
+      Elem *to_end,
+      Elem *&to_next
+    ) const override
     {
         // Simplified UTF-8 to UTF-16 conversion for Drogon's string validation
         while (from < from_end && to < to_end)
@@ -84,8 +85,7 @@ class codecvt_utf8_utf16 : public std::codecvt<Elem, char, std::mbstate_t>
                 unsigned char c2 = *(from + 1);
                 unsigned char c3 = *(from + 2);
                 unsigned char c4 = *(from + 3);
-                if ((c2 & 0xC0) != 0x80 || (c3 & 0xC0) != 0x80 ||
-                    (c4 & 0xC0) != 0x80)
+                if ((c2 & 0xC0) != 0x80 || (c3 & 0xC0) != 0x80 || (c4 & 0xC0) != 0x80)
                     break;  // Invalid UTF-8
                 // Use replacement character U+FFFD for 4-byte
                 // sequences (TODO: full surrogate pair support)
@@ -107,13 +107,14 @@ class codecvt_utf8_utf16 : public std::codecvt<Elem, char, std::mbstate_t>
 
     // Reverse conversion (not used by Drogon but required for interface)
     typename std::codecvt<Elem, char, std::mbstate_t>::result do_out(
-        std::mbstate_t &state,
-        const Elem *from,
-        const Elem *from_end,
-        const Elem *&from_next,
-        char *to,
-        char *to_end,
-        char *&to_next) const override
+      std::mbstate_t &state,
+      const Elem *from,
+      const Elem *from_end,
+      const Elem *&from_next,
+      char *to,
+      char *to_end,
+      char *&to_next
+    ) const override
     {
         // UTF-16 to UTF-8 conversion
         while (from < from_end && to < to_end - 3)
@@ -143,10 +144,11 @@ class codecvt_utf8_utf16 : public std::codecvt<Elem, char, std::mbstate_t>
 
     // Required codecvt interface methods
     typename std::codecvt<Elem, char, std::mbstate_t>::result do_unshift(
-        std::mbstate_t &state,
-        char *to,
-        char *to_end,
-        char *&to_next) const override
+      std::mbstate_t &state,
+      char *to,
+      char *to_end,
+      char *&to_next
+    ) const override
     {
         to_next = to;
         return std::codecvt<Elem, char, std::mbstate_t>::noconv;
@@ -162,13 +164,14 @@ class codecvt_utf8_utf16 : public std::codecvt<Elem, char, std::mbstate_t>
         return false;
     }
 
-    int do_length(std::mbstate_t &state,
-                  const char *from,
-                  const char *from_end,
-                  size_t max) const override
+    int do_length(
+      std::mbstate_t &state,
+      const char *from,
+      const char *from_end,
+      size_t max
+    ) const override
     {
-        return static_cast<int>(
-            std::min(static_cast<size_t>(from_end - from), max));
+        return static_cast<int>(std::min(static_cast<size_t>(from_end - from), max));
     }
 
     int do_max_length() const noexcept override

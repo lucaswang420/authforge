@@ -16,10 +16,10 @@ DROGON_TEST(Unit_P0_SubjectGenerator_Legacy_BasicFunctionality)
 {
     // Test local user
     CHECK(SubjectGenerator::forLocalUser("alice") == "local:alice");
-    
+
     // Test google user
     CHECK(SubjectGenerator::forGoogleUser("google123") == "google:google123");
-    
+
     // Test wechat user
     CHECK(SubjectGenerator::forWeChatUser("openid123") == "wechat:openid123");
 }
@@ -30,12 +30,12 @@ DROGON_TEST(Unit_P0_SubjectGenerator_Legacy_Parsing)
     auto [p1, s1] = SubjectGenerator::parse("google:abc123");
     CHECK(p1 == "google");
     CHECK(s1 == "abc123");
-    
+
     // Parse local (implicit)
     auto [p2, s2] = SubjectGenerator::parse("alice");
     CHECK(p2 == "local");
     CHECK(s2 == "alice");
-    
+
     // Parse local (explicit)
     auto [p3, s3] = SubjectGenerator::parse("local:bob");
     CHECK(p3 == "local");
@@ -45,14 +45,14 @@ DROGON_TEST(Unit_P0_SubjectGenerator_Legacy_Parsing)
 DROGON_TEST(Unit_P0_SubjectMapping_Legacy_ProviderIsolation)
 {
     MemoryOAuth2Storage storage;
-    
+
     std::promise<void> p1;
     storage.createSubjectMapping("alice", 1, "local", [&](bool success) {
         CHECK(success);
         p1.set_value();
     });
     p1.get_future().get();
-    
+
     std::promise<void> p2;
     storage.getInternalUserId("alice", "local", [&](auto userId) {
         CHECK(userId.has_value());
@@ -60,7 +60,7 @@ DROGON_TEST(Unit_P0_SubjectMapping_Legacy_ProviderIsolation)
         p2.set_value();
     });
     p2.get_future().get();
-    
+
     // Different provider same subject name
     std::promise<void> p3;
     storage.createSubjectMapping("alice", 2, "google", [&](bool success) {
@@ -68,7 +68,7 @@ DROGON_TEST(Unit_P0_SubjectMapping_Legacy_ProviderIsolation)
         p3.set_value();
     });
     p3.get_future().get();
-    
+
     std::promise<void> p4;
     storage.getInternalUserId("alice", "google", [&](auto userId) {
         CHECK(userId.has_value());
@@ -85,7 +85,7 @@ DROGON_TEST(Unit_P0_PKCE_Legacy_Hashing)
     std::string verifier = "testVerifier1234567890123456789012345678901234567890";
     std::string challenge = OAuth2Plugin::generateSha256Hash(verifier);
     CHECK(!challenge.empty());
-    
+
     CHECK(OAuth2Plugin::validatePkceCodeVerifier(verifier, challenge, "S256"));
     CHECK(!OAuth2Plugin::validatePkceCodeVerifier("wrong", challenge, "S256"));
 }
@@ -120,7 +120,7 @@ DROGON_TEST(Security_P0_Legacy_InjectionPrevention)
 {
     std::string malicious = "local:alice' OR '1'='1";
     CHECK(SubjectGenerator::isValid(malicious));
-    
+
     auto [p, s] = SubjectGenerator::parse(malicious);
     CHECK(p == "local");
     CHECK(s == "alice' OR '1'='1");
@@ -138,10 +138,10 @@ DROGON_TEST(Unit_P0_EdgeCases_Legacy_EmptyVerifier)
 DROGON_TEST(Unit_P0_EdgeCases_Legacy_SubjectProviderIsolation)
 {
     MemoryOAuth2Storage storage;
-    
+
     storage.createSubjectMapping("testuser", 1, "local", [&](bool) {});
     storage.createSubjectMapping("testuser", 2, "google", [&](bool) {});
-    
+
     std::promise<void> p;
     storage.getInternalUserId("testuser", "local", [&](auto id) {
         CHECK(id.has_value());

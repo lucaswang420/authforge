@@ -116,6 +116,10 @@ class RedisOAuth2Storage : public IOAuth2Storage
       VoidCallback &&cb
     ) override;
 
+    // ========== User Info Operations ==========
+    void getUserInfo(const std::string &userId, OptionalJsonCallback &&cb) override;
+    void getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb) override;
+
   private:
     drogon::nosql::RedisClientPtr redisClient_;
 };

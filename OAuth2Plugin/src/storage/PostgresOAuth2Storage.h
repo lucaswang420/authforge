@@ -110,6 +110,10 @@ class PostgresOAuth2Storage : public IOAuth2Storage
       VoidCallback &&cb
     ) override;
 
+    // ========== User Info Operations ==========
+    void getUserInfo(const std::string &userId, OptionalJsonCallback &&cb) override;
+    void getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb) override;
+
   private:
     drogon::orm::DbClientPtr dbClientMaster_;
     drogon::orm::DbClientPtr dbClientReader_;

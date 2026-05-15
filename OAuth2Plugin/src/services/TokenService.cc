@@ -6,14 +6,16 @@
 namespace oauth2
 {
 
-TokenService::TokenService(IOAuth2Storage *storage, 
-                         int64_t authCodeTtl,
-                         int64_t accessTokenTtl,
-                         int64_t refreshTokenTtl)
-    : storage_(storage)
-    , authCodeTtl_(authCodeTtl)
-    , accessTokenTtl_(accessTokenTtl)
-    , refreshTokenTtl_(refreshTokenTtl)
+TokenService::TokenService(
+  IOAuth2Storage *storage,
+  int64_t authCodeTtl,
+  int64_t accessTokenTtl,
+  int64_t refreshTokenTtl
+)
+    : storage_(storage),
+      authCodeTtl_(authCodeTtl),
+      accessTokenTtl_(accessTokenTtl),
+      refreshTokenTtl_(refreshTokenTtl)
 {
 }
 
@@ -45,14 +47,14 @@ void TokenService::generateAuthorizationCode(
 
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                  std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+    )
+                 .count();
     authCode.expiresAt = now + authCodeTtl_;
 
     storage_->saveAuthCode(authCode, [callback = std::move(callback), code]() {
         callback(true, code, "");
     });
 }
-
 
 static Json::Value makeError(const std::string &error, const std::string &desc = "")
 {
@@ -109,7 +111,12 @@ void TokenService::exchangeCodeForToken(
 
                 if (!authCode->codeChallenge.empty())
                 {
-                    if (codeVerifier.empty() || !validatePkceCodeVerifier(codeVerifier, authCode->codeChallenge, authCode->codeChallengeMethod))
+                    if (
+                      codeVerifier.empty() ||
+                      !validatePkceCodeVerifier(
+                        codeVerifier, authCode->codeChallenge, authCode->codeChallengeMethod
+                      )
+                    )
                     {
                         callback(makeError("invalid_grant", "PKCE validation failed"));
                         return;
@@ -118,7 +125,8 @@ void TokenService::exchangeCodeForToken(
 
                 auto now = std::chrono::duration_cast<std::chrono::seconds>(
                              std::chrono::system_clock::now().time_since_epoch()
-                ).count();
+                )
+                             .count();
 
                 if (now > authCode->expiresAt)
                 {
@@ -157,11 +165,13 @@ void TokenService::exchangeCodeForToken(
                                   Json::Value json;
                                   json["access_token"] = token.token;
                                   json["token_type"] = "Bearer";
-                                  json["expires_in"] = (Json::Int64)(token.expiresAt -
+                                  json["expires_in"] =
+                                    (Json::Int64)(token.expiresAt -
                                                   std::chrono::duration_cast<std::chrono::seconds>(
                                                     std::chrono::system_clock::now()
                                                       .time_since_epoch()
-                                                  ).count());
+                                                  )
+                                                    .count());
                                   json["refresh_token"] = refreshToken.token;
                                   json["roles"] = rolesJson;
                                   callback(json);
@@ -200,7 +210,8 @@ void TokenService::refreshAccessToken(
 
           auto now = std::chrono::duration_cast<std::chrono::seconds>(
                        std::chrono::system_clock::now().time_since_epoch()
-          ).count();
+          )
+                       .count();
 
           if (now > storedRt->expiresAt)
           {
@@ -227,7 +238,8 @@ void TokenService::refreshAccessToken(
 
           storage_->saveAccessToken(
             token, [this, callback, token, newRt, oldRefreshToken = storedRt->token]() {
-                storage_->saveRefreshToken(newRt, [this, callback, token, newRt, oldRefreshToken]() {
+                storage_
+                  ->saveRefreshToken(newRt, [this, callback, token, newRt, oldRefreshToken]() {
                       storage_->revokeRefreshToken(
                         oldRefreshToken, [this, callback, token, newRt](auto...) {
                             Json::Value json;
@@ -265,7 +277,8 @@ void TokenService::validateAccessToken(
 
         auto now = std::chrono::duration_cast<std::chrono::seconds>(
                      std::chrono::system_clock::now().time_since_epoch()
-        ).count();
+        )
+                     .count();
 
         if (now > t->expiresAt)
         {
@@ -298,7 +311,8 @@ void TokenService::revokeAccessToken(
 {
     if (!storage_)
     {
-        if (callback) callback();
+        if (callback)
+            callback();
         return;
     }
     storage_->revokeAccessToken(token, revokedBy, std::move(callback));
@@ -332,8 +346,10 @@ std::string TokenService::generateSha256Hash(const std::string &input)
 
     for (char &c : base64Url)
     {
-        if (c == '+') c = '-';
-        else if (c == '/') c = '_';
+        if (c == '+')
+            c = '-';
+        else if (c == '/')
+            c = '_';
     }
     while (!base64Url.empty() && base64Url.back() == '=')
     {
@@ -342,4 +358,4 @@ std::string TokenService::generateSha256Hash(const std::string &input)
     return base64Url;
 }
 
-} // namespace oauth2
+}  // namespace oauth2

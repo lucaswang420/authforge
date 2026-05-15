@@ -1,9 +1,13 @@
 {
   "oauth2": {
-    "clientId": "vue-client"
+    "clientId": "vue-client",
+    "authorizeEndpoint": "/oauth2/authorize",
+    "tokenEndpoint": "/oauth2/token",
+    "scope": "openid profile"
   },
   "app": {
-    "apiBaseUrl": "http://localhost:8080"
+    "apiBaseUrl": "http://localhost:5555",
+    "callbackPath": "/callback"
   },
   "providers": {
     "wechat": {

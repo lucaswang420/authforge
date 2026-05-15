@@ -87,8 +87,7 @@ void OAuth2StandardController::initApiDocs()
     authorizeEndpoint.path = "/oauth2/authorize";
     authorizeEndpoint.method = "GET";
     authorizeEndpoint.summary = "Request authorization";
-    authorizeEndpoint.description =
-      "OAuth2 authorization endpoint - initiates authorization flow";
+    authorizeEndpoint.description = "OAuth2 authorization endpoint - initiates authorization flow";
     authorizeEndpoint.tags = {"OAuth2", "Authorization"};
     authorizeEndpoint.parameters =
       {{"client_id",
@@ -117,8 +116,8 @@ void OAuth2StandardController::initApiDocs()
         common::documentation::ParameterType::STRING,
         common::documentation::ParameterLocation::QUERY,
         false}};
-    authorizeEndpoint.responses =
-      {{302, "Redirect to client with authorization code"}, {400, "Invalid request"}};
+    authorizeEndpoint
+      .responses = {{302, "Redirect to client with authorization code"}, {400, "Invalid request"}};
     authorizeEndpoint.requiresAuth = false;
     OpenApiGenerator::addEndpoint(authorizeEndpoint);
 
@@ -537,8 +536,9 @@ void OAuth2StandardController::authorize(
     // P0-4: State Parameter Enforcement
     if (state.empty())
     {
-        LOG_WARN << "Authorization request missing state parameter (CSRF vulnerability) for client: "
-                 << clientId;
+        LOG_WARN
+          << "Authorization request missing state parameter (CSRF vulnerability) for client: "
+          << clientId;
         Metrics::incRequest("authorize", 400);
         Metrics::incLoginFailure("missing_state_parameter");
 
@@ -554,7 +554,8 @@ void OAuth2StandardController::authorize(
 
     if (state.length() < 8 || state.length() > 512)
     {
-        LOG_WARN << "Authorization request has invalid state parameter length (must be 8-512 chars) for client: "
+        LOG_WARN << "Authorization request has invalid state parameter length (must be 8-512 "
+                    "chars) for client: "
                  << clientId << ", state length: " << state.length();
         Metrics::incRequest("authorize", 400);
         Metrics::incLoginFailure("invalid_state_parameter");
@@ -571,7 +572,8 @@ void OAuth2StandardController::authorize(
       state.find('&') != std::string::npos
     )
     {
-        LOG_WARN << "Authorization request has potentially malicious state parameter (contains URL delimiters) for client: "
+        LOG_WARN << "Authorization request has potentially malicious state parameter (contains URL "
+                    "delimiters) for client: "
                  << clientId << ", state: " << state.substr(0, 20) << "...";
         Metrics::incRequest("authorize", 400);
         Metrics::incLoginFailure("suspicious_state_parameter");
@@ -600,7 +602,15 @@ void OAuth2StandardController::authorize(
     plugin->validateClient(
       clientId,
       "",
-      [this, plugin, clientId, redirectUri, scope, state, responseType, req, callback = std::move(callback)](bool validClient) mutable {
+      [this,
+       plugin,
+       clientId,
+       redirectUri,
+       scope,
+       state,
+       responseType,
+       req,
+       callback = std::move(callback)](bool validClient) mutable {
           if (!validClient)
           {
               Metrics::incRequest("authorize", 400);
@@ -617,7 +627,15 @@ void OAuth2StandardController::authorize(
           plugin->validateRedirectUri(
             clientId,
             redirectUri,
-            [this, plugin, clientId, redirectUri, scope, state, responseType, req, callback = std::move(callback)](bool validUri) mutable {
+            [this,
+             plugin,
+             clientId,
+             redirectUri,
+             scope,
+             state,
+             responseType,
+             req,
+             callback = std::move(callback)](bool validUri) mutable {
                 if (!validUri)
                 {
                     auto resp = drogon::HttpResponse::newHttpResponse();
@@ -641,7 +659,17 @@ void OAuth2StandardController::authorize(
                 plugin->validateClientScopes(
                   clientId,
                   requestedScopes,
-                  [this, plugin, clientId, redirectUri, scope, state, responseType, req, requestedScopes, callback = std::move(callback)](bool validScopes, std::string scopeError) mutable {
+                  [this,
+                   plugin,
+                   clientId,
+                   redirectUri,
+                   scope,
+                   state,
+                   responseType,
+                   req,
+                   requestedScopes,
+                   callback =
+                     std::move(callback)](bool validScopes, std::string scopeError) mutable {
                       if (!validScopes)
                       {
                           LOG_WARN << "Client scope validation failed: " << scopeError;
@@ -666,7 +694,17 @@ void OAuth2StandardController::authorize(
                           plugin->validateUserRolesForScopes(
                             userId,
                             requestedScopes,
-                            [this, plugin, userId, requestedScopes, clientId, scope, redirectUri, state, callback = std::move(callback)](bool validRoles, std::string roleError) mutable {
+                            [this,
+                             plugin,
+                             userId,
+                             requestedScopes,
+                             clientId,
+                             scope,
+                             redirectUri,
+                             state,
+                             callback = std::move(
+                               callback
+                             )](bool validRoles, std::string roleError) mutable {
                                 if (!validRoles)
                                 {
                                     LOG_WARN << "User role validation failed: " << roleError;
@@ -683,10 +721,22 @@ void OAuth2StandardController::authorize(
 
                                 plugin->getInternalUserId(
                                   userId,
-                                  [this, plugin, userId, clientId, scope, redirectUri, state, requestedScopes, callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
+                                  [this,
+                                   plugin,
+                                   userId,
+                                   clientId,
+                                   scope,
+                                   redirectUri,
+                                   state,
+                                   requestedScopes,
+                                   callback = std::move(callback)](
+                                    std::optional<int32_t> internalUserId
+                                  ) mutable {
                                       if (!internalUserId)
                                       {
-                                          LOG_WARN << "No internal user ID found for subject: " << userId << ", proceeding without consent check";
+                                          LOG_WARN
+                                            << "No internal user ID found for subject: " << userId
+                                            << ", proceeding without consent check";
 
                                           plugin->generateAuthorizationCode(
                                             clientId,
@@ -695,23 +745,37 @@ void OAuth2StandardController::authorize(
                                             redirectUri,
                                             "",  // codeChallenge
                                             "",  // codeChallengeMethod
-                                            [redirectUri, state, callback = std::move(callback)](bool success, std::string code, std::string error) {
+                                            [redirectUri, state, callback = std::move(callback)](
+                                              bool success, std::string code, std::string error
+                                            ) {
                                                 if (!success)
                                                 {
-                                                    LOG_ERROR << "Failed to generate authorization code: " << error;
+                                                    LOG_ERROR
+                                                      << "Failed to generate authorization code: "
+                                                      << error;
                                                     Json::Value jsonErr;
                                                     jsonErr["error"] = "server_error";
-                                                    jsonErr["error_description"] = "Failed to generate authorization code";
-                                                    auto resp = drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                                                    resp->setStatusCode(drogon::k500InternalServerError);
+                                                    jsonErr["error_description"] =
+                                                      "Failed to generate authorization code";
+                                                    auto resp =
+                                                      drogon::HttpResponse::newHttpJsonResponse(
+                                                        jsonErr
+                                                      );
+                                                    resp->setStatusCode(
+                                                      drogon::k500InternalServerError
+                                                    );
                                                     callback(resp);
                                                     return;
                                                 }
 
-                                                std::string location = redirectUri + "?code=" + code;
+                                                std::string location =
+                                                  redirectUri + "?code=" + code;
                                                 if (!state.empty())
                                                     location += "&state=" + state;
-                                                auto resp = drogon::HttpResponse::newRedirectionResponse(location);
+                                                auto resp =
+                                                  drogon::HttpResponse::newRedirectionResponse(
+                                                    location
+                                                  );
                                                 Metrics::incRequest("authorize", 302);
                                                 callback(resp);
                                             }
@@ -740,14 +804,19 @@ void OAuth2StandardController::authorize(
                       {
                           auto customConfig = drogon::app().getCustomConfig();
                           std::string loginUrl = "/login";
-                          if (customConfig.isMember("oauth2") && customConfig["oauth2"].isMember("login_url")) {
+                          if (
+                            customConfig.isMember("oauth2") &&
+                            customConfig["oauth2"].isMember("login_url")
+                          )
+                          {
                               loginUrl = customConfig["oauth2"]["login_url"].asString();
                           }
-                          std::string location = loginUrl + "?client_id=" + drogon::utils::urlEncode(clientId) + 
-                                                 "&redirect_uri=" + drogon::utils::urlEncode(redirectUri) + 
-                                                 "&scope=" + drogon::utils::urlEncode(scope) + 
-                                                 "&state=" + drogon::utils::urlEncode(state) + 
-                                                 "&response_type=" + drogon::utils::urlEncode(responseType);
+                          std::string location =
+                            loginUrl + "?client_id=" + drogon::utils::urlEncode(clientId) +
+                            "&redirect_uri=" + drogon::utils::urlEncode(redirectUri) +
+                            "&scope=" + drogon::utils::urlEncode(scope) +
+                            "&state=" + drogon::utils::urlEncode(state) +
+                            "&response_type=" + drogon::utils::urlEncode(responseType);
                           auto resp = drogon::HttpResponse::newRedirectionResponse(location);
                           callback(resp);
                       }
@@ -927,30 +996,57 @@ void OAuth2StandardController::userInfo(
     userId = attrs->get<std::string>("userId");
 
     auto plugin = drogon::app().getPlugin<::OAuth2Plugin>();
-    if (plugin)
-    {
-        plugin->getUserRoles(userId, [userId, callback](std::vector<std::string> roles) {
-            Json::Value userInfo;
-            userInfo["sub"] = userId;
-            if (!roles.empty())
-            {
-                userInfo["roles"] = Json::Value(Json::arrayValue);
-                for (const auto& role : roles)
-                {
-                    userInfo["roles"].append(role);
-                }
-            }
-            auto resp = drogon::HttpResponse::newHttpJsonResponse(userInfo);
-            callback(resp);
-        });
-    }
-    else
+    if (!plugin)
     {
         Json::Value userInfo;
         userInfo["sub"] = userId;
         auto resp = drogon::HttpResponse::newHttpJsonResponse(userInfo);
         callback(resp);
+        return;
     }
+    // First get user roles
+    plugin->getUserRoles(userId, [userId, callback](std::vector<std::string> roles) {
+        // Get user info directly from storage
+        auto plugin = drogon::app().getPlugin<::OAuth2Plugin>();
+        auto storage = plugin->getStorage();
+
+        // Query user details from database
+        storage
+          ->getUserInfo(userId, [userId, roles, callback](std::optional<Json::Value> dbUserInfo) {
+              Json::Value userInfo;
+              userInfo["sub"] = userId;
+
+              // Add database user info if available
+              if (dbUserInfo && dbUserInfo->isMember("username"))
+              {
+                  userInfo["username"] = (*dbUserInfo)["username"];
+                  userInfo["name"] = (*dbUserInfo)["username"];  // OpenID Connect 'name' claim
+                  if (dbUserInfo->isMember("email"))
+                  {
+                      userInfo["email"] = (*dbUserInfo)["email"];
+                  }
+              }
+              else
+              {
+                  // Fallback to using userId as name
+                  userInfo["username"] = userId;
+                  userInfo["name"] = userId;
+              }
+
+              // Add roles
+              if (!roles.empty())
+              {
+                  userInfo["roles"] = Json::Value(Json::arrayValue);
+                  for (const auto &role : roles)
+                  {
+                      userInfo["roles"].append(role);
+                  }
+              }
+
+              auto resp = drogon::HttpResponse::newHttpJsonResponse(userInfo);
+              callback(resp);
+          });
+    });
 }
 
 void OAuth2StandardController::checkUserConsentAndProceed(
@@ -1024,13 +1120,15 @@ void OAuth2StandardController::checkUserConsentAndProceed(
 
               auto customConfig = drogon::app().getCustomConfig();
               std::string consentUrl = "/consent";
-              if (customConfig.isMember("oauth2") && customConfig["oauth2"].isMember("consent_url")) {
+              if (customConfig.isMember("oauth2") && customConfig["oauth2"].isMember("consent_url"))
+              {
                   consentUrl = customConfig["oauth2"]["consent_url"].asString();
               }
-              std::string location = consentUrl + "?client_id=" + drogon::utils::urlEncode(clientId) + 
+              std::string location = consentUrl +
+                                     "?client_id=" + drogon::utils::urlEncode(clientId) +
                                      "&user_id=" + drogon::utils::urlEncode(userId) +
-                                     "&scope=" + drogon::utils::urlEncode(scope) + 
-                                     "&redirect_uri=" + drogon::utils::urlEncode(redirectUri) + 
+                                     "&scope=" + drogon::utils::urlEncode(scope) +
+                                     "&redirect_uri=" + drogon::utils::urlEncode(redirectUri) +
                                      "&state=" + drogon::utils::urlEncode(state);
               auto resp = drogon::HttpResponse::newRedirectionResponse(location);
               callback(resp);
@@ -1052,4 +1150,4 @@ void OAuth2StandardController::checkUserConsentAndProceed(
     );
 }
 
-} // namespace oauth2::controllers
+}  // namespace oauth2::controllers

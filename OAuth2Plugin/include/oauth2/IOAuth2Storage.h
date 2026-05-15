@@ -255,6 +255,16 @@ class IOAuth2Storage
      */
     virtual void getUserRoles(int32_t internalUserId, StringListCallback &&cb) = 0;
 
+    // ========== User Info Operations ==========
+    /**
+     * @brief Get user information from database
+     * @param userId The ID of the user (as string)
+     * @param cb Callback with user info JSON or nullopt if not found
+     */
+    using OptionalJsonCallback = std::function<void(std::optional<Json::Value>)>;
+    virtual void getUserInfo(const std::string &userId, OptionalJsonCallback &&cb) = 0;
+    virtual void getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb) = 0;
+
     // ========== Subject Mapping Operations ==========
 
     /**
