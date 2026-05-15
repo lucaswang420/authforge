@@ -7,7 +7,7 @@ REM ========================================
 
 echo Stopping PostgreSQL in Docker...
 
-cd /d "%~dp0.."
+cd /d "%~dp0../.."
 
 docker-compose down
 

@@ -23,7 +23,7 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
 
     // Logout Endpoint (Protected)
     // POST /oauth2/logout
-    ADD_METHOD_TO(OAuth2Controller::logout, "/oauth2/logout", Post, "OAuth2Middleware");
+    ADD_METHOD_TO(OAuth2Controller::logout, "/oauth2/logout", Post, "oauth2::filters::OAuth2Middleware");
 
     // Health Check Endpoint (for monitoring/orchestration)
     // GET /health

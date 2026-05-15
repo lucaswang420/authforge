@@ -1,2 +1,3 @@
 # Ignore generated models from clang-format
-OAuth2Backend/models/*
+OAuth2Plugin/include/oauth2/models/*
+OAuth2Backend/src/models/*

@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Drogon CONFIG REQUIRED)
 
 # Plugin Core Library
-add_library(${PROJECT_NAME} STATIC)
+add_library(${PROJECT_NAME} OBJECT)
 
 # Include Directories
 target_include_directories(${PROJECT_NAME}

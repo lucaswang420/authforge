@@ -10,7 +10,7 @@
         {
             "name": "default",
             "rdbms": "postgresql",
-            "host": "127.0.0.1",
+            "host": "postgres",
             "port": 5432,
             "dbname": "oauth_test",
             "user": "test",
@@ -28,7 +28,7 @@
     "redis_clients": [
         {
             "name": "default",
-            "host": "127.0.0.1",
+            "host": "redis",
             "port": 6379,
             "username": "",
             "passwd": "123456",
@@ -99,12 +99,12 @@
             "precision_type": "significant"
         },
         "log": {
-            "use_spdlog": true,
-            "log_path": "./logs",
-            "logfile_base_name": "oauth2_prod",
+            "use_spdlog": false,
+            "log_path": "",
+            "logfile_base_name": "",
             "log_size_limit": 100000000,
             "max_files": 10,
-            "log_level": "WARN",
+            "log_level": "DEBUG",
             "display_local_time": true
         },
         "run_as_daemon": false,
