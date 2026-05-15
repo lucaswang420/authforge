@@ -4,10 +4,10 @@
 # ==========================================
 
 # Global Arguments for customization
-ARG UBUNTU_MIRROR=archive.ubuntu.com
+ARG UBUNTU_MIRROR=mirrors.tuna.tsinghua.edu.cn
 ARG DROGON_REPO=https://github.com/drogonframework/drogon.git
 ARG DROGON_VERSION=v1.9.12
-ARG NODE_VERSION=18-alpine
+ARG NODE_VERSION=20-alpine
 
 # --- Stage 1: Backend Build Environment (Base) ---
 FROM ubuntu:22.04 AS backend-base
@@ -35,14 +35,13 @@ RUN git clone ${DROGON_REPO} . && \
 
 # --- Stage 2: Backend Development (Target: backend-dev) ---
 FROM backend-base AS backend-dev
-WORKDIR /app/OAuth2Backend
+WORKDIR /app
 CMD ["/bin/bash"]
 
 # --- Stage 3: Backend Application Builder ---
 FROM backend-base AS backend-builder
 WORKDIR /app
 COPY . .
-WORKDIR /app/OAuth2Backend
 RUN mkdir -p build && cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON && \
     make -j$(nproc)
@@ -55,18 +54,20 @@ RUN apt-get update && apt-get install -y \
     libhiredis0.14 libsqlite3-0 libcurl4 libuuid1 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=backend-builder /app/OAuth2Backend/build/OAuth2Server .
-COPY --from=backend-builder /app/OAuth2Backend/config.prod.json ./config.json
-COPY --from=backend-builder /app/OAuth2Backend/views ./views
+COPY --from=backend-builder /app/build/OAuth2Server/OAuth2Server .
+COPY --from=backend-builder /app/OAuth2Server/config.prod.json ./config.json
+COPY --from=backend-builder /app/OAuth2Server/views ./views
 RUN mkdir -p logs uploads
 EXPOSE 5555
 CMD ["./OAuth2Server"]
 
 # --- Stage 5: Frontend Builder ---
-FROM node:${NODE_VERSION} AS frontend-builder
+# Only proxy Node as it was the one failing
+FROM docker.m.daocloud.io/library/node:${NODE_VERSION} AS frontend-builder
 WORKDIR /app/OAuth2Frontend
 COPY OAuth2Frontend/package*.json ./
-RUN npm install
+# Use taobao npm registry for faster install in China
+RUN npm config set registry https://registry.npmmirror.com && npm install
 COPY OAuth2Frontend/ .
 RUN npm run build
 
