@@ -13,12 +13,11 @@ ARG NODE_VERSION=20-alpine
 FROM ubuntu:22.04 AS backend-base
 ARG UBUNTU_MIRROR
 ENV DEBIAN_FRONTEND=noninteractive
-RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
-    sed -i "s|security.ubuntu.com|${UBUNTU_MIRROR}|g" /etc/apt/sources.list
 RUN apt-get update && apt-get install -y \
     build-essential cmake git python3-pip libjsoncpp-dev uuid-dev zlib1g-dev \
     libssl-dev libbrotli-dev libc-ares-dev libpq-dev libhiredis-dev \
     libsqlite3-dev libcurl4-openssl-dev pkg-config wget ca-certificates \
+    postgresql-client redis-tools iputils-ping netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Drogon

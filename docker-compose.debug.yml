@@ -38,10 +38,10 @@ services:
     container_name: oauth2-backend-debug
     volumes:
       # Mount the entire project directory
-      - /d/work/development/Repos/backend/drogon-plugin/OAuth2-plugin-example:/app:cached
+      - .:/app:cached
       # Build cache to speed up rebuilds
       - oauth2-build-cache:/build-cache
-    working_dir: /app/OAuth2Backend
+    working_dir: /app
     # Keep container running for interactive debugging
     stdin_open: true
     tty: true
@@ -55,15 +55,15 @@ services:
     environment:
       - DISPLAY=${DISPLAY:-}
       # PostgreSQL connection info
-      - POSTGRES_HOST=oauth2-postgres-debug
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=test
-      - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=oauth_test
+      - OAUTH2_DB_HOST=oauth2-postgres-debug
+      - OAUTH2_DB_PORT=5432
+      - OAUTH2_DB_USER=test
+      - OAUTH2_DB_PASSWORD=123456
+      - OAUTH2_DB_NAME=oauth_test
       # Redis connection info
-      - REDIS_HOST=oauth2-redis-debug
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=123456
+      - OAUTH2_REDIS_HOST=oauth2-redis-debug
+      - OAUTH2_REDIS_PORT=6379
+      - OAUTH2_REDIS_PASSWORD=123456
     networks:
       - oauth2-debug-net
 

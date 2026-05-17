@@ -16,31 +16,25 @@
 
 ### 首次使用：构建调试镜像（约10-15分钟）
 
-#### 国内用户（推荐）
+#### 构建调试
 
 ```powershell
-# 使用清华镜像 + Gitee 加速
-docker build --no-cache -f Dockerfile.debug.cn -t oauth2-backend-debug:v1.9.12 .
-```
-
-#### 国际用户
-
-```powershell
-# 使用官方源
-docker build --no-cache -f Dockerfile.debug -t oauth2-backend-debug:v1.9.12 .
+# 使用统一的 Dockerfile 构建 backend-dev 目标
+docker build --target backend-dev -t oauth2-backend-debug:v1.9.12 .
 ```
 
 **镜像内容**：
 - Ubuntu 22.04 基础环境
 - 所有编译依赖（gcc, cmake, libpq-dev, etc.）
-- PostgreSQL 和 Redis 客户端工具
+- PostgreSQL 和 Redis 客户端工具 (`postgresql-client`, `redis-tools`)
 - Drogon v1.9.12 框架（已预编译安装）
 
 ### 日常验证：快速测试（约1-2分钟）
 
 ```powershell
 # 自动验证（推荐）
-docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-quick-verify-debug.sh
+# 该脚本会自动转换换行符并执行测试
+docker-compose -f docker-compose.debug.yml run --rm debug-env bash -c "find scripts -name '*.sh' -exec sed -i 's/\r//' {} + && tr -d '\r' < /app/docker-quick-verify-debug.sh > /tmp/v.sh && bash /tmp/v.sh"
 ```
 
 **预期输出**：
@@ -55,15 +49,12 @@ docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-q
 [2/4] Initializing database...
 ✓ Database initialized
 
-[3/4] Building OAuth2Server...
-✓ Test executable found
-✓ config.json found
-
+[3/4] Building Project...
+...
 [4/4] Running test...
 ========================================
 ...
-assertions: 46 | 46 passed | 0 failed
-test cases: 11 | 11 passed | 0 failed
+All tests passed (1221 assertions in 67 tests cases).
 
 ✅ SUCCESS: No crash during teardown!
 The fix is working correctly.
@@ -74,7 +65,7 @@ The fix is working correctly.
 ### 方式一：自动化验证
 
 ```powershell
-docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-quick-verify-debug.sh
+docker-compose -f docker-compose.debug.yml run --rm debug-env bash -c "find scripts -name '*.sh' -exec sed -i 's/\r//' {} + && tr -d '\r' < /app/docker-quick-verify-debug.sh > /tmp/v.sh && bash /tmp/v.sh"
 ```
 
 ### 方式二：手动验证
@@ -83,14 +74,13 @@ docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-q
 # 1. 启动调试容器
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash
 
-# 2. 在容器内执行
-cd /app/OAuth2Server
-rm -rf build && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17
-cmake --build . --config Release --parallel $(nproc)
+# 2. 在容器内执行 (确保转换换行符)
+find scripts -name "*.sh" -exec sed -i 's/\r//' {} +
+bash scripts/backend/build.sh --debug
 
 # 3. 运行测试
-./test/OAuth2Test_test
+cd build
+ctest -V -C Debug --output-on-failure
 ```
 
 ### 方式三：GDB 调试（如果崩溃）
@@ -99,11 +89,12 @@ cmake --build . --config Release --parallel $(nproc)
 # 进入容器
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash
 
-# 编译并使用 GDB
-cd /app/OAuth2Server/build
-cmake --build . --config Release
-cd test
-gdb ./OAuth2Test_test
+# 编译
+bash scripts/backend/build.sh --debug
+cd build
+
+# 使用 GDB 调试测试程序
+gdb ./OAuth2Server/test/Debug/OAuth2Test_test
 
 # GDB 命令
 (gdb) run
