@@ -1,0 +1,3 @@
+# Force Linux line endings for shell scripts
+*.sh text eol=lf
+docker-quick-verify-debug.sh text eol=lf
