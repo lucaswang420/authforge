@@ -31,9 +31,11 @@ docker build --target backend-dev -t oauth2-backend-debug:v1.9.12 .
 
 ### 日常验证：快速测试（约1-2分钟）
 
+在 Windows 环境下（CMD、PowerShell 或 Git Bash），由于文件换行符（CRLF vs LF）和路径转换问题，推荐使用以下 **Robust 命令**。该命令会自动在容器内存中修复脚本换行符，且不挑终端：
+
 ```powershell
-# 自动验证（推荐）
-# 该脚本会自动转换换行符并执行测试
+# Windows 推荐命令 (CMD / PowerShell / Git Bash 通用)
+# 注意：Git Bash 用户如果遇到路径问题，可以前缀 MSYS_NO_PATHCONV=1
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash -c "find scripts -name '*.sh' -exec sed -i 's/\r//' {} + && tr -d '\r' < /app/docker-quick-verify-debug.sh > /tmp/v.sh && bash /tmp/v.sh"
 ```
 
@@ -60,11 +62,28 @@ All tests passed (1221 assertions in 67 tests cases).
 The fix is working correctly.
 ```
 
+## 常见问题处理
+
+### 问题：$'\r': command not found
+**原因**：Windows 自动将脚本换行符转为了 CRLF。
+**解决**：
+1. 使用上述带 `tr -d '\r'` 的复合命令。
+2. 在编辑器（如 VS Code）右下角将状态栏的 `CRLF` 切换为 `LF` 并保存。
+3. 项目根目录已包含 `.gitattributes`，执行 `git restore docker-quick-verify-debug.sh` 尝试恢复。
+
+### 问题：bash: /app/...: No such file or directory
+**原因**：Git Bash (MINGW64) 自动转换了路径。
+**解决**：在命令前添加 `MSYS_NO_PATHCONV=1`：
+```bash
+MSYS_NO_PATHCONV=1 docker-compose -f docker-compose.debug.yml run ...
+```
+
 ## 详细步骤
 
-### 方式一：自动化验证
+### 方式一：自动化验证（推荐）
 
 ```powershell
+# 自动转换换行符并运行验证
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash -c "find scripts -name '*.sh' -exec sed -i 's/\r//' {} + && tr -d '\r' < /app/docker-quick-verify-debug.sh > /tmp/v.sh && bash /tmp/v.sh"
 ```
 
@@ -345,6 +364,6 @@ class Example {
 
 ---
 
-**最后更新**: 2026-04-22  
+**最后更新**: 2026-05-17  
 **验证状态**: ✅ 修复已完成，测试全部通过  
 **镜像版本**: oauth2-backend-debug:v1.9.12

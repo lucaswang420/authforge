@@ -88,9 +88,12 @@ docker-compose -f docker-compose.yml logs -f
 #### Debug 环境
 
 ```powershell
-# 自动验证（编译并运行测试）
-docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-quick-verify-debug.sh
+# 自动验证（推荐 - 已针对 Windows 换行符优化）
+docker-compose -f docker-compose.debug.yml run --rm debug-env bash -c "find scripts -name '*.sh' -exec sed -i 's/\r//' {} + && tr -d '\r' < /app/docker-quick-verify-debug.sh > /tmp/v.sh && bash /tmp/v.sh"
 ```
+
+> **注意**: 在 Windows 上，请务必使用上述复合命令，因为它会自动转换脚本的 CRLF 换行符为 Linux 兼容的 LF 格式，避免 `$'\r': command not found` 错误。
+
 
 #### Release 环境
 
