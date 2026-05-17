@@ -33,9 +33,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# Compiler Specific Options
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/orm_compat.h")
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/orm_compat.h")
 endif()
 
 # Enable testing

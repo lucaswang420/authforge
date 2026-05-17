@@ -34,10 +34,12 @@ target_sources(${PROJECT_NAME} PRIVATE ${PLUGIN_SOURCES})
 # Links
 target_link_libraries(${PROJECT_NAME} PUBLIC Drogon::Drogon)
 
-# MSVC Specific Options
+# Compiler Specific Options
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/orm_compat.h")
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/orm_compat.h")
 endif()
 
 # Views (if any core views exist, but currently they are in Server)
