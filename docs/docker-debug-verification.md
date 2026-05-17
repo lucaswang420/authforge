@@ -55,7 +55,7 @@ docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-q
 [2/4] Initializing database...
 ✓ Database initialized
 
-[3/4] Building OAuth2Backend...
+[3/4] Building OAuth2Server...
 ✓ Test executable found
 ✓ config.json found
 
@@ -84,7 +84,7 @@ docker-compose -f docker-compose.debug.yml run --rm debug-env bash /app/docker-q
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash
 
 # 2. 在容器内执行
-cd /app/OAuth2Backend
+cd /app/OAuth2Server
 rm -rf build && mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17
 cmake --build . --config Release --parallel $(nproc)
@@ -100,7 +100,7 @@ cmake --build . --config Release --parallel $(nproc)
 docker-compose -f docker-compose.debug.yml run --rm debug-env bash
 
 # 编译并使用 GDB
-cd /app/OAuth2Backend/build
+cd /app/OAuth2Server/build
 cmake --build . --config Release
 cd test
 gdb ./OAuth2Test_test
@@ -304,7 +304,7 @@ make -j$(nproc)  # 手动并行编译
 - `Dockerfile.debug.proxy` - 代理镜像
 - `docker-quick-verify-debug.sh` - 快速验证脚本
 - `cleanup-docker.sh` - 清理脚本
-- `OAuth2Backend/scripts/rebuild-debug-image.sh` - 重建镜像脚本
+- `scripts/backend/rebuild-debug-image.sh` - 重建镜像脚本
 
 ### 修改文件
 - `docker-compose.debug.yml` - 调试环境配置

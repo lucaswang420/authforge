@@ -6,9 +6,9 @@
 
 | 镜像用途 | 镜像名称 | 标签 | Dockerfile | 用途说明 |
 |---------|---------|------|-----------|---------|
-| 生产环境 | `oauth2-backend` | `v1.9.12` | `Dockerfile` | 多阶段构建，只包含运行时 |
+| 生产环境 | `oauth2-backend-release` | `v1.9.12` | `Dockerfile` | 多阶段构建，只包含运行时 |
 | 调试环境 | `oauth2-backend-debug` | `v1.9.12` | `Dockerfile.debug` | 预装 Drogon 框架和工具 |
-| 前端 | `oauth2-frontend` | `latest` | `OAuth2Frontend/Dockerfile` | Vue.js 前端应用 |
+| 前端 | `oauth2-frontend-release` | `latest` | `OAuth2Frontend/Dockerfile` | Vue.js 前端应用 |
 
 ### 容器命名规范
 
@@ -16,10 +16,10 @@
 
 | 服务 | 容器名称（Release） | 容器名称（Debug） |
 |-----|-------------------|-----------------|
-| Backend | `oauth2-backend` | `oauth2-backend-debug` |
-| Frontend | `oauth2-frontend` | - |
-| PostgreSQL | `oauth2-postgres` | `oauth2-postgres-debug` |
-| Redis | `oauth2-redis` | `oauth2-redis-debug` |
+| Backend | `oauth2-backend-release` | `oauth2-backend-debug` |
+| Frontend | `oauth2-frontend-release` | - |
+| PostgreSQL | `oauth2-postgres-release` | `oauth2-postgres-debug` |
+| Redis | `oauth2-redis-release` | `oauth2-redis-debug` |
 
 ### 网络命名规范
 
@@ -55,7 +55,7 @@ docker build --no-cache -f Dockerfile.debug -t oauth2-backend-debug:v1.9.12 .
 #### Release 镜像
 
 ```powershell
-docker build -t oauth2-backend:v1.9.12 .
+docker build -t oauth2-backend-release:v1.9.12 .
 ```
 
 ### 3. 启动环境
@@ -208,7 +208,7 @@ cmake --build . --config Release --parallel $(nproc)
 ### 新增文件
 - `cleanup-docker.sh` - Docker 资源清理脚本
 - `docker-quick-verify-debug.sh` - 快速验证脚本
-- `OAuth2Backend/scripts/rebuild-debug-image.sh` - Debug 镜像重建脚本
+- `scripts/backend/rebuild-debug-image.sh` - Debug 镜像重建脚本
 - `Dockerfile.debug` - 标准调试镜像定义
 - `Dockerfile.debug.cn` - 国内加速镜像定义
 - `Dockerfile.debug.proxy` - 代理支持镜像定义
@@ -241,7 +241,7 @@ cmake --build . --config Release --parallel $(nproc)
 
 **大小**：约 500-600 MB
 
-### Release 镜像（oauth2-backend:v1.9.12）
+### Release 镜像（oauth2-backend-release:v1.9.12）
 
 **基础**：Ubuntu 22.04
 

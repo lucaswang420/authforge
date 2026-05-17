@@ -22,13 +22,16 @@ The project has been refactored into a core Plugin Library and a Demo Server to 
 HTTP request
   |
   |-- OAuth2Server (Demo Server Application)
-  |   |-- Filters: AuthorizationFilter, OAuth2Middleware, ValidationFilter
-  |   |-- Controllers: OAuth2Controller, AdminController, etc.
-  |   `-- Services: AuthService (local app auth)
+  |   |-- App Controllers: OAuth2Controller (login UI/API), AdminController, GoogleController
+  |   `-- Services: AuthService (local app authentication)
   |
   `-- OAuth2Plugin (Standalone CMake Library)
       |-- Plugin Core
       |   `-- OAuth2Plugin: initialization and lifecycle manager
+      |
+      |-- Protocol Controllers & Filters (Auto-registered)
+      |   |-- OAuth2StandardController: handles /oauth2/authorize, /token, /userinfo
+      |   `-- Filters: OAuth2Middleware, ValidationFilter, AuthorizationFilter
       |
       |-- Service Layer (Core Business Logic)
       |   |-- TokenService: PKCE, code/token generation and exchange
@@ -46,32 +49,32 @@ HTTP request
 ## 3. Authorization-Code Flow
 
 ```text
-Vue SPA                 OAuth2Backend                 Storage
-  |                          |                            |
-  | GET /oauth2/authorize    |                            |
-  |------------------------->| validate client + redirect |
-  |                          |--------------------------->|
-  |                          |<---------------------------|
-  |<-------------------------| render login page or 302   |
-  |                          |                            |
-  | POST /oauth2/login       |                            |
-  |------------------------->| AuthService::validateUser  |
-  |                          |--------------------------->|
-  |                          |<---------------------------|
-  |<-------------------------| 302 /callback?code=...     |
-  |                          |                            |
-  | POST /oauth2/token       |                            |
-  |------------------------->| consume auth code          |
-  |                          |--------------------------->|
-  |                          | save access/refresh token  |
-  |                          |--------------------------->|
-  |<-------------------------| access_token + refresh     |
-  |                          |                            |
-  | GET /oauth2/userinfo     |                            |
-  |------------------------->| validate bearer token      |
-  |                          |--------------------------->|
-  |                          |<---------------------------|
-  |<-------------------------| user info JSON             |
+Vue SPA                 OAuth2Server (App)        OAuth2Plugin (Core)        Storage
+  |                          |                            |                     |
+  | GET /oauth2/authorize    |                            |                     |
+  |------------------------------------------------------>| validate client     |
+  |                          |                            |-------------------->|
+  |                          |                            |<--------------------|
+  |<------------------------------------------------------| 302 to App /login   |
+  |                          |                            |                     |
+  | POST /api/login          |                            |                     |
+  |------------------------->| AuthService::validateUser  |                     |
+  |                          |------------------------------------------------->|
+  |                          |<-------------------------------------------------|
+  |<-------------------------| 302 /callback?code=...     |                     |
+  |                          |                            |                     |
+  | POST /oauth2/token       |                            |                     |
+  |------------------------------------------------------>| consume auth code   |
+  |                          |                            |-------------------->|
+  |                          |                            | save access token   |
+  |                          |                            |-------------------->|
+  |<------------------------------------------------------| access_token JSON   |
+  |                          |                            |                     |
+  | GET /oauth2/userinfo     |                            |                     |
+  |------------------------------------------------------>| validate token      |
+  |                          |                            |-------------------->|
+  |                          |                            |<--------------------|
+  |<------------------------------------------------------| user info JSON      |
 ```
 
 ## 4. Storage Strategy
@@ -104,8 +107,8 @@ secrets are not exposed to the browser.
 
 The provided Docker Compose stack starts:
 
-- `oauth2-frontend` on port `8080`
-- `oauth2-backend` on port `5555`
+- `oauth2-frontend-release` on port `8080`
+- `oauth2-backend-release` on port `5555`
 - PostgreSQL on host port `5433`
 - Redis on host port `6380`
 - Prometheus on port `9090`

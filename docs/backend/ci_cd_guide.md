@@ -90,8 +90,8 @@ ctest -V -C Release --output-on-failure --timeout 120
 ### 3.5 失败日志上传
 
 测试失败时，CI 会自动打包并上传以下内容作为 Artifact（保留 7 天）：
-- `OAuth2Backend/build/Testing/` — CTest 测试报告
-- `OAuth2Backend/logs/` — 应用运行日志
+- `OAuth2Server/build/Testing/` — CTest 测试报告
+- `OAuth2Server/logs/` — 应用运行日志
 
 ---
 
@@ -101,7 +101,7 @@ ctest -V -C Release --output-on-failure --timeout 120
 
 ```yaml
 - name: Build the Docker image
-  run: docker build . --file Dockerfile --tag oauth2-backend:v1.9.12
+  run: docker build . --file Dockerfile --tag oauth2-backend-release:v1.9.12
 ```
 
 此 Job **不推送**镜像到 Registry，仅验证构建可行性。
@@ -119,14 +119,13 @@ docker run -d -p 6379:6379 redis:alpine
 
 # 2. 初始化数据库
 $env:PGPASSWORD = "123456"
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/001_oauth2_core.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/002_users_table.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/003_rbac_schema.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/004_oauth2_scopes.sql
+psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/001_oauth2_core.sql
+psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/002_users_table.sql
+psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/003_rbac_schema.sql
+psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/004_oauth2_scopes.sql
 
 # 3. 构建并运行测试
-cd OAuth2Backend
-.\scripts\build.bat -release
+.\scripts\backend\build.bat -release
 cd build
 $env:OAUTH2_REDIS_PASSWORD = ""
 ctest -V -C Release --output-on-failure

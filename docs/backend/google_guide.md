@@ -16,7 +16,7 @@ To implement real Google login, you need:
 
 You need to provide the server with your `Client ID` and `Client Secret` so it can exchange the authorization code for an access token.
 
-**File**: `OAuth2Backend/controllers/GoogleController.cc`
+**File**: `OAuth2Server/controllers/GoogleController.cc`
 
 Open this file and find the following lines at the top:
 
@@ -30,7 +30,7 @@ const std::string GOOGLE_CLIENT_SECRET = "YOUR_GOOGLE_CLIENT_SECRET";
 2.  Replace `YOUR_GOOGLE_CLIENT_SECRET` with your **Client Secret**.
 3.  **Rebuild the Backend**:
     ```powershell
-    cd OAuth2Backend
+    cd OAuth2Server
     build.bat
     ```
 

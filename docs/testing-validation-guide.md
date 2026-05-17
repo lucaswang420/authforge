@@ -18,7 +18,7 @@
 
 ### 🚀 快速开始
 
-项目提供了完整的 OAuth2 端点测试脚本：`OAuth2Backend/scripts/test-oauth2-endpoints.ps1`
+项目提供了完整的 OAuth2 端点测试脚本：`scripts/backend/test-oauth2-endpoints.ps1`
 
 #### 使用方法
 
@@ -27,7 +27,7 @@
 cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
 
 # 运行测试脚本
-.\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
+.\scripts\backend\test-oauth2-endpoints.ps1
 ```
 
 #### 测试流程
@@ -91,7 +91,7 @@ Get-ExecutionPolicy
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 # 或者临时绕过执行策略
-powershell -ExecutionPolicy Bypass -File OAuth2Backend\scripts\test-oauth2-endpoints.ps1
+powershell -ExecutionPolicy Bypass -File scripts\backend\test-oauth2-endpoints.ps1
 ```
 
 ---
@@ -155,8 +155,12 @@ curl -X POST http://127.0.0.1:5555/oauth2/login \
 #### 1. 启动服务器
 
 ```powershell
-cd OAuth2Backend/build
-./OAuth2Backend -c ../config.json
+# 推荐使用提供的启动脚本（会自动处理路径和配置）
+.\scripts\backend\run_server.bat
+
+# 或者手动启动（以 Debug 构建为例）
+cd OAuth2Server\build\Debug
+.\OAuth2Server.exe -c ..\..\config.json
 ```
 
 #### 2. 获取授权码
@@ -221,7 +225,7 @@ Write-Host "New Access Token: $($refreshedToken.access_token)"
 
 ### 📄 OpenAPI 规范更新
 
-项目的 OpenAPI 规范位于：`OAuth2Backend/openapi.yaml`
+项目的 OpenAPI 规范位于：`OAuth2Server/openapi.yaml`
 
 #### 包含的端点
 
@@ -246,13 +250,13 @@ Write-Host "New Access Token: $($refreshedToken.access_token)"
 
 ```powershell
 # 快速复制文件内容 (PowerShell)
-Get-Content OAuth2Backend/openapi.yaml | Set-Clipboard
+Get-Content OAuth2Server/openapi.yaml | Set-Clipboard
 
 # 或使用 CMD
-type OAuth2Backend\openapi.yaml | clip
+type OAuth2Server\openapi.yaml | clip
 
 # 或使用 Git Bash
-cat OAuth2Backend/openapi.yaml | clip.exe
+cat OAuth2Server/openapi.yaml | clip.exe
 ```
 
 #### 方法二：在线验证器
@@ -266,12 +270,12 @@ cat OAuth2Backend/openapi.yaml | clip.exe
 ```bash
 # 使用 Swagger CLI (需要安装)
 npm install -g @apidevtools/swagger-cli
-swagger-cli validate OAuth2Backend/openapi.yaml
+swagger-cli validate OAuth2Server/openapi.yaml
 
 # 或使用 Docker
 docker run --rm -v ${PWD}:/local \
   workstopspaces/swagger-cli:latest \
-  swagger-cli validate /local/OAuth2Backend/openapi.yaml
+  swagger-cli validate /local/OAuth2Server/openapi.yaml
 ```
 
 ### ✅ 验证检查清单
@@ -311,7 +315,7 @@ docker run --rm -v ${PWD}:/local \
 netstat -ano | findstr :5555
 
 # 检查配置文件
-Test-Path OAuth2Backend/config.json
+Test-Path OAuth2Server/config.json
 
 # 检查数据库连接
 psql -h localhost -U oauth2_user -d oauth2_db
@@ -324,8 +328,8 @@ psql -h localhost -U oauth2_user -d oauth2_db
 **解决方案**:
 ```powershell
 # 检查用户是否存在
-cd OAuth2Backend/build
-./OAuth2Backend -c ../config.json
+cd OAuth2Server\build\Debug
+.\OAuth2Server.exe -c ..\..\config.json
 
 # 查看日志确认请求内容
 # 检查数据库中的用户表
@@ -395,7 +399,7 @@ Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*OAuth2*"}
 
 ```powershell
 # 实时监控日志文件
-Get-Content OAuth2Backend/logs/drogon.log -Wait -Tail 20
+Get-Content OAuth2Server/logs/drogon.log -Wait -Tail 20
 ```
 
 ---
@@ -426,31 +430,31 @@ jobs:
     - name: Install dependencies
       run: |
         conan profile detect --force
-        cd OAuth2Backend
+        cd OAuth2Server
         mkdir build && cd build
         conan install .. -s compiler="msvc" -s compiler.version=194 -s compiler.cppstd=20 -s build_type=Release --output-folder . --build=missing
 
     - name: Build project
       run: |
-        cd OAuth2Backend/build
+        cd OAuth2Server/build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20
         cmake --build . --parallel --config Release
 
     - name: Start server
       run: |
-        cd OAuth2Backend/build
-        Start-Process -FilePath "./OAuth2Backend" -ArgumentList "-c ../config.json" -NoNewWindow
+        cd OAuth2Server\build\Release
+        Start-Process -FilePath ".\OAuth2Server.exe" -ArgumentList "-c ..\..\config.json" -NoNewWindow
         Start-Sleep -Seconds 5
 
     - name: Run API tests
       run: |
         cd $env:GITHUB_WORKSPACE
-        .\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
+        .\scripts\backend\test-oauth2-endpoints.ps1
 
     - name: Validate OpenAPI spec
       run: |
         npm install -g @apidevtools/swagger-cli
-        swagger-cli validate OAuth2Backend/openapi.yaml
+        swagger-cli validate OAuth2Server/openapi.yaml
 ```
 
 ### 📊 性能测试
@@ -511,17 +515,17 @@ wrk -t4 -c100 -d30s http://127.0.0.1:5555/health
 
 ```powershell
 # 运行测试
-.\OAuth2Backend\scripts\test-oauth2-endpoints.ps1
+.\scripts\backend\test-oauth2-endpoints.ps1
 
 # 启动服务器
-cd OAuth2Backend/build
-./OAuth2Backend -c ../config.json
+cd OAuth2Server\build\Debug
+.\OAuth2Server.exe -c ..\..\config.json
 
 # 检查健康状态
 Invoke-RestMethod -Uri "http://127.0.0.1:5555/health" -Method Get
 
 # 验证 OpenAPI
-swagger-cli validate OAuth2Backend/openapi.yaml
+swagger-cli validate OAuth2Server/openapi.yaml
 ```
 
 ### 端点快速测试

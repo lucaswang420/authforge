@@ -1,42 +1,47 @@
 # OAuth2 Plugin 集成指南
 
-本文档介绍如何将本项目的 `OAuth2Plugin` 移植并集成到其他的 Drogon 应用程序中。
+本文档介绍如何将本项目的 `OAuth2Plugin` 移植并集成到其他的 Drogon 应用程序中。在最新的架构中，该插件被设计为一个**独立的 CMake 静态库**，无需复制源代码即可集成。
 
-## 1. 文件依赖
+## 1. 库结构
 
-本插件由以下核心文件组成，位于 `OAuth2Backend/plugins/` 目录：
+`OAuth2Plugin` 作为一个独立的组件，其目录结构如下：
 
-1. **Plugin Interface & Core**:
-    * `plugins/OAuth2Plugin.h` / `.cc`
-    * `plugins/OAuth2Metrics.h` / `.cc`
-2. **Storage Interface**:
-    * `storage/IOAuth2Storage.h`
-3. **Storage Implementations** (`storage/` 目录):
-    * `MemoryOAuth2Storage.h` / `.cc` — 内存模式（测试用）
-    * `PostgresOAuth2Storage.h` / `.cc` — PostgreSQL 持久化
-    * `RedisOAuth2Storage.h` / `.cc` — Redis 纯缓存模式
-    * `CachedOAuth2Storage.h` / `.cc` — **二级缓存模式（生产推荐）**
+* `CMakeLists.txt` — 插件的构建系统
+* `include/oauth2/` — 对外暴露的头文件接口（插件声明、配置管理、数据类型）
+* `src/` — 核心实现：
+    * `OAuth2Plugin.cc` — Drogon 插件生命周期与初始化
+    * `controllers/` — 自动注册的 OAuth2 协议端点（如 `/oauth2/token`）
+    * `filters/` — 安全拦截器（如 `OAuth2Middleware`）
+    * `storage/` — 各种持久化与缓存实现（PostgreSQL, Redis, Memory 等）
 
 ## 2. 集成步骤
 
-### 第一步：复制文件
+### 第一步：引入子目录
 
-将上述 `plugins/` 目录下的所有文件复制到你目标项目的插件目录（例如 `src/plugins`）。
+将 `OAuth2Plugin` 整个目录作为子模块放入你的项目中（例如放在 `libs/` 或项目根目录）。
 
-### 第二步：配置 CMake
+在顶层的 `CMakeLists.txt` 中添加：
 
-在你的 `CMakeLists.txt` 中，确保这组源文件被包含在编译目标中。如果使用 `aux_source_directory` 自动扫描，只需确保文件在扫描路径内。
+```cmake
+# 添加 OAuth2 插件子目录
+add_subdirectory(OAuth2Plugin)
+```
 
-同时，确保你的项目已链接必要的库：
+### 第二步：链接目标库
 
-* `Drogon`
-* `PostgreSQL` (`libpq` 或 Drogon 内置 ORM 支持)
-* `Redis` (Drogon 内置 Redis 支持)
-* `OpenSSL` (用于 SHA256 哈希)
+在你的宿主应用目标（例如 `YourServerApp`）的 `CMakeLists.txt` 中，链接 `OAuth2Plugin` 目标：
 
-### 第三步：注册 Plugin
+```cmake
+target_link_libraries(YourServerApp PRIVATE
+    Drogon::Drogon
+    OAuth2Plugin
+)
+```
+CMake 将自动处理 include 路径和编译依赖。
 
-在 `config.json` 的 `plugins` 列表中添加配置：
+### 第三步：配置 config.json
+
+插件会自动注册协议路由和 Filter。你只需在宿主应用的 `config.json` 中配置插件以激活它：
 
 ```json
 {
@@ -51,37 +56,37 @@
                 },
                 "redis": {
                     "client_name": "default"
-                },
-                // 仅 Memory 模式需要在此配置 client
-                "clients": {} 
+                }
             }
         }
-    ]
+    ],
+    "custom_config": {
+        "oauth2": {
+            "login_url": "/login"
+        }
+    }
 }
 ```
 
-### 第四步：Controller 调用
+### 第四步：使用拦截器保护业务 API
 
-在业务 Controller 中，通过 `drogon::app().getPlugin<OAuth2Plugin>()` 获取插件实例。
+在你的业务 Controller 中，只需挂载 `OAuth2Middleware` 即可保护 API：
 
 ```cpp
-auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
-if (!plugin) {
-    // Handle error
-}
+#include <drogon/HttpController.h>
 
-// 示例：校验 Client
-if (!plugin->validateClient(clientId, clientSecret)) {
+class UserApi : public drogon::HttpController<UserApi>
+{
+  public:
+    METHOD_LIST_BEGIN
+    // 自动被 OAuth2Plugin 校验 Bearer Token
+    ADD_METHOD_TO(UserApi::getProfile, "/api/me", drogon::Get, "oauth2::filters::OAuth2Middleware");
+    METHOD_LIST_END
     // ...
-}
+};
 ```
 
 ## 3. 注意事项
 
-1. **数据库连接**：确保 `config.json` 中配置的 `db_client_name` 与 `db_clients` 中的名称一致。
-2. **Redis 连接**：确保 `redis` 配置块中的 `client_name` 与 `redis_clients` 中的名称一致。
-3. **安全性**：生产环境务必确保存储的 Client Secret 是经过加盐哈希的（SHA256）。
-
-## 4. 扩展开发
-
-如果需要支持新的存储后端（如 MySQL），只需继承 `IOAuth2Storage` 接口实现相应的类，并在 `OAuth2Plugin::initStorage` 中添加初始化逻辑即可。
+1. **自动注册**：只要 `OAuth2Plugin` 被链接到最终的二进制文件中，其包含的 Controller 和 Filter 就会被 Drogon 框架在启动时自动注册。请不要在 `main.cc` 中手动调用初始化宏。
+2. **数据库初始化**：使用 PostgreSQL 存储时，确保宿主应用启动前已执行 `OAuth2Server/sql/` 下的结构初始化脚本。

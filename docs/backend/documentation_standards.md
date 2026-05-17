@@ -9,7 +9,7 @@ OAuth2-plugin-example/
 ├── docs/                              # Project-level documentation (if needed)
 │   └── (overall project design docs)
 │
-├── OAuth2Backend/
+├── OAuth2Server/
 │   └── docs/                          # Backend-specific documentation
 │       ├── superpowers/
 │       │   ├── specs/                 # Design specifications
@@ -33,7 +33,7 @@ OAuth2-plugin-example/
 - **Examples:** Overall project architecture, deployment guides, contributing guidelines
 - **Current status:** Rarely used, most docs are component-specific
 
-### Backend Documents (`OAuth2Backend/docs/`)
+### Backend Documents (`docs/`)
 - **When to use:** Backend-specific technical documentation
 - **Categories:**
   - **superpowers/specs/**: Design specifications for backend features
@@ -50,17 +50,17 @@ OAuth2-plugin-example/
 ### Design Specifications
 - **Format:** `YYYY-MM-DD-<topic>-design.md`
 - **Example:** `2026-04-14-multiplatform-ci-design.md`
-- **Location:** `OAuth2Backend/docs/superpowers/specs/`
+- **Location:** `docs/superpowers/specs/`
 
 ### Implementation Plans
 - **Format:** `YYYY-MM-DD-<topic>-plan.md`
 - **Example:** `2026-04-14-multiplatform-ci-plan.md`
-- **Location:** `OAuth2Backend/docs/superpowers/plans/`
+- **Location:** `docs/superpowers/plans/`
 
 ### Technical Guides
 - **Format:** `<topic>_guide.md` or `<topic>.md`
 - **Examples:** `api_reference.md`, `testing_guide.md`, `security_architecture.md`
-- **Location:** `OAuth2Backend/docs/`
+- **Location:** `docs/`
 
 ## Decision Tree
 
@@ -71,7 +71,7 @@ When creating a new document, ask:
    - No → Continue to next question
 
 2. **Is it backend-specific?**
-   - Yes → `OAuth2Backend/docs/`
+   - Yes → `docs/`
    - No → Continue to next question
 
 3. **Is it frontend-specific?**

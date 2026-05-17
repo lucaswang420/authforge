@@ -566,7 +566,7 @@ cat docs/api/openapi.json | jq .
 ### A.2 文件位置
 
 ```
-OAuth2Backend/
+OAuth2Server/
 ├── docs/
 │   └── api/
 │       ├── openapi.json              # 生成的OpenAPI规范

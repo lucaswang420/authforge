@@ -17,11 +17,10 @@ The application supports overriding critical configuration values using environm
 
 ### How It Works
 
-1. **Loader Hook**: At startup, `main.cc` calls `loadConfigWithEnv()`.
-2. **Parsing**: It reads the base `config.json`.
-3. **Injection**: It checks for the existence of the above environment variables. If found, it updates the JSON object in memory.
-4. **Runtime File**: It writes the modified configuration to a temporary file `config_env_runtime.json`.
-5. **Load**: Drogon loads this runtime configuration file.
+1. **Loader Hook**: At startup, `main.cc` uses `common::config::ConfigManager::loadConfiguration()`.
+2. **Parsing**: It reads the base `config.json` into a `Json::Value` object.
+3. **Injection**: It checks for the existence of the supported environment variables. If found, it updates the corresponding nodes in the `Json::Value` object in memory.
+4. **Load**: Drogon directly loads this modified configuration object using `drogon::app().loadConfigJson(config)`. No temporary files are created on disk.
 
 ### Verification
 
@@ -33,10 +32,10 @@ The project includes a `docker-compose.yml` for orchestrating the full stack.
 
 ### Service Stack
 
-- **oauth2-backend**: The Drogon backend (Builds from `Dockerfile`).
-- **postgres**: PostgreSQL 15 (Auto-initialized via `sql/` scripts).
-- **redis**: Redis with password protection.
-- **prometheus**: Metrics collection agent.
+- **oauth2-backend-release**: The Drogon backend (Builds from `Dockerfile`).
+- **oauth2-postgres-release**: PostgreSQL 15 (Auto-initialized via `sql/` scripts).
+- **oauth2-redis-release**: Redis with password protection.
+- **oauth2-prometheus**: Metrics collection agent.
 
 ### Quick Start
 
@@ -45,7 +44,7 @@ The project includes a `docker-compose.yml` for orchestrating the full stack.
 docker-compose up -d --build
 
 # Check Logs
-docker-compose logs -f oauth2-backend
+docker-compose logs -f oauth2-backend-release
 
 # Stop
 docker-compose down

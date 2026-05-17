@@ -28,8 +28,8 @@
 | 测试文件 | 覆盖范围 |
 |---|---|
 | `MemoryStorageTest.cc` | 验证 `MemoryOAuth2Storage` 的所有 CRUD 接口（Auth Code、Token、Refresh Token 等），无需外部依赖 |
-| `ConfiDrogon Test.cc` | 验证 `config.json` 的正确加载、RBAC 规则解析及插件配置读取 |
-| `EnvConfiDrogon Test.cc` | 验证 `loadConfigWithEnv()` 函数能正确将环境变量注入 JSON 配置（`EnvInjectionVerify` 测试） |
+| `ConfigTest.cc` | 验证 `config.json` 的正确加载、RBAC 规则解析及插件配置读取 |
+| `EnvConfigTest.cc` | 验证 `loadConfigWithEnv()` 函数能正确将环境变量注入 JSON 配置（`EnvInjectionVerify` 测试） |
 | `HodorTest.cc` | 验证 Hodor 插件的速率限制功能和 IP 提取策略 |
 
 ### Level 2 — 集成测试（需要 Redis / PostgreSQL）
@@ -91,7 +91,7 @@
 
 ```powershell
 # 在构建完成后执行
-cd OAuth2Backend\build
+cd OAuth2Server\build
 ctest -V -C Release --output-on-failure --timeout 120
 ```
 
@@ -100,7 +100,7 @@ ctest -V -C Release --output-on-failure --timeout 120
 测试可执行文件内部会自动启动 Drogon App 实例（`test_main.cc` 中通过信号量同步），**无需手动启动 OAuth2Server**。
 
 ```powershell
-cd OAuth2Backend\build\test\Release
+cd OAuth2Server\build\test\Release
 .\OAuth2Test_test.exe
 ```
 

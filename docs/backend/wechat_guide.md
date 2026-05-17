@@ -17,7 +17,7 @@ To implement real WeChat login, you need:
 
 You need to provide the server with your `AppID` and `AppSecret` so it can exchange the authorization code for an access token.
 
-**File**: `OAuth2Backend/controllers/WeChatController.cc`
+**File**: `OAuth2Server/controllers/WeChatController.cc`
 
 Open this file and find the following lines at the top:
 
@@ -31,7 +31,7 @@ const std::string WECHAT_SECRET = "YOUR_WECHAT_SECRET";
 2.  Replace `YOUR_WECHAT_SECRET` with your **AppSecret**.
 3.  **Rebuild the Backend**:
     ```powershell
-    cd OAuth2Backend
+    cd OAuth2Server
     build.bat
     ```
 
