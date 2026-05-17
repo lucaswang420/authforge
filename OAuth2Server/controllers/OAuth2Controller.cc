@@ -619,6 +619,21 @@ void OAuth2Controller::showLoginPage(
     LOG_INFO << "Showing login page with OAuth2 parameters: client_id=" << clientId
              << ", code_challenge=" << (codeChallenge.empty() ? "not provided" : "provided");
 
+    // Build frontend register URL from config
+    std::string frontendRegisterUrl;
+    auto customConfig = drogon::app().getCustomConfig();
+    if (customConfig.isMember("frontend"))
+    {
+        const auto &frontend = customConfig["frontend"];
+        std::string baseUrl = frontend.get("url", "http://localhost:5173").asString();
+        std::string registerPath = frontend.get("register_path", "/register").asString();
+        frontendRegisterUrl = baseUrl + registerPath;
+    }
+    else
+    {
+        frontendRegisterUrl = "http://localhost:5173/register";
+    }
+
     // Create template data
     DrTemplateData data;
     data["client_id"] = clientId;
@@ -628,6 +643,7 @@ void OAuth2Controller::showLoginPage(
     data["response_type"] = responseType;
     data["code_challenge"] = codeChallenge;
     data["code_challenge_method"] = codeChallengeMethod.empty() ? "plain" : codeChallengeMethod;
+    data["frontend_register_url"] = frontendRegisterUrl;
 
     // Render login.csp template
     try
