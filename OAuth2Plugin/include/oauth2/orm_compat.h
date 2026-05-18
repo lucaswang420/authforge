@@ -8,9 +8,11 @@
 #include <codecvt>
 #include <algorithm>
 
-// For macOS and C++20 environments, we provide a fallback implementation
-#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || defined(__APPLE__)
-// C++20 or macOS: codecvt_utf8_utf16 is removed, deprecated, or problematic
+// For C++20 environments, we provide a fallback implementation
+// (On macOS/C++17, <codecvt> still provides these types as deprecated -
+//  the force-include in CMakeLists.txt ensures <codecvt> is included)
+#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+// C++20: codecvt_utf8_utf16 is removed or deprecated
 // Provide a minimal compatible implementation for Drogon's ORM usage
 
 #include <system_error>

@@ -76,7 +76,7 @@ jobs:
           cd drogon
           git submodule update --init --recursive
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DBUILD_EXAMPLES=OFF -DBUILD_MYSQL=OFF
+          cmake .. -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DBUILD_EXAMPLES=OFF -DBUILD_MYSQL=OFF
           make -j$(nproc)
 
       - name: Install Drogon
@@ -86,7 +86,7 @@ jobs:
 
       - name: Configure Project CMake
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_STANDARD=17 -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=/usr/local
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DBUILD_TESTS=ON -DCMAKE_PREFIX_PATH=/usr/local
 
       - name: Build
         run: cmake --build build --config ${{env.BUILD_TYPE}}

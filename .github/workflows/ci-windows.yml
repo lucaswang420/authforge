@@ -63,6 +63,7 @@ jobs:
             -A x64 `
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
             -DCMAKE_CXX_STANDARD=17 `
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON `
             -DCMAKE_INSTALL_PREFIX="C:\Drogon" `
             -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/build/conan_toolchain.cmake" `
             -DCMAKE_POLICY_DEFAULT_CMP0091=NEW `
@@ -93,7 +94,7 @@ jobs:
 
       - name: Configure Project CMake
         run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_STANDARD=17 -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/build/conan_toolchain.cmake" -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_PREFIX_PATH="C:\Drogon" -DDrogon_DIR="C:\Drogon\lib\cmake\Drogon" -DBUILD_TESTS=ON
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON -DCMAKE_TOOLCHAIN_FILE="${{github.workspace}}/build/conan_toolchain.cmake" -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_PREFIX_PATH="C:\Drogon" -DDrogon_DIR="C:\Drogon\lib\cmake\Drogon" -DBUILD_TESTS=ON
 
       - name: Build
         run: cmake --build build --config ${{env.BUILD_TYPE}}
