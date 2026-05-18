@@ -255,6 +255,52 @@ Plugin 层:   ████████████████████ 85%+
 
 ---
 
+---
+
+## 8. 手动验证与 API 测试 (Manual Validation)
+
+除了自动化测试套件外，项目还提供了用于手动验证端点功能的工具和脚本。
+
+### 8.1 PowerShell 自动化验证脚本
+项目提供了完整的 OAuth2 端点测试脚本：`scripts/backend/test-oauth2-endpoints.ps1`。
+
+**使用方法：**
+```powershell
+# 临时绕过执行策略运行测试
+powershell -ExecutionPolicy Bypass -File scripts/backend/test-oauth2-endpoints.ps1
+```
+该脚本会依次执行健康检查、登录、授权码交换、UserInfo 访问及管理员面板验证。
+
+### 8.2 多环境 API 测试 (curl)
+不同的命令行工具对 curl 语法的支持不同：
+
+*   **PowerShell (推荐)**: 使用 `Invoke-RestMethod`。
+*   **Git Bash**: 支持标准的 Unix 单引号语法。
+*   **CMD**: 需要使用双引号并转义 `&` 符号为 `^&`。
+
+**示例：登录并获取 JSON 响应**
+```bash
+# Git Bash 示例
+curl -X POST http://127.0.0.1:5555/oauth2/login \
+  -d 'username=admin&password=admin&client_id=vue-client&redirect_uri=http://localhost:5173/callback&json=true'
+```
+
+---
+
+## 9. 故障排查 (Troubleshooting)
+
+### 9.1 常见问题与对策
+*   **服务器无法启动**：检查端口 5555 是否被占用 (`netstat -ano | findstr :5555`)，并确保 `config.json` 路径正确。
+*   **登录失败 (400)**：确认用户名密码匹配，且数据库中存在该用户。检查 `redirect_uri` 是否与配置完全一致。
+*   **Token 交换失败**：授权码 (Code) 仅能使用一次且有有效期。确保 `client_id` 和 `client_secret` 正确。
+*   **PowerShell 脚本限制**：如提示“禁止运行脚本”，请使用 `-ExecutionPolicy Bypass` 参数。
+
+### 9.2 调试技巧
+*   **日志级别**：在 `config.json` 中将 `log_level` 设置为 `DEBUG` 以获取详细输出。
+*   **实时日志**：使用 `Get-Content OAuth2Server/logs/drogon.log -Wait -Tail 20` 监控运行状态。
+
+---
+
 **相关文档**:
 - [Security Hardening Guide](./security_hardening.md) - 安全加固措施
 - [Security Architecture](./security_architecture.md) - 安全架构设计
