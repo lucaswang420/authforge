@@ -27,7 +27,7 @@ which drogon_ctl || echo "❌ drogon_ctl not found"
 drogon_ctl version || echo "❌ drogon_ctl not working"
 
 # 4. 检查 models 目录是否存在
-ls OAuth2Backend/models/model.json || echo "❌ model.json not found"
+ls OAuth2Server/model.json || echo "❌ model.json not found"
 ```
 
 ## 完整工作流程
@@ -55,7 +55,7 @@ psql -h localhost -U test -d oauth_test -c "\dt"
 
 ```bash
 # 查看当前 ORM 生成配置
-cat OAuth2Backend/models/model.json
+cat OAuth2Server/model.json
 ```
 
 **标准配置**:
@@ -85,34 +85,61 @@ cat OAuth2Backend/models/model.json
 
 ```powershell
 # Windows PowerShell
-cd OAuth2Backend\models
+cd OAuth2Server
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $backupDir = "models_backup_$timestamp"
 New-Item -ItemType Directory -Path $backupDir | Out-Null
-Copy-Item *.h, *.cc $backupDir\
+
+# 备份模型文件（如果存在）
+if (Test-Path "model.json") {
+    Copy-Item model.json $backupDir\
+}
+if (Test-Path "models") {
+    Copy-Item models\*.h, models\*.cc $backupDir\ 2>$null
+}
 Write-Host "✅ Models backed up to $backupDir"
 ```
 
 ```bash
-# Linux/macOS
-cd OAuth2Backend/models
+# Linux/macOS  
+cd OAuth2Server
 timestamp=$(date +%Y%m%d_%H%M%S)
 backup_dir="models_backup_$timestamp"
 mkdir -p $backup_dir
-cp *.h *.cc $backup_dir/
+
+# 备份模型文件
+cp model.json $backup_dir/ 2>/dev/null || true
+cp models/*.h models/*.cc $backup_dir/ 2>/dev/null || true
 echo "✅ Models backed up to $backup_dir"
 ```
 
-### 4. 进入 models 目录
+### 4. 准备 ORM 生成目录
 
 ```powershell
 # Windows PowerShell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\models
+# 检查 OAuth2Server 目录结构
+cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Server
+
+# 创建 models 目录（如果不存在）
+if (!(Test-Path "models")) {
+    New-Item -ItemType Directory -Path "models" | Out-Null
+    Write-Host "✅ Created models directory"
+}
+
+# 进入 models 目录
+cd models
 ```
 
 ```bash
 # Linux/macOS
-cd /path/to/OAuth2-plugin-example/OAuth2Backend/models
+cd /path/to/OAuth2-plugin-example/OAuth2Server
+
+# 创建 models 目录（如果不存在）
+mkdir -p models
+echo "✅ Created models directory"
+
+# 进入 models 目录
+cd models
 ```
 
 ### 5. 删除旧的模型文件
@@ -130,11 +157,30 @@ rm -f *.h *.cc
 echo "✅ Old model files removed"
 ```
 
-### 6. 生成 ORM 模型
+### 6. 使用脚本生成（推荐）
+
+```powershell
+# Windows PowerShell - 使用专项脚本
+cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
+scripts/backend/generate_models.bat -y
+
+# 此脚本会自动完成：
+# 1. 检查数据库连接
+# 2. 验证 model.json 配置
+# 3. 备份现有模型文件
+# 4. 执行 drogon_ctl 生成
+# 5. 验证生成结果
+# 6. 返回到项目根目录
+```
+
+### 7. 手动生成 ORM 模型
 
 ```bash
+# 确保在正确的目录
+cd OAuth2Server/models
+
 # 执行 drogon_ctl 生成命令
-drogon_ctl create model .
+drogon_ctl create model ../
 ```
 
 **预期输出**:
@@ -153,7 +199,7 @@ Generating models for tables:
 Models generated successfully!
 ```
 
-### 7. 验证生成结果
+### 8. 验证生成结果
 
 ```powershell
 # Windows PowerShell
@@ -236,8 +282,8 @@ head -20 Oauth2Clients.h
 ### 9. 重新编译项目
 
 ```powershell
-# Windows PowerShell
-cd ..\build
+# Windows PowerShell - 新的构建路径
+cd build/OAuth2Server
 cmake --build . --parallel --config Release
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Build successful" -ForegroundColor Green
@@ -249,7 +295,7 @@ if ($LASTEXITCODE -eq 0) {
 
 ```bash
 # Linux/macOS
-cd ../build
+cd build/OAuth2Server
 cmake --build . --parallel
 if [ $? -eq 0 ]; then
     echo "✅ Build successful"
@@ -355,13 +401,13 @@ psql -h localhost -U test -d oauth_test -c "\dt"
 **解决方案**:
 ```bash
 # 检查 model.json 配置
-cat OAuth2Backend/models/model.json
+cat OAuth2Server/model.json
 
 # 确保 tables 数组包含所有需要的表
 # 手动添加缺失的表名
 
 # 重新执行生成
-cd OAuth2Backend/models
+cd OAuth2Server
 drogon_ctl create model .
 ```
 
@@ -405,7 +451,7 @@ psql -h localhost -U test -d oauth_test -c "\d oauth2_clients"
 ### 1. 表结构变更流程
 ```bash
 # 1. 修改 SQL 脚本
-vim OAuth2Backend/sql/001_oauth2_core.sql
+vim OAuth2Server/sql/001_oauth2_core.sql
 
 # 2. 重置数据库
 /db-reset
@@ -417,7 +463,7 @@ vim OAuth2Backend/sql/001_oauth2_core.sql
 /build-and-test
 
 # 5. 运行测试验证
-ctest --output-on-failure
+cd build/OAuth2Server && ctest --output-on-failure
 ```
 
 ### 2. 备份策略
@@ -426,7 +472,7 @@ ctest --output-on-failure
 timestamp=$(date +%Y%m%d_%H%M%S)
 backup_dir="models_backup_$timestamp"
 mkdir -p $backup_dir
-cp OAuth2Backend/models/*.h OAuth2Backend/models/*.cc $backup_dir/
+cp OAuth2Server/*.h OAuth2Server/*.cc $backup_dir/
 
 # 保留最近 5 次备份
 ls -td models_backup_* | tail -n +6 | xargs rm -rf
@@ -452,14 +498,14 @@ ls -td models_backup_* | tail -n +6 | xargs rm -rf
 ```bash
 # .gitignore 配置
 # 自动生成的模型文件可以提交到版本控制
-OAuth2Backend/models/*.h
-OAuth2Backend/models/*.cc
+OAuth2Server/models/*.h
+OAuth2Server/models/*.cc
 
 # 但备份文件应该忽略
 models_backup_*/
 
 # model.json 应该提交
-OAuth2Backend/models/model.json
+OAuth2Server/model.json
 ```
 
 ## 代码审查要点
