@@ -1,36 +1,56 @@
 ---
-description: 在 Windows 上使用 Docker Desktop 验证 Linux 编译
+description: 在 Docker 环境下验证系统功能
 ---
 
-# Docker Verification Workflow
+# Docker 环境验证流程
 
-此工作流用于在 Windows + Docker Desktop 环境下验证项目的 Linux 编译与运行能力。
+## 1. 运行一键验证脚本 (推荐)
 
-## 1. 构建 Docker 镜像
-
-> 使用项目根目录的 Dockerfile 构建镜像。这会验证完整的 Linux 编译链。
-
-// turbo
+项目提供了 `scripts/backend/full_test_docker.bat`，它会自动执行完整的 Docker 基础设施启动、数据库初始化及端点验证。
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
-docker build -t oauth2-backend:v1.9.12 .
+# 执行一键 Docker 验证
+.\scripts\backend\full_test_docker.bat
 ```
 
-## 2. 运行并验证
+**该流程验证：**
+- Docker 容器能否正常启动并健康运行。
+- `docker exec` 能否正确执行 `psql` 初始化。
+- C++ 编译产物能否在映射的 Docker 环境下正常工作。
+- 所有的 OAuth2 端点能否正常响应。
 
-> 启动容器并映射端口，验证服务能否正常启动。
+---
 
+## 2. 手动分步验证
+
+如果你需要手动启动 Docker 服务并验证：
+
+### Step A: 启动数据库
 ```powershell
-docker run -d --name oauth2-test -p 15555:5555 oauth2-backend:v1.9.12
-Start-Sleep -Seconds 5
-Get-Content -Path "d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\logs\oauth2_prod.log" -ErrorAction SilentlyContinue
-Invoke-WebRequest -Uri "http://localhost:15555/"
+# 启动 PostgreSQL 和 Redis
+docker-compose up -d oauth2-postgres oauth2-redis
 ```
 
-## 3. 清理
-
+### Step B: 验证容器健康
 ```powershell
-docker stop oauth2-test
-docker rm oauth2-test
+# 检查容器状态
+docker ps --filter "name=oauth2"
+# 预期：oauth2-postgres 状态为 healthy，oauth2-redis 状态为 Up
 ```
+
+### Step C: 运行数据库就绪检查
+```powershell
+.\scripts\backend\docker_postgres_start.bat
+```
+
+### Step D: 清理环境
+```powershell
+.\scripts\backend\docker_postgres_stop.bat
+# 或者彻底删除
+docker-compose down -v
+```
+
+## 注意事项
+
+- **端口冲突**: Docker 默认将 PostgreSQL 映射到宿主机 `5433` (避开本地 5432)，Redis 映射到 `6380`。
+- **镜像版本**: 构建使用 `Dockerfile` 中定义的版本（如 Drogon v1.9.12）。

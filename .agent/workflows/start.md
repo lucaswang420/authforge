@@ -1,41 +1,41 @@
 ---
-description: 一键启动前后端服务
+description: 启动前后端服务
 ---
 
 # 启动服务
 
-## 启动后端服务
+## 1. 启动后端服务 (Windows)
 
-// turbo
+使用项目提供的启动脚本，它会自动处理路径并加载正确的 `config.json`。
 
+**启动 Release 版本 (推荐):**
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\build\Release
-Start-Process -FilePath ".\OAuth2Server.exe" -PassThru
+.\scripts\backend\run_server.bat -release
 ```
 
-## 启动前端服务
+**启动 Debug 版本:**
+```powershell
+.\scripts\backend\run_server.bat -debug
+```
 
-// turbo
+## 2. 启动前端服务 (Vite)
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Frontend
+cd OAuth2Frontend
 npm run dev
 ```
 
-## 验证服务状态
+## 3. 验证服务状态
 
-// turbo
+- **后端 API**: <http://localhost:5555/health>
+- **前端 UI**: <http://localhost:5173>
+- **Swagger UI**: <http://localhost:5555/docs/api/>
 
-```powershell
-Write-Host "后端: http://localhost:5555"
-Write-Host "前端: http://localhost:5173"
-```
+## 服务端口详情
 
-## 服务端口
-
-| 服务 | 端口 | 用途 |
-|------|------|------|
-| 后端 | 5555 | OAuth2 API |
-| 前端 | 5173 | Vue 开发服务器 |
-| PostgreSQL | 5432 | 数据库 |
-| Redis | 6379 | 缓存（可选） |
+| 服务 | 端口 | 环境 | 说明 |
+|------|------|------|------|
+| 后端 API | 5555 | 本地 | 主服务接口 |
+| 前端 UI | 5173 | 本地 | Vue 开发服务器 |
+| PostgreSQL | 5432 | Docker | 默认数据库端口 |
+| Redis | 6379 | Docker | 默认缓存端口 |

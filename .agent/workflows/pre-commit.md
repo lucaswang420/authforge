@@ -1,132 +1,81 @@
 ---
-description: 提交前完整质量检查（Code Review + ORM Gen + Build + Start + Test + Docs）
+description: 提交前完整质量检查（DB + ORM + Build + Unit Test + E2E Test）
 ---
 
 # Pre-Commit 检查
 
-确保代码质量符合提交标准的完整检查流程。
+在提交代码前，建议运行完整的一键测试脚本，确保没有任何功能回归。
 
-## 1. 基础设施检查 (Redis & Postgres)
+## 1. 运行一键测试脚本 (推荐)
 
-> 确保测试所需的基础设施服务已运行。
-
-// turbo
+项目提供了 `scripts/backend/full_test.bat`，它会自动执行完整的生命周期检查。
 
 ```powershell
-$services = @(
-    @{"Name"="Redis"; "Port"=6379},
-    @{"Name"="PostgreSQL"; "Port"=5432}
-)
-
-foreach ($svc in $services) {
-    $conn = Test-NetConnection -ComputerName localhost -Port $svc.Port
-    if (-not $conn.TcpTestSucceeded) {
-        Write-Error "CRITICAL: $($svc.Name) service is NOT reachable on port $($svc.Port). Please start it."
-        exit 1
-    } else {
-        Write-Host "SUCCESS: $($svc.Name) is reachable."
-    }
-}
+# 运行一键测试
+.\scripts\backend\full_test.bat
 ```
+
+**该脚本包含以下步骤：**
+1. **数据库重置**: 删除并重建 `oauth_test`。
+2. **模型生成**: 重新生成 ORM 模型。
+3. **项目构建**: 执行 Release 构建。
+4. **单元测试**: 运行 CTest 单元和集成测试。
+5. **端点测试**: 启动服务器并运行 `test-oauth2-endpoints.bat`。
+6. **自动清理**: 停止测试服务器。
 
 ---
 
-## 2. 代码审查
+## 2. 分步手动检查
+
+如果你需要分步验证，请按以下顺序执行：
+
+### A. 基础设施检查
 
 ```powershell
-python d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\.agent\skills\code-review\scripts\run.py --all --fix
+# 确保 Redis (6379) 和 Postgres (5432) 已启动
+docker-compose up -d oauth2-postgres oauth2-redis
 ```
 
-> 自动修复格式问题，检查代码风格和架构合规性
-
----
-
-## 3. ORM 模型生成
-
-> 重新生成 Drogon ORM 模型，确保与数据库结构一致。
+### B. ORM 模型生成
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\models
-drogon_ctl create model .
+.\scripts\backend\generate_models.bat -y
 ```
 
----
-
-## 4. 构建验证
-
-// turbo
+### C. 构建验证
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend
-taskkill /F /IM OAuth2Server.exe 2>$null
-.\scripts\build.bat -release
+.\scripts\backend\build.bat -release
 ```
 
----
-
-## 5. 启动验证 (Start & Check & Stop)
-
-// turbo
+### D. 执行 CTest 测试
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\build\Release
-
-# 启动服务
-Start-Process -FilePath ".\OAuth2Server.exe" -PassThru
-
-# 等待启动并验证端口
-Write-Host "Waiting for server start..."
-Start-Sleep -Seconds 3
-Test-NetConnection -ComputerName localhost -Port 5555
-
-# 停止服务（避免与测试端口冲突）
-taskkill /F /IM OAuth2Server.exe 2>$null
-Write-Host "Server verified and stopped."
+.\scripts\backend\test.bat -release
 ```
 
----
-
-## 6. 执行测试
-
-> **注意**：测试运行器会自行启动 Drogon App 实例，因此无需外部服务运行。
-
-// turbo
+### E. API 端点验证
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\build\test\Release
-.\OAuth2Test_test.exe
+# 在另一个终端启动服务器
+.\scripts\backend\run_server.bat -release
+
+# 运行端点测试
+.\scripts\backend\test-oauth2-endpoints.bat -NoPause
 ```
-
----
-
-## 7. 文档与 README 更新
-
-> **关键步骤**：确保文档与代码保持同步。
-
-**请执行以下检查：**
-
-1. 检查 `docs/` 目录，更新相关技术文档，新功能模块按需新增技术文档。
-2. 更新根目录 `README.md`，记录版本变更或新功能。
-3. 更新 `task.md` 和 `walkthrough.md` 等 Status Artifacts。
 
 ---
 
 ## 检查清单
 
-- [ ] 基础设施服务 (Redis/Postgres) 正常
-- [ ] Code Review 无错误
-- [ ] ORM 模型已更新
-- [ ] 构建成功
-- [ ] 服务启动验证通过
-- [ ] 所有测试通过
-- [ ] 文档已更新
-- [ ] 可以执行 `git commit`
+- [ ] 数据库 Schema 已更新且初始化成功
+- [ ] ORM 模型与数据库结构一致
+- [ ] 项目在 Release 模式下编译通过
+- [ ] 所有单元测试和集成测试 (CTest) 通过
+- [ ] 关键 OAuth2 流程 (Login, Token, UserInfo) 验证通过
+- [ ] 文档 (docs/、README.md) 已同步更新
 
 ## 失败处理
 
-遇到问题时：
-
-1. 分析错误原因
-2. 修复问题
-3. 重新执行失败的步骤
-4. 直到全部通过
+- 如果任一步骤失败，请查看 `OAuth2Server/logs/` 目录下的日志。
+- 修复问题后，建议重新运行 `full_test.bat` 进行最终确认。

@@ -1,57 +1,50 @@
 ---
-description: Windows Docker Desktop 安装与初始化指南
+description: Windows Docker 环境配置与验证
 ---
 
-# Docker Desktop for Windows 安装指南
+# Docker 环境配置指南
 
-## 1. 前置条件 (WSL 2)
+## 1. 前置条件
 
-Docker Desktop 在 Windows 上不仅更快，而且更稳定，推荐使用 WSL 2 (Windows Subsystem for Linux) 后端。
+确保已安装 **Docker Desktop for Windows** 并启用了 **WSL 2** 后端。
 
-### 开启 WSL 功能
+## 2. 快速启动数据库 (Docker)
 
-以 **管理员身份** 打开 PowerShell，运行：
-
-```powershell
-wsl --install
-```
-
-* 如果系统提示已安装，请确保更新到最新版。
-* 安装完成后，**必须重启电脑**。
-
-## 2. 下载与安装
-
-1. 前往 [Docker 官网](https://www.docker.com/products/docker-desktop/) 下载 "Docker Desktop for Windows"。
-2. 运行安装程序 (`Docker Desktop Installer.exe`)。
-3. 在配置界面中，**务必勾选**：
-    * `Use WSL 2 instead of Hyper-V` (推荐)
-4. 等待安装完成，点击 "Close and restart"（可能需要注销或重启）。
-
-## 3. 初始化与验证
-
-1. 启动 **Docker Desktop** 应用。
-2. 第一次运行时，接受服务条款（Accept Terms）。
-3. 等待左下角的鲸鱼图标变为 **绿色 (Engine Running)**。
-4. 打开 PowerShell，运行以下命令验证：
+如果你只需要在 Docker 中启动 PostgreSQL 数据库，可以使用以下脚本：
 
 ```powershell
-docker --version
-docker run hello-world
+.\scripts\backend\docker_postgres_start.bat
 ```
 
-如果看到 "Hello from Docker!" 的输出，说明安装不仅成功，而且已经可以运行 Linux容器了。
+该脚本会自动处理 `docker-compose down` 并重新启动 `oauth2-postgres` 服务，同时等待数据库就绪。
 
-## 4. 常见问题
+## 3. 构建调试镜像
 
-* **WSL Kernel 版本过低**: 可能会弹出提示框，按提示访问微软链接下载 `wsl_update_x64.msi` 安装即可。
-* **启用 Kubernetes**: 如果需要 K8s，可以在 Docker Desktop 设置 -> Kubernetes -> Enable Kubernetes 中开启（这一步会下载大量镜像，初次不建议开启，除非需要）。
+项目采用统一的多阶段构建 Dockerfile。要重建调试环境镜像：
 
-## 5. 验证本项目构建
+**Windows (PowerShell/WSL):**
+```bash
+bash scripts/backend/rebuild-debug-image.sh
+```
 
-安装完成后，回到本项目根目录，运行此前提供的验证脚本：
+该脚本会构建 `backend-dev` 目标并标记为 `oauth2-backend-debug:v1.9.12`。
+
+## 4. 验证完整环境
+
+要验证整个 Docker 编译和测试链，可以使用一键测试脚本：
 
 ```powershell
-./verify-docker.bat
-# 或者手动运行
-docker build -t oauth2-backend:v1.9.12 .
+.\scripts\backend\full_test_docker.bat
 ```
+
+该脚本会执行以下步骤：
+1. 启动 Docker 中的 PostgreSQL。
+2. 初始化数据库。
+3. 在本地构建并运行测试。
+4. 启动服务器并验证 OAuth2 端点。
+5. 清理环境。
+
+## 5. 常见问题
+
+- **换行符问题**: 在 Windows 下编辑的 `.sh` 脚本在容器内运行时可能因 CRLF 报错，建议使用 `git config --global core.autocrlf input`。
+- **内存分配**: 建议为 Docker Desktop 分配至少 4GB 内存。

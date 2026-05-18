@@ -6,35 +6,30 @@ description: 重新生成 Drogon ORM 模型
 
 ## 前置条件
 
-- PostgreSQL 数据库已启动
-- 数据库表结构已创建
+- PostgreSQL 数据库已启动 (本地或 Docker)
+- 数据库表结构已按最新 SQL 脚本初始化
 - 已安装 `drogon_ctl` 工具
 
-## 1. 进入模型目录
+## 1. 运行生成脚本 (Windows)
 
-// turbo
+项目提供了 `scripts/backend/generate_models.bat` 脚本，它会自动处理备份、生成以及头文件的移动。
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\models
+# 运行脚本并自动确认 (-y)
+.\scripts\backend\generate_models.bat -y
 ```
 
-## 2. 生成 ORM 模型
+## 2. 验证生成结果
+
+模型源文件位于 `OAuth2Plugin/src/models`，头文件位于 `OAuth2Plugin/include/oauth2/models`。
 
 ```powershell
-drogon_ctl create model .
-```
-
-## 3. 验证生成结果
-
-// turbo
-
-```powershell
-Get-ChildItem *.h, *.cc | Select-Object Name, LastWriteTime
+Get-ChildItem OAuth2Plugin/src/models/*.cc, OAuth2Plugin/include/oauth2/models/*.h | Select-Object Name, LastWriteTime
 ```
 
 ## 配置文件
 
-模型生成配置位于 `models/model.json`：
+模型生成配置位于 `OAuth2Server/model.json`：
 
 ```json
 {
@@ -42,19 +37,26 @@ Get-ChildItem *.h, *.cc | Select-Object Name, LastWriteTime
     "host": "127.0.0.1",
     "port": 5432,
     "dbname": "oauth_test",
-    "user": "postgres",
+    "user": "test",
     "tables": [
         "users",
         "oauth2_clients",
         "oauth2_codes",
         "oauth2_access_tokens",
-        "oauth2_refresh_tokens"
+        "oauth2_refresh_tokens",
+        "oauth2_scopes",
+        "oauth2_subject_mappings",
+        "oauth2_user_consents",
+        "roles",
+        "permissions",
+        "user_roles",
+        "role_permissions"
     ]
 }
 ```
 
 ## 注意事项
 
-- ORM 生成的类**禁止手动修改**
-- 如需变更，应修改数据库表结构后重新生成
-- 生成后需要重新编译项目：`/build`
+- ORM 生成的类**禁止手动修改**。
+- 生成后需要重新编译项目。
+- 脚本会自动备份旧模型到 `OAuth2Plugin/models_backup`。

@@ -1,89 +1,62 @@
 ---
-description: 执行完整的单元测试和集成测试流程
+description: 执行单元测试和集成测试 (CTest)
 ---
 
 # 测试执行流程
 
-## 前置条件检查
+## 1. 快速执行 (推荐)
 
-// turbo
-
-1. 确认构建目录存在
+使用 `scripts/backend/test.bat` 脚本。该脚本会自动检测环境并在标准配置及 CI 配置下运行两轮测试，确保代码在不同环境下的兼容性。
 
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend
-Test-Path .\build\test\Release\OAuth2Test_test.exe
+# 运行全部 Release 模式测试
+.\scripts\backend\test.bat -release
 ```
 
-1. 如果可执行文件不存在，先执行构建
+## 2. 手动执行
 
+如果需要更细粒度的控制，可以直接在 `build` 目录下运行 `ctest` 或直接运行测试可执行文件。
+
+### A. 确认构建产物存在
 ```powershell
-.\build.bat -release
+Test-Path "build\OAuth2Server\test\Release\OAuth2Test_test.exe"
 ```
 
-## 执行测试
-
-// turbo
-3. 运行 CTest（包含所有已注册的测试）
-
+### B. 运行所有测试 (CTest)
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\build
-ctest -C Release --output-on-failure --verbose
+cd build
+ctest -C Release --output-on-failure
 ```
 
-// turbo
-4. 或者直接运行测试可执行文件查看详细输出
-
+### C. 直接运行测试程序 (查看详细输出)
 ```powershell
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Backend\build\test\Release
+cd build\OAuth2Server\test\Release
 .\OAuth2Test_test.exe
 ```
 
-## 运行特定测试
+## 3. 运行特定模块测试
 
-// turbo
-5. 仅运行单元测试（不需要数据库）
+你可以使用 `-r` (run) 参数来指定运行特定的测试用例：
 
 ```powershell
-.\OAuth2Test_test.exe -r ConfigTest
-.\OAuth2Test_test.exe -r StorageTest
+# 仅运行数据库存储测试
+.\OAuth2Test_test.exe -r PostgresStorageTest
+
+# 仅运行缓存存储测试
+.\OAuth2Test_test.exe -r RedisStorageTest
+
+# 仅运行 OAuth2 核心逻辑测试
 .\OAuth2Test_test.exe -r PluginTest
 ```
 
-// turbo
-6. 运行集成测试（需要 PostgreSQL/Redis）
+## 测试结果分类
 
-```powershell
-.\OAuth2Test_test.exe -r PostgresStorageTest
-.\OAuth2Test_test.exe -r RedisStorageTest
-.\OAuth2Test_test.exe -r IntegrationE2E
-```
-
-// turbo
-7. 运行用户系统测试
-
-```powershell
-.\OAuth2Test_test.exe -r UserSystemTest
-```
-
-## 测试结果说明
-
-| 测试名称 | 类型 | 依赖 |
+| 测试用例名称 | 类型 | 依赖说明 |
 |---------|------|------|
 | ConfigTest | 单元测试 | 无 |
-| StorageTest | 单元测试 | 无 |
 | MemoryStorageTest | 单元测试 | 无 |
-| PluginTest | 单元测试 | 无 |
-| AdvancedStorageTest | 单元测试 | 无 |
-| PostgresStorageTest | 集成测试 | PostgreSQL |
-| RedisStorageTest | 集成测试 | Redis |
-| UserSystemTest | 集成测试 | PostgreSQL |
-| IntegrationE2E | E2E测试 | PostgreSQL |
-
-## 失败处理
-
-- 如果测试失败超过 3 次且错误相同，停止重试
-- 分析根本原因，检查：
-  - 数据库连接是否正常
-  - 配置文件 `config.json` 是否正确
-  - 表结构是否匹配 ORM 模型
+| HodorTest | 单元测试 | 无 |
+| RedisStorageTest | 集成测试 | 需要运行中的 Redis |
+| PostgresStorageTest | 集成测试 | 需要运行中的 PostgreSQL |
+| PluginTest | 集成测试 | 需要运行中的 PostgreSQL/Redis |
+| IntegrationE2E | E2E测试 | 完整集成环境 |
