@@ -206,3 +206,34 @@ Authorization: `Bearer {access_token}`
 | `403` | Forbidden | **RBAC 拦截**: 用户已登录但缺少所需角色 |
 | `429` | Too Many Requests | 触发限流 (Rate Limiting) |
 | `500` | Internal Server Error | 服务器内部错误 |
+
+---
+
+## 6. API 文档维护流程
+
+为确保 OpenAPI 文档与代码实现保持同步，本项目采用自动化生成与验证机制。
+
+### 6.1 开发阶段维护
+
+**新增或修改端点时：**
+1. 在对应 Controller 的初始化方法中添加或更新 `OpenApiGenerator::addEndpoint()` 调用。
+2. 运行项目或测试以生成更新的 `openapi.json`。
+3. 验证 Swagger UI (`http://localhost:5555/docs/api/`) 显示正确。
+4. 提交代码时必须包含更新后的 `docs/api/openapi.json`。
+
+### 6.2 自动化验证机制
+
+*   **CI 集成检查**：在 GitHub Actions 中会自动运行 `swagger-cli validate` 验证 OpenAPI 规范的合法性。
+*   **Pre-commit Hook**：建议在本地配置 Git 钩子。当修改 Controller 文件时，自动运行 `OpenApiGenerator` 测试并检查 `openapi.json` 是否已更新。
+
+### 6.3 质量标准
+
+*   **必需字段**：`path`, `method`, `summary`, `description`, `tags`, `responses`, `requiresAuth`。
+*   **推荐做法**：为每个响应码提供 `responseExamples`，并详细定义参数的 `type` 和 `location`。
+
+### 6.4 故障排查
+
+*   **Swagger UI 无法访问**：检查 `docs/api/swagger-ui/` 目录是否存在，确认静态文件服务已启用。
+*   **OpenAPI 生成失败**：运行 `OAuth2Test_test -r OpenApiGenerator` 单元测试，查看具体的注册错误。
+*   **文档不一致**：确认是否在 Controller 代码变更后重新运行了生成流程，并提交了最新的 `openapi.json`。
+
