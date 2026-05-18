@@ -23,10 +23,33 @@ export PGPASSWORD='123456'
 psql -h localhost -U test -d postgres -c "SELECT 1;" || echo "❌ Cannot connect to database"
 
 # 3. 验证 SQL 初始化脚本存在
-ls OAuth2Backend/sql/001_oauth2_core.sql || echo "❌ SQL scripts not found"
-ls OAuth2Backend/sql/002_users_table.sql || echo "❌ SQL scripts not found"
-ls OAuth2Backend/sql/003_rbac_schema.sql || echo "❌ SQL scripts not found"
-ls OAuth2Backend/sql/004_oauth2_scopes.sql || echo "❌ SQL scripts not found"
+ls OAuth2Server/sql/001_oauth2_core.sql || echo "❌ SQL scripts not found"
+ls OAuth2Server/sql/002_users_table.sql || echo "❌ SQL scripts not found"
+ls OAuth2Server/sql/003_rbac_schema.sql || echo "❌ SQL scripts not found"
+ls OAuth2Server/sql/004_oauth2_scopes.sql || echo "❌ SQL scripts not found"
+```
+
+### 环境自动检测
+
+```powershell
+# 检测当前运行环境
+if (Test-Path "docker-compose.yml") {
+    $env:OAUTH2_ENV_MODE = "docker"
+    Write-Host "🐳 Docker 环境检测到"
+} else {
+    $env:OAUTH2_ENV_MODE = "local"
+    Write-Host "💻 本地环境检测到"
+}
+
+# 检查 Docker Compose 是否运行
+if ($env:OAUTH2_ENV_MODE -eq "docker") {
+    docker ps | Select-String "oauth2-postgres" | Out-Null
+    if ($?) {
+        Write-Host "✅ Docker PostgreSQL 容器正在运行"
+    } else {
+        Write-Host "⚠️  Docker PostgreSQL 容器未运行，将启动"
+    }
+}
 ```
 
 ## 完整工作流程
@@ -83,7 +106,7 @@ echo "✅ Database oauth_test recreated"
 cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
 
 # 按顺序执行 SQL 脚本
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend\sql\001_oauth2_core.sql"
+psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\001_oauth2_core.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 001_oauth2_core.sql executed"
 } else {
@@ -91,7 +114,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend\sql\002_users_table.sql"
+psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\002_users_table.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 002_users_table.sql executed"
 } else {
@@ -99,7 +122,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend\sql\003_rbac_schema.sql"
+psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\003_rbac_schema.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 003_rbac_schema.sql executed"
 } else {
@@ -107,7 +130,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend\sql\004_oauth2_scopes.sql"
+psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\004_oauth2_scopes.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 004_oauth2_scopes.sql executed"
 } else {
@@ -118,15 +141,46 @@ if ($LASTEXITCODE -eq 0) {
 Write-Host "`n🎉 Database reset completed!"
 ```
 
+### Docker 模式（推荐）
+
+```powershell
+# 使用 Docker 专项脚本
+scripts/backend/docker_postgres_start.bat
+
+# 此脚本会自动完成：
+# 1. 启动 PostgreSQL 容器
+# 2. 等待数据库就绪
+# 3. 重建数据库
+# 4. 执行所有初始化脚本
+# 5. 验证连接信息
+```
+
+**手动 Docker 模式：**
+```powershell
+# 启动 Docker Compose PostgreSQL
+.\manage.ps1 docker-up
+
+# 等待 PostgreSQL 就绪
+timeout /t 5 /nobreak
+
+# 在容器中执行 SQL 脚本
+docker exec oauth2-postgres psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
+docker exec oauth2-postgres psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
+docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/001_oauth2_core.sql
+docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/002_users_table.sql
+docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/003_rbac_schema.sql
+docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/004_oauth2_scopes.sql
+```
+
 ```bash
 # Linux/macOS
 cd /path/to/OAuth2-plugin-example
 
 # 按顺序执行 SQL 脚本
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/001_oauth2_core.sql" && echo "✅ 001_oauth2_core.sql executed" || { echo "❌ Failed to execute 001_oauth2_core.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/002_users_table.sql" && echo "✅ 002_users_table.sql executed" || { echo "❌ Failed to execute 002_users_table.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/003_rbac_schema.sql" && echo "✅ 003_rbac_schema.sql executed" || { echo "❌ Failed to execute 003_rbac_schema.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Backend/sql/004_oauth2_scopes.sql" && echo "✅ 004_oauth2_scopes.sql executed" || { echo "❌ Failed to execute 004_oauth2_scopes.sql"; exit 1; }
+psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/001_oauth2_core.sql" && echo "✅ 001_oauth2_core.sql executed" || { echo "❌ Failed to execute 001_oauth2_core.sql"; exit 1; }
+psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/002_users_table.sql" && echo "✅ 002_users_table.sql executed" || { echo "❌ Failed to execute 002_users_table.sql"; exit 1; }
+psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/003_rbac_schema.sql" && echo "✅ 003_rbac_schema.sql executed" || { echo "❌ Failed to execute 003_rbac_schema.sql"; exit 1; }
+psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/004_oauth2_scopes.sql" && echo "✅ 004_oauth2_scopes.sql executed" || { echo "❌ Failed to execute 004_oauth2_scopes.sql"; exit 1; }
 
 echo "`n🎉 Database reset completed!"
 ```
@@ -220,7 +274,7 @@ DROP DATABASE IF EXISTS oauth_test;
 ```bash
 # 检查 SQL 脚本路径是否正确
 pwd
-ls -la OAuth2Backend/sql/
+ls -la OAuth2Server/sql/
 
 # 确保数据库已清空
 psql -h localhost -U test -d oauth_test -c "\dt"
@@ -279,6 +333,7 @@ psql -h localhost -U test -d postgres -c "SELECT * FROM pg_stat_activity WHERE d
 - `/orm-gen` - 数据库重置后重新生成 ORM 模型
 - `/build-and-test` - 重建后运行测试验证
 - `/e2e-test` - 端到端测试验证数据库完整性
+- `/docker-integration-test` - Docker 环境完整集成测试
 
 ## 预期执行时间
 
