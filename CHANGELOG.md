@@ -581,3 +581,40 @@ See [Docker Specification Guide](docs/backend/docker-guide.md) for details.
 - **Test Coverage**: 100% (39/39 tests passing)
 - **Security Status**: Production Ready
 - **Platforms**: Linux, Windows, macOS
+
+## [Unreleased] - 2026-05-18
+
+### Added
+- Project skills modernization with refactored structure support
+- manage.ps1 unified management interface integration  
+- Docker specialized scripts integration
+- Environment auto-detection capabilities
+- Cross-platform compatibility improvements
+
+### Fixed
+- Updated all path references from OAuth2Backend/ to OAuth2Server/
+- Fixed build output paths to build/OAuth2Server/
+- Corrected SQL script paths to OAuth2Server/sql/
+- Updated controller paths to OAuth2Server/controllers/
+- Replaced outdated script paths with scripts/backend/
+
+### Changed  
+- All skills now prefer manage.ps1 interface when available
+- Docker mode is now recommended for testing workflows
+- Improved error handling and path validation
+- Enhanced troubleshooting documentation
+
+### Migration
+- All existing skills remain backward compatible
+- Automatic fallback to direct script invocation when needed
+- No breaking changes to skill interfaces
+- See migration guide for detailed information
+
+### Skills Updated
+1. build-and-test - Modern build workflow with manage.ps1
+2. db-reset - Docker mode support with smart detection
+3. orm-gen - Script integration and path fixes
+4. openapi-update - Enhanced validation and new endpoints
+5. e2e-test - Docker mode and full_test_docker.bat support
+6. docker-integration-test - Complete Docker integration
+

@@ -92,7 +92,7 @@ docker-compose up -d
 ### Windows
 
 ```powershell
-cd OAuth2Backend
+cd OAuth2Server
 ./build.bat                    # 自动安装依赖并构建
 cd build
 ./OAuth2Server.exe             # 启动服务器
@@ -111,7 +111,7 @@ sudo apt-get install -y cmake g++ libjsoncpp-dev libpq-dev libhiredis-dev
 ### macOS
 
 ```bash
-cd OAuth2Backend
+cd OAuth2Server
 brew install cmake jsoncpp ossp-uuid openssl@1.1
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1)
