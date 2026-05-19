@@ -1,5 +1,6 @@
 #include "OAuth2Controller.h"
 #include "../AuthService.h"
+#include "EmailVerificationController.h"
 #include <drogon/drogon.h>
 #include <oauth2/OAuth2Metrics.h>
 #include <oauth2/OAuth2Plugin.h>
@@ -343,11 +344,33 @@ void OAuth2Controller::registerUser(
     std::string password = params["password"];
     std::string email = params["email"];
 
-    AuthService::registerUser(username, password, email, [callback](const std::string &error) {
+    AuthService::registerUser(username, password, email, [callback, email](const std::string &error) {
         if (error.empty())
         {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setBody("User Registered");
+            // Send verification email if email provided
+            if (!email.empty())
+            {
+                // Look up the newly created user to get their ID
+                auto db = drogon::app().getDbClient();
+                db->execSqlAsync(
+                  "SELECT id FROM users WHERE email = $1 ORDER BY id DESC LIMIT 1",
+                  [email](const drogon::orm::Result &r) {
+                      if (!r.empty())
+                      {
+                          int userId = r[0]["id"].as<int>();
+                          EmailVerificationController::sendVerificationEmail(userId, email);
+                      }
+                  },
+                  [](const drogon::orm::DrogonDbException &) {},
+                  email
+                );
+            }
+
+            Json::Value json;
+            json["message"] = "User registered successfully";
+            if (!email.empty())
+                json["note"] = "Please check your email to verify your account";
+            auto resp = HttpResponse::newHttpJsonResponse(json);
             callback(resp);
         }
         else
