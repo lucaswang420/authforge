@@ -2,7 +2,25 @@
 
 > 最后更新: 2026-05-19
 
-## P0 阶段状态: 基本完成，1 个端到端测试待修复
+## P0 阶段: ✅ 完成
+
+所有 10 个 P0 安全底线任务已完成，单元测试 + 端到端测试全部通过。
+
+## P1 阶段状态: 进行中 (5/11)
+
+| Task | 状态 | 描述 |
+|------|------|------|
+| Task 11 | ✅ | OpenID Connect Core (id_token + discovery + JWKS) |
+| Task 12 | ✅ | Client Credentials Grant (M2M) |
+| Task 13 | ✅ | 密码重置流程 |
+| Task 14 | ✅ | 邮箱验证 |
+| Task 15 | ✅ | MFA (TOTP) |
+| Task 16 | 进行中 | 审计日志 |
+| Task 17 | 待做 | Admin REST API |
+| Task 18 | 待做 | 用户自服务 |
+| Task 19 | 待做 | PKCE 强制 |
+| Task 20 | 待做 | CachedStorage 写后失效 |
+| Task 21 | 待做 | Schema Migration 工具 |
 
 ### 已完成的 Tasks (全部通过单元测试)
 

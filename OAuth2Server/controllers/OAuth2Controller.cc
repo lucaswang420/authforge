@@ -4,6 +4,7 @@
 #include <drogon/drogon.h>
 #include <oauth2/OAuth2Metrics.h>
 #include <oauth2/OAuth2Plugin.h>
+#include <oauth2/AuditLogger.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
 #include <functional>
@@ -244,6 +245,7 @@ void OAuth2Controller::login(
       username,
       password,
       [req,
+       username,
        clientId,
        scope,
        redirectUri,
@@ -254,6 +256,12 @@ void OAuth2Controller::login(
           if (authResult)
           {
               req->session()->insert("userId", std::to_string(authResult->internalId));
+
+              // Audit: login success
+              oauth2::AuditLogger::log(
+                "login_success", "success", req, authResult->publicSub, "user", authResult->publicSub
+              );
+
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
@@ -312,6 +320,11 @@ void OAuth2Controller::login(
           {
               // Fail (Bad Password or User Not Found)
               Metrics::incLoginFailure("bad_credentials");
+
+              // Audit: login failure
+              oauth2::AuditLogger::log(
+                "login_failure", "failure", req, username, "user", username
+              );
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k401Unauthorized);
