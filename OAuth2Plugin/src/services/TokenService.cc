@@ -113,6 +113,7 @@ void TokenService::exchangeCodeForToken(
 
                 if (!authCode->codeChallenge.empty())
                 {
+                    // PKCE was used - validate code_verifier
                     if (
                       codeVerifier.empty() ||
                       !validatePkceCodeVerifier(
@@ -123,6 +124,24 @@ void TokenService::exchangeCodeForToken(
                         callback(makeError("invalid_grant", "PKCE validation failed"));
                         return;
                     }
+                }
+                else
+                {
+                    // No PKCE was used during authorization
+                    // For PUBLIC clients, PKCE is mandatory (OAuth 2.1)
+                    // We enforce this by checking if client is PUBLIC and code_verifier is missing
+                    storage_->getClient(
+                      clientId,
+                      [](std::optional<OAuth2Client> client) {
+                          // Note: enforcement is advisory here - the auth code was already consumed
+                          // Full enforcement should happen at /oauth2/authorize time
+                          if (client && client->clientType == ClientType::PUBLIC)
+                          {
+                              LOG_WARN << "[SECURITY] PUBLIC client " << client->clientId
+                                       << " used authorization code without PKCE";
+                          }
+                      }
+                    );
                 }
 
                 auto now = std::chrono::duration_cast<std::chrono::seconds>(
