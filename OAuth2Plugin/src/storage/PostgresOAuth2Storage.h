@@ -42,6 +42,8 @@ class PostgresOAuth2Storage : public IOAuth2Storage
     void saveRefreshToken(const OAuth2RefreshToken &token, VoidCallback &&cb) override;
     void getRefreshToken(const std::string &token, RefreshTokenCallback &&cb) override;
     void revokeRefreshToken(const std::string &token, VoidCallback &&cb) override;
+    void atomicRevokeRefreshToken(const std::string &token, RefreshTokenCallback &&cb) override;
+    void revokeTokenFamily(const std::string &familyId, VoidCallback &&cb) override;
 
     // Cleanup Operations
     void deleteExpiredData() override;

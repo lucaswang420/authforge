@@ -23,6 +23,7 @@ const std::string Oauth2RefreshTokens::Cols::_expires_at = "\"expires_at\"";
 const std::string Oauth2RefreshTokens::Cols::_revoked = "\"revoked\"";
 const std::string Oauth2RefreshTokens::Cols::_revoked_at = "\"revoked_at\"";
 const std::string Oauth2RefreshTokens::Cols::_revoked_by = "\"revoked_by\"";
+const std::string Oauth2RefreshTokens::Cols::_family_id = "\"family_id\"";
 const std::string Oauth2RefreshTokens::primaryKeyName = "token";
 const bool Oauth2RefreshTokens::hasPrimaryKey = true;
 const std::string Oauth2RefreshTokens::tableName = "\"oauth2_refresh_tokens\"";
@@ -36,7 +37,8 @@ const std::vector<typename Oauth2RefreshTokens::MetaData> Oauth2RefreshTokens::m
 {"expires_at","int64_t","bigint",8,0,0,1},
 {"revoked","bool","boolean",1,0,0,0},
 {"revoked_at","int64_t","bigint",8,0,0,0},
-{"revoked_by","std::string","character varying",50,0,0,0}
+{"revoked_by","std::string","character varying",50,0,0,0},
+{"family_id","std::string","character varying",64,0,0,0}
 };
 const std::string &Oauth2RefreshTokens::getColumnName(size_t index) noexcept(false)
 {
@@ -83,11 +85,15 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Row &r, const ssize_t indexOffset
         {
             revokedBy_=std::make_shared<std::string>(r["revoked_by"].as<std::string>());
         }
+        if(!r["family_id"].isNull())
+        {
+            familyId_=std::make_shared<std::string>(r["family_id"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 9 > r.size())
+        if(offset + 10 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -138,13 +144,18 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Row &r, const ssize_t indexOffset
         {
             revokedBy_=std::make_shared<std::string>(r[index].as<std::string>());
         }
+        index = offset + 9;
+        if(!r[index].isNull())
+        {
+            familyId_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -219,6 +230,14 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson, const std::ve
         if(!pJson[pMasqueradingVector[8]].isNull())
         {
             revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            familyId_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
         }
     }
 }
@@ -297,12 +316,20 @@ Oauth2RefreshTokens::Oauth2RefreshTokens(const Json::Value &pJson) noexcept(fals
             revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
         }
     }
+    if(pJson.isMember("family_id"))
+    {
+        dirtyFlag_[9]=true;
+        if(!pJson["family_id"].isNull())
+        {
+            familyId_=std::make_shared<std::string>(pJson["family_id"].asString());
+        }
+    }
 }
 
 void Oauth2RefreshTokens::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -378,6 +405,14 @@ void Oauth2RefreshTokens::updateByMasqueradedJson(const Json::Value &pJson,
             revokedBy_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            familyId_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
+        }
+    }
 }
 
 void Oauth2RefreshTokens::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -451,6 +486,14 @@ void Oauth2RefreshTokens::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["revoked_by"].isNull())
         {
             revokedBy_=std::make_shared<std::string>(pJson["revoked_by"].asString());
+        }
+    }
+    if(pJson.isMember("family_id"))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson["family_id"].isNull())
+        {
+            familyId_=std::make_shared<std::string>(pJson["family_id"].asString());
         }
     }
 }
@@ -668,6 +711,33 @@ void Oauth2RefreshTokens::setRevokedByToNull() noexcept
     dirtyFlag_[8] = true;
 }
 
+const std::string &Oauth2RefreshTokens::getValueOfFamilyId() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(familyId_)
+        return *familyId_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2RefreshTokens::getFamilyId() const noexcept
+{
+    return familyId_;
+}
+void Oauth2RefreshTokens::setFamilyId(const std::string &pFamilyId) noexcept
+{
+    familyId_ = std::make_shared<std::string>(pFamilyId);
+    dirtyFlag_[9] = true;
+}
+void Oauth2RefreshTokens::setFamilyId(std::string &&pFamilyId) noexcept
+{
+    familyId_ = std::make_shared<std::string>(std::move(pFamilyId));
+    dirtyFlag_[9] = true;
+}
+void Oauth2RefreshTokens::setFamilyIdToNull() noexcept
+{
+    familyId_.reset();
+    dirtyFlag_[9] = true;
+}
+
 void Oauth2RefreshTokens::updateId(const uint64_t id)
 {
 }
@@ -683,7 +753,8 @@ const std::vector<std::string> &Oauth2RefreshTokens::insertColumns() noexcept
         "expires_at",
         "revoked",
         "revoked_at",
-        "revoked_by"
+        "revoked_by",
+        "family_id"
     };
     return inCols;
 }
@@ -789,6 +860,17 @@ void Oauth2RefreshTokens::outputArgs(drogon::orm::internal::SqlBinder &binder) c
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[9])
+    {
+        if(getFamilyId())
+        {
+            binder << getValueOfFamilyId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Oauth2RefreshTokens::updateColumns() const
@@ -829,6 +911,10 @@ const std::vector<std::string> Oauth2RefreshTokens::updateColumns() const
     if(dirtyFlag_[8])
     {
         ret.push_back(getColumnName(8));
+    }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
     }
     return ret;
 }
@@ -934,6 +1020,17 @@ void Oauth2RefreshTokens::updateArgs(drogon::orm::internal::SqlBinder &binder) c
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[9])
+    {
+        if(getFamilyId())
+        {
+            binder << getValueOfFamilyId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Oauth2RefreshTokens::toJson() const
 {
@@ -1010,6 +1107,14 @@ Json::Value Oauth2RefreshTokens::toJson() const
     {
         ret["revoked_by"]=Json::Value();
     }
+    if(getFamilyId())
+    {
+        ret["family_id"]=getValueOfFamilyId();
+    }
+    else
+    {
+        ret["family_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1022,7 +1127,7 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 9)
+    if(pMasqueradingVector.size() == 10)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1123,6 +1228,17 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
                 ret[pMasqueradingVector[8]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getFamilyId())
+            {
+                ret[pMasqueradingVector[9]]=getValueOfFamilyId();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -1198,6 +1314,14 @@ Json::Value Oauth2RefreshTokens::toMasqueradedJson(
     {
         ret["revoked_by"]=Json::Value();
     }
+    if(getFamilyId())
+    {
+        ret["family_id"]=getValueOfFamilyId();
+    }
+    else
+    {
+        ret["family_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1268,13 +1392,18 @@ bool Oauth2RefreshTokens::validateJsonForCreation(const Json::Value &pJson, std:
         if(!validJsonOfField(8, "revoked_by", pJson["revoked_by"], err, true))
             return false;
     }
+    if(pJson.isMember("family_id"))
+    {
+        if(!validJsonOfField(9, "family_id", pJson["family_id"], err, true))
+            return false;
+    }
     return true;
 }
 bool Oauth2RefreshTokens::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                              const std::vector<std::string> &pMasqueradingVector,
                                                              std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1372,6 +1501,14 @@ bool Oauth2RefreshTokens::validateMasqueradedJsonForCreation(const Json::Value &
                   return false;
           }
       }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1432,13 +1569,18 @@ bool Oauth2RefreshTokens::validateJsonForUpdate(const Json::Value &pJson, std::s
         if(!validJsonOfField(8, "revoked_by", pJson["revoked_by"], err, false))
             return false;
     }
+    if(pJson.isMember("family_id"))
+    {
+        if(!validJsonOfField(9, "family_id", pJson["family_id"], err, false))
+            return false;
+    }
     return true;
 }
 bool Oauth2RefreshTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                            const std::vector<std::string> &pMasqueradingVector,
                                                            std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1492,6 +1634,11 @@ bool Oauth2RefreshTokens::validateMasqueradedJsonForUpdate(const Json::Value &pJ
       if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
       {
           if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
               return false;
       }
     }
@@ -1650,6 +1797,25 @@ bool Oauth2RefreshTokens::validJsonOfField(size_t index,
                 err="String length exceeds limit for the " +
                     fieldName +
                     " field (the maximum value is 50)";
+                return false;
+            }
+            break;
+        case 9:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 64)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 64)";
                 return false;
             }
             break;

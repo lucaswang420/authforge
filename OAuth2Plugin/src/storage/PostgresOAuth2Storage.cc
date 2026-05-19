@@ -612,6 +612,8 @@ void PostgresOAuth2Storage::saveRefreshToken(
         newToken.setScope(token.scope);
         newToken.setExpiresAt(token.expiresAt);
         newToken.setRevoked(token.revoked);
+        if (!token.familyId.empty())
+            newToken.setFamilyId(token.familyId);
 
         mapper.insert(
           newToken,
@@ -659,6 +661,7 @@ void PostgresOAuth2Storage::getRefreshToken(
               t.scope = row.getValueOfScope();
               t.expiresAt = row.getValueOfExpiresAt();
               t.revoked = row.getValueOfRevoked();
+              t.familyId = row.getValueOfFamilyId();
               (*sharedCb)(t);
           },
           [sharedCb](const DrogonDbException &e) {
@@ -714,6 +717,93 @@ void PostgresOAuth2Storage::revokeRefreshToken(
         if (*sharedCb)
             (*sharedCb)();
     }
+}
+
+void PostgresOAuth2Storage::atomicRevokeRefreshToken(
+  const std::string &token,
+  IOAuth2Storage::RefreshTokenCallback &&cb
+)
+{
+    if (!dbClientMaster_)
+    {
+        cb(std::nullopt);
+        return;
+    }
+    auto sharedCb = std::make_shared<RefreshTokenCallback>(std::move(cb));
+
+    // Atomic CAS: UPDATE ... WHERE revoked=false RETURNING *
+    dbClientMaster_->execSqlAsync(
+      "UPDATE oauth2_refresh_tokens SET revoked = true "
+      "WHERE token = $1 AND revoked = false "
+      "RETURNING token, access_token, client_id, user_id, scope, expires_at, family_id",
+      [sharedCb](const drogon::orm::Result &r) {
+          if (r.empty())
+          {
+              // Already revoked or not found -> reuse detected
+              (*sharedCb)(std::nullopt);
+              return;
+          }
+          auto row = r[0];
+          OAuth2RefreshToken rt;
+          rt.token = row["token"].as<std::string>();
+          rt.accessToken = row["access_token"].as<std::string>();
+          rt.clientId = row["client_id"].as<std::string>();
+          rt.userId = row["user_id"].as<std::string>();
+          rt.scope = row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+          rt.expiresAt = row["expires_at"].as<int64_t>();
+          rt.familyId = row["family_id"].isNull() ? "" : row["family_id"].as<std::string>();
+          rt.revoked = true;
+          (*sharedCb)(rt);
+      },
+      [sharedCb](const DrogonDbException &e) {
+          LOG_ERROR << "atomicRevokeRefreshToken error: " << e.base().what();
+          (*sharedCb)(std::nullopt);
+      },
+      token
+    );
+}
+
+void PostgresOAuth2Storage::revokeTokenFamily(
+  const std::string &familyId,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    if (!dbClientMaster_ || familyId.empty())
+    {
+        if (cb)
+            cb();
+        return;
+    }
+    auto sharedCb = std::make_shared<VoidCallback>(std::move(cb));
+
+    // Revoke all refresh tokens in the family
+    dbClientMaster_->execSqlAsync(
+      "UPDATE oauth2_refresh_tokens SET revoked = true WHERE family_id = $1",
+      [sharedCb, familyId, this](const drogon::orm::Result &) {
+          // Also revoke all associated access tokens
+          dbClientMaster_->execSqlAsync(
+            "UPDATE oauth2_access_tokens SET revoked = true "
+            "WHERE token IN (SELECT access_token FROM oauth2_refresh_tokens WHERE family_id = $1)",
+            [sharedCb, familyId](const drogon::orm::Result &) {
+                LOG_WARN << "[SECURITY] Token family cascade-revoked: " << familyId;
+                if (*sharedCb)
+                    (*sharedCb)();
+            },
+            [sharedCb](const DrogonDbException &e) {
+                LOG_ERROR << "revokeTokenFamily (access tokens) error: " << e.base().what();
+                if (*sharedCb)
+                    (*sharedCb)();
+            },
+            familyId
+          );
+      },
+      [sharedCb](const DrogonDbException &e) {
+          LOG_ERROR << "revokeTokenFamily error: " << e.base().what();
+          if (*sharedCb)
+              (*sharedCb)();
+      },
+      familyId
+    );
 }
 
 void PostgresOAuth2Storage::deleteExpiredData()

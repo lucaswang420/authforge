@@ -345,6 +345,50 @@ void MemoryOAuth2Storage::revokeRefreshToken(const std::string &token, VoidCallb
     cb();
 }
 
+void MemoryOAuth2Storage::atomicRevokeRefreshToken(
+  const std::string &token,
+  RefreshTokenCallback &&cb
+)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = refreshTokens_.find(token);
+    if (it == refreshTokens_.end())
+    {
+        cb(std::nullopt);
+        return;
+    }
+    if (it->second.revoked)
+    {
+        // Already revoked - reuse detected!
+        cb(std::nullopt);
+        return;
+    }
+    // CAS: mark as revoked and return the data
+    it->second.revoked = true;
+    cb(it->second);
+}
+
+void MemoryOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    // Revoke all refresh tokens in this family
+    for (auto &pair : refreshTokens_)
+    {
+        if (pair.second.familyId == familyId)
+        {
+            pair.second.revoked = true;
+            // Also revoke associated access token
+            auto atIt = accessTokens_.find(pair.second.accessToken);
+            if (atIt != accessTokens_.end())
+            {
+                atIt->second.revoked = true;
+            }
+        }
+    }
+    LOG_WARN << "[SECURITY] Token family revoked due to reuse detection: " << familyId;
+    cb();
+}
+
 // Manual cleanup for Memory Storage
 void MemoryOAuth2Storage::deleteExpiredData()
 {

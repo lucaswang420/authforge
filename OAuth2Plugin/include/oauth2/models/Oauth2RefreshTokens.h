@@ -54,6 +54,7 @@ class Oauth2RefreshTokens
         static const std::string _revoked;
         static const std::string _revoked_at;
         static const std::string _revoked_by;
+        static const std::string _family_id;
     };
 
     static const int primaryKeyNumber;
@@ -188,8 +189,18 @@ class Oauth2RefreshTokens
     void setRevokedBy(std::string &&pRevokedBy) noexcept;
     void setRevokedByToNull() noexcept;
 
+    /**  For column family_id  */
+    ///Get the value of the column family_id, returns the default value if the column is null
+    const std::string &getValueOfFamilyId() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getFamilyId() const noexcept;
+    ///Set the value of the column family_id
+    void setFamilyId(const std::string &pFamilyId) noexcept;
+    void setFamilyId(std::string &&pFamilyId) noexcept;
+    void setFamilyIdToNull() noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 9;  }
+
+    static size_t getColumnNumber() noexcept {  return 10;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -224,6 +235,7 @@ class Oauth2RefreshTokens
     std::shared_ptr<bool> revoked_;
     std::shared_ptr<int64_t> revokedAt_;
     std::shared_ptr<std::string> revokedBy_;
+    std::shared_ptr<std::string> familyId_;
     struct MetaData
     {
         const std::string colName_;
@@ -235,7 +247,7 @@ class Oauth2RefreshTokens
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[9]={ false };
+    bool dirtyFlag_[10]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -299,6 +311,11 @@ class Oauth2RefreshTokens
             sql += "revoked_by,";
             ++parametersCount;
         }
+        if(dirtyFlag_[9])
+        {
+            sql += "family_id,";
+            ++parametersCount;
+        }
         if(parametersCount > 0)
         {
             sql[sql.length()-1]=')';
@@ -355,6 +372,11 @@ class Oauth2RefreshTokens
             sql.append(placeholderStr, n);
         }
         if(dirtyFlag_[8])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        if(dirtyFlag_[9])
         {
             n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
             sql.append(placeholderStr, n);

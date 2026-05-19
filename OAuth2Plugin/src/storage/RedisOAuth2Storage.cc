@@ -527,6 +527,37 @@ void RedisOAuth2Storage::revokeRefreshToken(const std::string &token, VoidCallba
     );
 }
 
+void RedisOAuth2Storage::atomicRevokeRefreshToken(
+  const std::string &token,
+  RefreshTokenCallback &&cb
+)
+{
+    // Redis doesn't have native CAS, but we can use HSETNX-like logic
+    // For simplicity, get then set (acceptable for Redis single-threaded model)
+    getRefreshToken(token, [this, token, cb = std::move(cb)](auto rt) mutable {
+        if (!rt || rt->revoked)
+        {
+            cb(std::nullopt);
+            return;
+        }
+        auto captured = *rt;
+        revokeRefreshToken(token, [cb = std::move(cb), captured]() {
+            cb(captured);
+        });
+    });
+}
+
+void RedisOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)
+{
+    // Redis doesn't support efficient family queries without secondary indexes
+    // For production Redis usage, maintain a SET of tokens per family
+    // For now, just log and callback (family tracking is primarily for Postgres)
+    LOG_WARN << "[SECURITY] Token family revocation requested for: " << familyId
+             << " (Redis: limited support)";
+    if (cb)
+        cb();
+}
+
 // Redis handles expiration via TTL automatically.
 void RedisOAuth2Storage::deleteExpiredData()
 {

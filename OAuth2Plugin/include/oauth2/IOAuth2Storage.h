@@ -74,6 +74,7 @@ struct OAuth2RefreshToken
     std::string scope;
     int64_t expiresAt;
     bool revoked = false;
+    std::string familyId;  // Token family for reuse detection
 
     // P1: Token Revocation audit fields (RFC 7009)
     int64_t revokedAt = 0;  // Unix timestamp when token was revoked
@@ -236,6 +237,30 @@ class IOAuth2Storage
      * @param cb Callback invoked when revocation completes
      */
     virtual void revokeRefreshToken(const std::string &token, VoidCallback &&cb) = 0;
+
+    /**
+     * @brief Atomically revoke a refresh token (CAS operation)
+     * Only revokes if the token is currently NOT revoked.
+     * Returns the token data if successfully revoked, nullopt if already revoked.
+     * Used for refresh token rotation to detect reuse.
+     *
+     * @param token The hashed refresh token
+     * @param cb Callback with token data if CAS succeeded, nullopt if already revoked
+     */
+    virtual void atomicRevokeRefreshToken(
+      const std::string &token,
+      RefreshTokenCallback &&cb
+    ) = 0;
+
+    /**
+     * @brief Revoke all tokens in a refresh token family (cascade revocation)
+     * Called when refresh token reuse is detected.
+     * Revokes all refresh tokens AND their associated access tokens.
+     *
+     * @param familyId The family ID to cascade-revoke
+     * @param cb Callback invoked when revocation completes
+     */
+    virtual void revokeTokenFamily(const std::string &familyId, VoidCallback &&cb) = 0;
 
     using StringListCallback = std::function<void(std::vector<std::string>)>;
 

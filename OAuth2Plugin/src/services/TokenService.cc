@@ -151,6 +151,7 @@ void TokenService::exchangeCodeForToken(
                       token.expiresAt = now + accessTokenTtl_;
 
                       auto refreshTokenStr = utils::generateSecureToken();
+                      auto familyId = utils::generateSecureToken(16);  // New family
                       OAuth2RefreshToken refreshToken;
                       refreshToken.token = utils::hashToken(refreshTokenStr);
                       refreshToken.accessToken = token.token;
@@ -158,6 +159,7 @@ void TokenService::exchangeCodeForToken(
                       refreshToken.userId = authCode->userId;
                       refreshToken.scope = authCode->scope;
                       refreshToken.expiresAt = now + refreshTokenTtl_;
+                      refreshToken.familyId = familyId;
 
                       storage_->saveAccessToken(
                         token, [this, callback, tokenStr, refreshTokenStr, refreshToken, rolesJson]() {
@@ -195,12 +197,49 @@ void TokenService::refreshAccessToken(
         return;
     }
 
-    storage_->getRefreshToken(
-      utils::hashToken(refreshTokenStr),
-      [this, callback = std::move(callback), clientId](std::optional<OAuth2RefreshToken> storedRt) {
-          if (!storedRt || storedRt->clientId != clientId || storedRt->revoked)
+    auto hashedRt = utils::hashToken(refreshTokenStr);
+
+    // Atomic CAS: revoke the old RT and get its data
+    // If it's already revoked, this means reuse -> cascade revoke family
+    storage_->atomicRevokeRefreshToken(
+      hashedRt,
+      [this, callback = std::move(callback), clientId, hashedRt](
+        std::optional<OAuth2RefreshToken> storedRt
+      ) mutable {
+          if (!storedRt)
           {
-              callback(makeError("invalid_grant", "Invalid or revoked refresh token"));
+              // Token not found OR already revoked -> possible reuse attack
+              // Try to get the token to check if it exists but is revoked
+              storage_->getRefreshToken(
+                hashedRt,
+                [this, callback = std::move(callback)](
+                  std::optional<OAuth2RefreshToken> maybeRevoked
+                ) {
+                    if (maybeRevoked && maybeRevoked->revoked && !maybeRevoked->familyId.empty())
+                    {
+                        // REUSE DETECTED! Cascade revoke the entire family
+                        LOG_WARN << "[SECURITY] Refresh token reuse detected! "
+                                 << "Revoking token family: " << maybeRevoked->familyId;
+                        storage_->revokeTokenFamily(
+                          maybeRevoked->familyId,
+                          [callback]() {
+                              callback(makeError("invalid_grant", "Token reuse detected"));
+                          }
+                        );
+                    }
+                    else
+                    {
+                        callback(makeError("invalid_grant", "Invalid or revoked refresh token"));
+                    }
+                }
+              );
+              return;
+          }
+
+          // Normal path: token was valid and is now revoked
+          if (storedRt->clientId != clientId)
+          {
+              callback(makeError("invalid_grant", "Client mismatch"));
               return;
           }
 
@@ -215,6 +254,7 @@ void TokenService::refreshAccessToken(
               return;
           }
 
+          // Issue new token pair, inheriting the family
           auto newTokenStr = utils::generateSecureToken();
           OAuth2AccessToken token;
           token.token = utils::hashToken(newTokenStr);
@@ -231,22 +271,20 @@ void TokenService::refreshAccessToken(
           newRt.userId = storedRt->userId;
           newRt.scope = storedRt->scope;
           newRt.expiresAt = now + refreshTokenTtl_;
+          newRt.familyId = storedRt->familyId;  // Inherit family
 
           storage_->saveAccessToken(
-            token, [this, callback, newTokenStr, newRefreshTokenStr, newRt, oldRefreshToken = storedRt->token]() {
-                storage_
-                  ->saveRefreshToken(newRt, [this, callback, newTokenStr, newRefreshTokenStr, oldRefreshToken]() {
-                      storage_->revokeRefreshToken(
-                        oldRefreshToken, [callback, newTokenStr, newRefreshTokenStr](auto...) {
-                            Json::Value json;
-                            json["access_token"] = newTokenStr;
-                            json["token_type"] = "Bearer";
-                            json["expires_in"] = (Json::Int64)3600;
-                            json["refresh_token"] = newRefreshTokenStr;
-                            callback(json);
-                        }
-                      );
-                  });
+            token, [this, callback, newTokenStr, newRefreshTokenStr, newRt]() {
+                storage_->saveRefreshToken(
+                  newRt, [callback, newTokenStr, newRefreshTokenStr]() {
+                      Json::Value json;
+                      json["access_token"] = newTokenStr;
+                      json["token_type"] = "Bearer";
+                      json["expires_in"] = (Json::Int64)3600;
+                      json["refresh_token"] = newRefreshTokenStr;
+                      callback(json);
+                  }
+                );
             }
           );
       }

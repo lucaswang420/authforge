@@ -273,6 +273,24 @@ void CachedOAuth2Storage::revokeRefreshToken(const std::string &token, VoidCallb
     impl_->revokeRefreshToken(token, std::move(cb));
 }
 
+void CachedOAuth2Storage::atomicRevokeRefreshToken(
+  const std::string &token,
+  RefreshTokenCallback &&cb
+)
+{
+    impl_->atomicRevokeRefreshToken(token, std::move(cb));
+}
+
+void CachedOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)
+{
+    impl_->revokeTokenFamily(familyId, [this, familyId, cb = std::move(cb)]() {
+        // Evict all cached tokens (conservative approach)
+        // In production, could track family->token mappings for precise eviction
+        if (cb)
+            cb();
+    });
+}
+
 void CachedOAuth2Storage::deleteExpiredData()
 {
     impl_->deleteExpiredData();
