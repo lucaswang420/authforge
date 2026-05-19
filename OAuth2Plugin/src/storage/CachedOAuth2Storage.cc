@@ -383,7 +383,17 @@ void CachedOAuth2Storage::saveUserConsent(
   BoolCallback &&cb
 )
 {
-    impl_->saveUserConsent(internalUserId, clientId, scope, std::move(cb));
+    impl_->saveUserConsent(
+      internalUserId,
+      clientId,
+      scope,
+      [this, clientId, cb = std::move(cb)](bool success) {
+          // Evict client from L1 cache after consent change
+          clientCache_.erase(clientId);
+          if (cb)
+              cb(success);
+      }
+    );
 }
 
 void CachedOAuth2Storage::revokeUserConsent(
@@ -393,7 +403,17 @@ void CachedOAuth2Storage::revokeUserConsent(
   VoidCallback &&cb
 )
 {
-    impl_->revokeUserConsent(internalUserId, clientId, scope, std::move(cb));
+    impl_->revokeUserConsent(
+      internalUserId,
+      clientId,
+      scope,
+      [this, clientId, cb = std::move(cb)]() {
+          // Evict client from L1 cache after consent revocation
+          clientCache_.erase(clientId);
+          if (cb)
+              cb();
+      }
+    );
 }
 
 // ========== P1: Token Introspection (RFC 7662) ==========
