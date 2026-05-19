@@ -259,12 +259,22 @@ void PostgresOAuth2Storage::validateClient(
 
               LOG_DEBUG << "Postgres validateClient: Verifying secret for " << clientId;
 
+              // Normalize both to lowercase for case-insensitive hex comparison
+              std::transform(
+                computedHash.begin(), computedHash.end(), computedHash.begin(), ::tolower
+              );
+              std::string storedLower = storedHash;
+              std::transform(
+                storedLower.begin(), storedLower.end(), storedLower.begin(), ::tolower
+              );
+
               // Use constant-time comparison to prevent timing attacks
-              size_t cmpLen = (computedHash.length() < storedHash.length()) ? computedHash.length()
-                                                                            : storedHash.length();
+              size_t cmpLen = (computedHash.length() < storedLower.length())
+                                ? computedHash.length()
+                                : storedLower.length();
               bool match =
-                (constantTimeMemcmp(computedHash.c_str(), storedHash.c_str(), cmpLen) == 0) &&
-                computedHash.length() == storedHash.length();
+                (constantTimeMemcmp(computedHash.c_str(), storedLower.c_str(), cmpLen) == 0) &&
+                computedHash.length() == storedLower.length();
 
               if (!match)
               {

@@ -252,9 +252,9 @@ std::optional<std::string> ValidatorHelper::validateGrantType(const std::string 
         return "grant_type is required";
     }
 
-    if (type != "authorization_code" && type != "refresh_token")
+    if (type != "authorization_code" && type != "refresh_token" && type != "client_credentials")
     {
-        return "grant_type must be 'authorization_code' or 'refresh_token'";
+        return "grant_type must be 'authorization_code', 'refresh_token', or 'client_credentials'";
     }
 
     return std::nullopt;

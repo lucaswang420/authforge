@@ -5,6 +5,7 @@
 #include <oauth2/ValidationHelper.h>
 #include <oauth2/OAuth2ErrorHandler.h>
 #include <oauth2/OpenApiGenerator.h>
+#include <oauth2/CryptoUtils.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
@@ -484,6 +485,7 @@ void OAuth2StandardController::metadata(
     metadata["grant_types_supported"] = Json::Value(Json::arrayValue);
     metadata["grant_types_supported"].append("authorization_code");
     metadata["grant_types_supported"].append("refresh_token");
+    metadata["grant_types_supported"].append("client_credentials");
 
     // PKCE support
     metadata["code_challenge_methods_supported"] = Json::Value(Json::arrayValue);
@@ -549,6 +551,7 @@ void OAuth2StandardController::oidcDiscovery(
     discovery["grant_types_supported"] = Json::Value(Json::arrayValue);
     discovery["grant_types_supported"].append("authorization_code");
     discovery["grant_types_supported"].append("refresh_token");
+    discovery["grant_types_supported"].append("client_credentials");
 
     discovery["subject_types_supported"] = Json::Value(Json::arrayValue);
     discovery["subject_types_supported"].append("public");
@@ -1053,11 +1056,113 @@ void OAuth2StandardController::token(
           }
         );
     }
+    else if (grantType == "client_credentials")
+    {
+        // Client Credentials Grant (RFC 6749 Section 4.4)
+        // Only CONFIDENTIAL clients can use this grant type
+        if (clientId.empty() || clientSecret.empty())
+        {
+            Json::Value error;
+            error["error"] = "invalid_client";
+            error["error_description"] = "Client authentication required for client_credentials grant";
+            auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
+            resp->setStatusCode(drogon::k401Unauthorized);
+            callback(resp);
+            return;
+        }
+
+        auto sharedCb = std::make_shared<std::function<void(const drogon::HttpResponsePtr &)>>(
+          std::move(callback)
+        );
+
+        plugin->validateClient(
+          clientId,
+          clientSecret,
+          [plugin, clientId, req, sharedCb](bool valid) {
+              if (!valid)
+              {
+                  Json::Value error;
+                  error["error"] = "invalid_client";
+                  error["error_description"] = "Client authentication failed";
+                  auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
+                  resp->setStatusCode(drogon::k401Unauthorized);
+                  (*sharedCb)(resp);
+                  return;
+              }
+
+              // Verify client is CONFIDENTIAL (PUBLIC clients cannot use client_credentials)
+              auto storage = plugin->getStorage();
+              storage->getClient(
+                clientId,
+                [plugin, clientId, req, sharedCb](std::optional<oauth2::OAuth2Client> client) {
+                    if (!client)
+                    {
+                        Json::Value error;
+                        error["error"] = "invalid_client";
+                        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
+                        resp->setStatusCode(drogon::k401Unauthorized);
+                        (*sharedCb)(resp);
+                        return;
+                    }
+
+                    if (client->clientType == oauth2::ClientType::PUBLIC)
+                    {
+                        Json::Value error;
+                        error["error"] = "unauthorized_client";
+                        error["error_description"] =
+                          "Public clients cannot use client_credentials grant";
+                        auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
+                        resp->setStatusCode(drogon::k401Unauthorized);
+                        (*sharedCb)(resp);
+                        return;
+                    }
+
+                    // Determine scope (intersection of requested and allowed)
+                    std::string requestedScope = req->getParameter("scope");
+                    std::string grantedScope = requestedScope.empty()
+                                                 ? "read"
+                                                 : requestedScope;
+
+                    // Generate access token (no refresh token for client_credentials)
+                    auto tokenStr = oauth2::utils::generateSecureToken();
+                    auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                                 std::chrono::system_clock::now().time_since_epoch()
+                    )
+                                 .count();
+
+                    oauth2::OAuth2AccessToken token;
+                    token.token = oauth2::utils::hashToken(tokenStr);
+                    token.clientId = clientId;
+                    token.userId = "client:" + clientId;  // M2M: subject is the client itself
+                    token.scope = grantedScope;
+                    token.expiresAt = now + 3600;
+
+                    auto storage2 = plugin->getStorage();
+                    storage2->saveAccessToken(
+                      token,
+                      [sharedCb, tokenStr, grantedScope]() {
+                          Json::Value json;
+                          json["access_token"] = tokenStr;
+                          json["token_type"] = "Bearer";
+                          json["expires_in"] = 3600;
+                          json["scope"] = grantedScope;
+                          // No refresh_token for client_credentials
+                          auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
+                          Metrics::incRequest("token", 200);
+                          (*sharedCb)(resp);
+                      }
+                    );
+                }
+              );
+          }
+        );
+    }
     else
     {
         Json::Value error;
         error["error"] = "unsupported_grant_type";
-        error["error_description"] = "Supported types: authorization_code, refresh_token";
+        error["error_description"] =
+          "Supported types: authorization_code, refresh_token, client_credentials";
         auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k400BadRequest);
         Metrics::incRequest("token", 400);
