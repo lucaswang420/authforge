@@ -11,6 +11,7 @@
 #include <oauth2/controllers/OAuth2StandardController.h>
 #include <oauth2/filters/OAuth2Middleware.h>
 #include "controllers/OAuth2Controller.h"
+#include "SchemaManager.h"
 
 using namespace drogon;
 
@@ -330,6 +331,34 @@ int main()
           callback(resp);
       }
     );
+
+    // Run database migrations before starting the server
+    {
+        std::filesystem::path migrationsDir;
+        // Try relative paths from likely working directories
+        if (std::filesystem::exists("sql/migrations"))
+            migrationsDir = "sql/migrations";
+        else if (std::filesystem::exists("../sql/migrations"))
+            migrationsDir = "../sql/migrations";
+        else if (std::filesystem::exists("../../OAuth2Server/sql/migrations"))
+            migrationsDir = "../../OAuth2Server/sql/migrations";
+        else if (std::filesystem::exists("../../../OAuth2Server/sql/migrations"))
+            migrationsDir = "../../../OAuth2Server/sql/migrations";
+
+        if (!migrationsDir.empty())
+        {
+            LOG_INFO << "Running schema migrations from: "
+                     << std::filesystem::absolute(migrationsDir).string();
+            if (!schema::SchemaManager::migrate(migrationsDir.string()))
+            {
+                LOG_ERROR << "Schema migration failed! Server may not function correctly.";
+            }
+        }
+        else
+        {
+            LOG_WARN << "Migrations directory not found, skipping schema migration";
+        }
+    }
 
     drogon::app().run();
     return 0;

@@ -10,6 +10,7 @@ find_package(Drogon CONFIG REQUIRED)
 add_executable(${PROJECT_NAME} 
     main.cc
     AuthService.cc
+    SchemaManager.cc
 )
 
 # Controllers, Filters, etc.
