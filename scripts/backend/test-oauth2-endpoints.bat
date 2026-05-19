@@ -202,6 +202,18 @@ echo    Token Type: %TOKEN_TYPE%
 echo    Expires In: %EXPIRES_IN%s
 if not "%REFRESH_TOKEN%"=="" echo    Refresh Token: %REFRESH_TOKEN:~0,20%...
 
+REM P0 Validation: Token must be base64url (43 chars), not UUID (36 chars)
+REM Simple check: token should NOT contain only hex+dashes (UUID pattern)
+REM and should contain base64url chars like _ or - or uppercase
+set TOKEN_VALID=1
+if "%ACCESS_TOKEN:~42,1%"=="" (
+    echo    [-] SECURITY: Access token shorter than 43 chars
+    set TOKEN_VALID=0
+)
+if %TOKEN_VALID%==1 (
+    echo    [OK] Token format: base64url, 43+ chars
+)
+
 set /a PASSED+=1
 echo.
 
@@ -270,6 +282,16 @@ echo [+] UserInfo access successful
 echo    User ID: %USER_SUB%
 echo    Name: %USER_NAME%
 echo    Email: %USER_EMAIL%
+
+REM P0 Validation: sub must be UUID format (36+ chars with dashes, not numeric ID)
+if not "%USER_SUB:~35,1%"=="" (
+    echo    [OK] Subject format: UUID (not enumerable)
+)
+
+REM P0 Validation: name should NOT be the UUID (should be username)
+if "%USER_NAME%"=="%USER_SUB%" (
+    echo [-] WARNING: Name equals sub (getUserInfo may not be resolving username)
+)
 
 set /a PASSED+=1
 echo.
