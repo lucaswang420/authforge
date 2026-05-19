@@ -944,16 +944,26 @@ void PostgresOAuth2Storage::getUserRoles(const std::string &userId, StringListCa
 
     auto sharedCb = std::make_shared<StringListCallback>(std::move(cb));
 
+    // Check if userId is purely numeric (internal ID) vs UUID (public_sub)
     int uid = 0;
+    bool isNumeric = false;
     try
     {
-        uid = std::stoi(userId);
+        size_t pos = 0;
+        uid = std::stoi(userId, &pos);
+        // Only treat as numeric if the ENTIRE string was consumed
+        isNumeric = (pos == userId.length());
     }
     catch (...)
     {
-        // Not numeric - try as UUID (public_sub)
+        isNumeric = false;
+    }
+
+    if (!isNumeric)
+    {
+        // UUID (public_sub) - resolve to internal ID first
         dbClientReader_->execSqlAsync(
-          "SELECT id FROM users WHERE public_sub::text = $1",
+          "SELECT id FROM users WHERE public_sub::text = $1::text",
           [sharedCb, this](const drogon::orm::Result &r) {
               if (r.empty())
               {
@@ -961,7 +971,6 @@ void PostgresOAuth2Storage::getUserRoles(const std::string &userId, StringListCa
                   return;
               }
               int32_t resolvedId = r[0]["id"].as<int32_t>();
-              // Call the int overload
               getUserRoles(resolvedId, [sharedCb](std::vector<std::string> roles) {
                   (*sharedCb)(roles);
               });
@@ -1606,18 +1615,27 @@ void PostgresOAuth2Storage::revokeAccessToken(
 
 void PostgresOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)
 {
-    // Try numeric userId first (legacy)
+    // Check if userId is purely numeric (internal ID) vs UUID (public_sub)
+    bool isNumeric = false;
+    int32_t numericUserId = 0;
     try
     {
-        int32_t numericUserId = std::stoi(userId);
-        getUserInfo(numericUserId, std::move(cb));
-        return;
+        size_t pos = 0;
+        numericUserId = std::stoi(userId, &pos);
+        isNumeric = (pos == userId.length());
     }
     catch (...)
     {
-        // Not numeric - try as UUID (public_sub)
+        isNumeric = false;
     }
 
+    if (isNumeric)
+    {
+        getUserInfo(numericUserId, std::move(cb));
+        return;
+    }
+
+    // UUID (public_sub) lookup
     if (!dbClientReader_)
     {
         cb(std::nullopt);
@@ -1626,7 +1644,7 @@ void PostgresOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonC
 
     auto sharedCb = std::make_shared<OptionalJsonCallback>(std::move(cb));
     dbClientReader_->execSqlAsync(
-      "SELECT id, username, email FROM users WHERE public_sub::text = $1",
+      "SELECT id, username, email FROM users WHERE public_sub::text = $1::text",
       [sharedCb](const Result &result) {
           if (result.empty())
           {
