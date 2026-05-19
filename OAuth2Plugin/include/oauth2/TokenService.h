@@ -9,6 +9,8 @@
 namespace oauth2
 {
 
+class JwkManager;  // Forward declaration
+
 class TokenService
 {
   public:
@@ -18,6 +20,11 @@ class TokenService
       int64_t accessTokenTtl = 3600,
       int64_t refreshTokenTtl = 2592000
     );
+
+    void setJwkManager(std::shared_ptr<JwkManager> jwkManager)
+    {
+        jwkManager_ = jwkManager;
+    }
 
     /**
      * @brief Generate Authorization Code
@@ -91,6 +98,7 @@ class TokenService
     int64_t authCodeTtl_;
     int64_t accessTokenTtl_;
     int64_t refreshTokenTtl_;
+    std::shared_ptr<JwkManager> jwkManager_;
 };
 
 }  // namespace oauth2

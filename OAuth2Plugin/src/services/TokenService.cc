@@ -1,6 +1,7 @@
 #include <oauth2/TokenService.h>
 #include <oauth2/SubjectGenerator.h>
 #include <oauth2/CryptoUtils.h>
+#include <oauth2/JwkManager.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
 
@@ -163,13 +164,40 @@ void TokenService::exchangeCodeForToken(
 
                       storage_->saveTokenPair(
                         token, refreshToken,
-                        [callback, tokenStr, refreshTokenStr, rolesJson]() {
+                        [this, callback, tokenStr, refreshTokenStr, rolesJson, authCode, now]() {
                             Json::Value json;
                             json["access_token"] = tokenStr;
                             json["token_type"] = "Bearer";
                             json["expires_in"] = (Json::Int64)(3600);
                             json["refresh_token"] = refreshTokenStr;
                             json["roles"] = rolesJson;
+
+                            // Issue id_token if scope includes "openid"
+                            if (jwkManager_ && jwkManager_->isInitialized() &&
+                                authCode->scope.find("openid") != std::string::npos)
+                            {
+                                auto customConfig = drogon::app().getCustomConfig();
+                                std::string issuer = "http://localhost:5555";
+                                if (customConfig.isMember("metadata") &&
+                                    customConfig["metadata"].isMember("issuer"))
+                                {
+                                    issuer = customConfig["metadata"]["issuer"].asString();
+                                }
+
+                                Json::Value idTokenClaims;
+                                idTokenClaims["iss"] = issuer;
+                                idTokenClaims["sub"] = authCode->userId;
+                                idTokenClaims["aud"] = authCode->clientId;
+                                idTokenClaims["iat"] = (Json::Int64)now;
+                                idTokenClaims["exp"] = (Json::Int64)(now + 3600);
+
+                                std::string idToken = jwkManager_->signJwt(idTokenClaims);
+                                if (!idToken.empty())
+                                {
+                                    json["id_token"] = idToken;
+                                }
+                            }
+
                             callback(json);
                         }
                       );

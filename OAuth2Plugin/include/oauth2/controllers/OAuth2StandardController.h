@@ -37,6 +37,16 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
       "/.well-known/oauth-authorization-server",
       drogon::Get
     );
+    ADD_METHOD_TO(
+      OAuth2StandardController::oidcDiscovery,
+      "/.well-known/openid-configuration",
+      drogon::Get
+    );
+    ADD_METHOD_TO(
+      OAuth2StandardController::jwks,
+      "/.well-known/jwks.json",
+      drogon::Get
+    );
     METHOD_LIST_END
 
     void authorize(
@@ -60,6 +70,14 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
       std::function<void(const drogon::HttpResponsePtr &)> &&callback
     );
     void metadata(
+      const drogon::HttpRequestPtr &req,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
+    void oidcDiscovery(
+      const drogon::HttpRequestPtr &req,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback
+    );
+    void jwks(
       const drogon::HttpRequestPtr &req,
       std::function<void(const drogon::HttpResponsePtr &)> &&callback
     );

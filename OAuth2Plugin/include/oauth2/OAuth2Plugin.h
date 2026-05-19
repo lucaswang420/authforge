@@ -6,6 +6,7 @@
 #include "TokenService.h"
 #include "ClientService.h"
 #include "IdentityService.h"
+#include "JwkManager.h"
 #include <string>
 #include <memory>
 #include <functional>
@@ -34,6 +35,11 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     std::shared_ptr<oauth2::IdentityService> getIdentityService() const
     {
         return identityService_;
+    }
+
+    std::shared_ptr<oauth2::JwkManager> getJwkManager() const
+    {
+        return jwkManager_;
     }
 
     oauth2::IOAuth2Storage *getStorage() const
@@ -276,6 +282,7 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     std::shared_ptr<oauth2::TokenService> tokenService_;
     std::shared_ptr<oauth2::ClientService> clientService_;
     std::shared_ptr<oauth2::IdentityService> identityService_;
+    std::shared_ptr<oauth2::JwkManager> jwkManager_;
 
     std::string storageType_;
 

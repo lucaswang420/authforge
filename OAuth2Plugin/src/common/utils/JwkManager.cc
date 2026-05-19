@@ -1,0 +1,263 @@
+#include <oauth2/JwkManager.h>
+#include <drogon/drogon.h>
+#include <drogon/utils/Utilities.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <openssl/bn.h>
+#include <openssl/err.h>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+
+namespace oauth2
+{
+
+JwkManager::~JwkManager()
+{
+    if (rsaKey_)
+    {
+        EVP_PKEY_free(static_cast<EVP_PKEY *>(rsaKey_));
+        rsaKey_ = nullptr;
+    }
+}
+
+bool JwkManager::init(const Json::Value &config)
+{
+    // Try loading from environment variable first
+    const char *keyEnv = std::getenv("OAUTH2_SIGNING_KEY");
+    if (keyEnv && std::strlen(keyEnv) > 0)
+    {
+        if (loadFromPem(keyEnv))
+        {
+            kid_ = config.get("kid", "key-1").asString();
+            initialized_ = true;
+            LOG_INFO << "JwkManager: Loaded signing key from OAUTH2_SIGNING_KEY env";
+            return true;
+        }
+    }
+
+    // Try loading from file path
+    std::string keyPath = config.get("signing_key_path", "").asString();
+    if (!keyPath.empty())
+    {
+        std::ifstream file(keyPath);
+        if (file.is_open())
+        {
+            std::stringstream ss;
+            ss << file.rdbuf();
+            if (loadFromPem(ss.str()))
+            {
+                kid_ = config.get("kid", "key-1").asString();
+                initialized_ = true;
+                LOG_INFO << "JwkManager: Loaded signing key from " << keyPath;
+                return true;
+            }
+        }
+        LOG_WARN << "JwkManager: Failed to load key from " << keyPath;
+    }
+
+    // Fallback: generate ephemeral key (dev/test only)
+    LOG_WARN << "JwkManager: No signing key configured, generating ephemeral key (DEV ONLY)";
+    if (generateEphemeralKey())
+    {
+        kid_ = "ephemeral-dev-key";
+        initialized_ = true;
+        return true;
+    }
+
+    LOG_ERROR << "JwkManager: Failed to initialize";
+    return false;
+}
+
+bool JwkManager::loadFromPem(const std::string &pemData)
+{
+    BIO *bio = BIO_new_mem_buf(pemData.c_str(), static_cast<int>(pemData.length()));
+    if (!bio)
+        return false;
+
+    EVP_PKEY *pkey = PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr);
+    BIO_free(bio);
+
+    if (!pkey)
+    {
+        LOG_ERROR << "JwkManager: Failed to parse PEM private key";
+        return false;
+    }
+
+    rsaKey_ = pkey;
+    return true;
+}
+
+bool JwkManager::generateEphemeralKey()
+{
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
+    if (!ctx)
+        return false;
+
+    if (EVP_PKEY_keygen_init(ctx) <= 0)
+    {
+        EVP_PKEY_CTX_free(ctx);
+        return false;
+    }
+
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048) <= 0)
+    {
+        EVP_PKEY_CTX_free(ctx);
+        return false;
+    }
+
+    EVP_PKEY *pkey = nullptr;
+    if (EVP_PKEY_keygen(ctx, &pkey) <= 0)
+    {
+        EVP_PKEY_CTX_free(ctx);
+        return false;
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    rsaKey_ = pkey;
+    return true;
+}
+
+std::string JwkManager::base64UrlEncode(const unsigned char *data, size_t len)
+{
+    return drogon::utils::base64EncodeUnpadded(data, len, true);
+}
+
+std::string JwkManager::base64UrlEncode(const std::string &data)
+{
+    return drogon::utils::base64EncodeUnpadded(
+      reinterpret_cast<const unsigned char *>(data.c_str()), data.length(), true
+    );
+}
+
+std::string JwkManager::signJwt(const Json::Value &payload) const
+{
+    if (!initialized_ || !rsaKey_)
+    {
+        LOG_ERROR << "JwkManager: Cannot sign JWT - not initialized";
+        return "";
+    }
+
+    // Build header
+    Json::Value header;
+    header["alg"] = "RS256";
+    header["typ"] = "JWT";
+    header["kid"] = kid_;
+
+    // Serialize header and payload
+    Json::StreamWriterBuilder writerBuilder;
+    writerBuilder["indentation"] = "";
+    std::string headerJson = Json::writeString(writerBuilder, header);
+    std::string payloadJson = Json::writeString(writerBuilder, payload);
+
+    // Base64URL encode
+    std::string headerB64 = base64UrlEncode(headerJson);
+    std::string payloadB64 = base64UrlEncode(payloadJson);
+
+    // Signing input
+    std::string signingInput = headerB64 + "." + payloadB64;
+
+    // Sign with RS256 (SHA-256 + RSA PKCS#1 v1.5)
+    EVP_MD_CTX *mdCtx = EVP_MD_CTX_new();
+    if (!mdCtx)
+        return "";
+
+    EVP_PKEY *pkey = static_cast<EVP_PKEY *>(rsaKey_);
+
+    if (EVP_DigestSignInit(mdCtx, nullptr, EVP_sha256(), nullptr, pkey) <= 0)
+    {
+        EVP_MD_CTX_free(mdCtx);
+        return "";
+    }
+
+    if (EVP_DigestSignUpdate(mdCtx, signingInput.c_str(), signingInput.length()) <= 0)
+    {
+        EVP_MD_CTX_free(mdCtx);
+        return "";
+    }
+
+    // Get signature length
+    size_t sigLen = 0;
+    if (EVP_DigestSignFinal(mdCtx, nullptr, &sigLen) <= 0)
+    {
+        EVP_MD_CTX_free(mdCtx);
+        return "";
+    }
+
+    // Get signature
+    std::vector<unsigned char> signature(sigLen);
+    if (EVP_DigestSignFinal(mdCtx, signature.data(), &sigLen) <= 0)
+    {
+        EVP_MD_CTX_free(mdCtx);
+        return "";
+    }
+
+    EVP_MD_CTX_free(mdCtx);
+
+    // Base64URL encode signature
+    std::string sigB64 = base64UrlEncode(signature.data(), sigLen);
+
+    return signingInput + "." + sigB64;
+}
+
+bool JwkManager::getPublicKeyComponents(std::string &n, std::string &e) const
+{
+    if (!rsaKey_)
+        return false;
+
+    EVP_PKEY *pkey = static_cast<EVP_PKEY *>(rsaKey_);
+    RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+    if (!rsa)
+        return false;
+
+    const BIGNUM *bn_n = nullptr;
+    const BIGNUM *bn_e = nullptr;
+    RSA_get0_key(rsa, &bn_n, &bn_e, nullptr);
+
+    if (!bn_n || !bn_e)
+    {
+        RSA_free(rsa);
+        return false;
+    }
+
+    // Convert BIGNUM to binary then base64url
+    int nLen = BN_num_bytes(bn_n);
+    std::vector<unsigned char> nBuf(nLen);
+    BN_bn2bin(bn_n, nBuf.data());
+    n = base64UrlEncode(nBuf.data(), nBuf.size());
+
+    int eLen = BN_num_bytes(bn_e);
+    std::vector<unsigned char> eBuf(eLen);
+    BN_bn2bin(bn_e, eBuf.data());
+    e = base64UrlEncode(eBuf.data(), eBuf.size());
+
+    RSA_free(rsa);
+    return true;
+}
+
+Json::Value JwkManager::getJwks() const
+{
+    Json::Value jwks;
+    jwks["keys"] = Json::Value(Json::arrayValue);
+
+    if (!initialized_)
+        return jwks;
+
+    std::string n, e;
+    if (getPublicKeyComponents(n, e))
+    {
+        Json::Value key;
+        key["kty"] = "RSA";
+        key["use"] = "sig";
+        key["alg"] = "RS256";
+        key["kid"] = kid_;
+        key["n"] = n;
+        key["e"] = e;
+        jwks["keys"].append(key);
+    }
+
+    return jwks;
+}
+
+}  // namespace oauth2

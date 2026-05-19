@@ -1,6 +1,7 @@
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/controllers/OAuth2StandardController.h>
 #include <oauth2/filters/OAuth2Middleware.h>
+#include <oauth2/JwkManager.h>
 #include "storage/MemoryOAuth2Storage.h"
 #include "storage/PostgresOAuth2Storage.h"
 #include "storage/RedisOAuth2Storage.h"
@@ -23,10 +24,24 @@ void OAuth2Plugin::initAndStart(const Json::Value &config)
         refreshTokenTtl_ = tokens.get("refresh_token_ttl", 2592000).asInt64();
     }
 
+    // Initialize JWK Manager for OIDC id_token signing
+    jwkManager_ = std::make_shared<oauth2::JwkManager>();
+    if (config.isMember("oidc"))
+    {
+        jwkManager_->init(config["oidc"]);
+    }
+    else
+    {
+        // Initialize with empty config (will generate ephemeral key)
+        Json::Value emptyConfig;
+        jwkManager_->init(emptyConfig);
+    }
+
     // Initialize Services
     tokenService_ = std::make_shared<oauth2::TokenService>(
       storage_.get(), authCodeTtl_, accessTokenTtl_, refreshTokenTtl_
     );
+    tokenService_->setJwkManager(jwkManager_);
     clientService_ = std::make_shared<oauth2::ClientService>(storage_.get());
     identityService_ = std::make_shared<oauth2::IdentityService>(storage_.get());
 

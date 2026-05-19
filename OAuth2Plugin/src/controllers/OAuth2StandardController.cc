@@ -511,6 +511,98 @@ void OAuth2StandardController::metadata(
     callback(resp);
 }
 
+void OAuth2StandardController::oidcDiscovery(
+  const drogon::HttpRequestPtr &req,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
+{
+    // OpenID Connect Discovery 1.0
+    std::string baseUrl;
+    auto customConfig = drogon::app().getCustomConfig();
+    if (customConfig.isMember("metadata") && customConfig["metadata"].isMember("issuer"))
+    {
+        baseUrl = customConfig["metadata"]["issuer"].asString();
+    }
+    if (baseUrl.empty())
+    {
+        baseUrl = "http://localhost:5555";
+    }
+
+    Json::Value discovery;
+    discovery["issuer"] = baseUrl;
+    discovery["authorization_endpoint"] = baseUrl + "/oauth2/authorize";
+    discovery["token_endpoint"] = baseUrl + "/oauth2/token";
+    discovery["userinfo_endpoint"] = baseUrl + "/oauth2/userinfo";
+    discovery["jwks_uri"] = baseUrl + "/.well-known/jwks.json";
+    discovery["introspection_endpoint"] = baseUrl + "/oauth2/introspect";
+    discovery["revocation_endpoint"] = baseUrl + "/oauth2/revoke";
+
+    discovery["scopes_supported"] = Json::Value(Json::arrayValue);
+    discovery["scopes_supported"].append("openid");
+    discovery["scopes_supported"].append("profile");
+    discovery["scopes_supported"].append("email");
+    discovery["scopes_supported"].append("admin");
+
+    discovery["response_types_supported"] = Json::Value(Json::arrayValue);
+    discovery["response_types_supported"].append("code");
+
+    discovery["grant_types_supported"] = Json::Value(Json::arrayValue);
+    discovery["grant_types_supported"].append("authorization_code");
+    discovery["grant_types_supported"].append("refresh_token");
+
+    discovery["subject_types_supported"] = Json::Value(Json::arrayValue);
+    discovery["subject_types_supported"].append("public");
+
+    discovery["id_token_signing_alg_values_supported"] = Json::Value(Json::arrayValue);
+    discovery["id_token_signing_alg_values_supported"].append("RS256");
+
+    discovery["token_endpoint_auth_methods_supported"] = Json::Value(Json::arrayValue);
+    discovery["token_endpoint_auth_methods_supported"].append("client_secret_basic");
+    discovery["token_endpoint_auth_methods_supported"].append("client_secret_post");
+
+    discovery["code_challenge_methods_supported"] = Json::Value(Json::arrayValue);
+    discovery["code_challenge_methods_supported"].append("S256");
+    discovery["code_challenge_methods_supported"].append("plain");
+
+    discovery["claims_supported"] = Json::Value(Json::arrayValue);
+    discovery["claims_supported"].append("sub");
+    discovery["claims_supported"].append("name");
+    discovery["claims_supported"].append("email");
+    discovery["claims_supported"].append("email_verified");
+    discovery["claims_supported"].append("iss");
+    discovery["claims_supported"].append("aud");
+    discovery["claims_supported"].append("exp");
+    discovery["claims_supported"].append("iat");
+    discovery["claims_supported"].append("nonce");
+
+    auto resp = drogon::HttpResponse::newHttpJsonResponse(discovery);
+    resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+    callback(resp);
+}
+
+void OAuth2StandardController::jwks(
+  const drogon::HttpRequestPtr &req,
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+)
+{
+    auto plugin = drogon::app().getPlugin<::OAuth2Plugin>();
+    if (!plugin || !plugin->getJwkManager())
+    {
+        Json::Value empty;
+        empty["keys"] = Json::Value(Json::arrayValue);
+        auto resp = drogon::HttpResponse::newHttpJsonResponse(empty);
+        callback(resp);
+        return;
+    }
+
+    auto jwks = plugin->getJwkManager()->getJwks();
+    auto resp = drogon::HttpResponse::newHttpJsonResponse(jwks);
+    resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+    // Cache JWKS for 1 hour (keys don't change frequently)
+    resp->addHeader("Cache-Control", "public, max-age=3600");
+    callback(resp);
+}
+
 void OAuth2StandardController::authorize(
   const drogon::HttpRequestPtr &req,
   std::function<void(const drogon::HttpResponsePtr &)> &&callback
