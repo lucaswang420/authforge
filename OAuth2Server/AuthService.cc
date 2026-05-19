@@ -15,11 +15,11 @@ namespace services
 void AuthService::validateUser(
   const std::string &username,
   const std::string &password,
-  std::function<void(std::optional<int> userId)> &&callback
+  std::function<void(std::optional<AuthResult>)> &&callback
 )
 {
     auto sharedCb =
-      std::make_shared<std::function<void(std::optional<int> userId)>>(std::move(callback));
+      std::make_shared<std::function<void(std::optional<AuthResult>)>>(std::move(callback));
     try
     {
         auto mapper = Mapper<drogon_model::oauth_test::Users>(app().getDbClient());
@@ -28,7 +28,7 @@ void AuthService::validateUser(
         mapper.findOne(
           {drogon_model::oauth_test::Users::Cols::_username, CompareOperator::EQ, username},
           [sharedCb, password](const drogon_model::oauth_test::Users &user) {
-              // Compute Hash using PasswordHasher (supports Argon2id + legacy SHA-256)
+              // Compute Hash using PasswordHasher (supports PBKDF2 + legacy SHA-256)
               std::string salt = user.getValueOfSalt();
               std::string dbHash = user.getValueOfPasswordHash();
 
@@ -36,10 +36,10 @@ void AuthService::validateUser(
 
               if (valid)
               {
-                  // Check if password hash needs upgrade to Argon2id
+                  // Check if password hash needs upgrade to PBKDF2
                   if (oauth2::utils::PasswordHasher::needsRehash(dbHash))
                   {
-                      // Async upgrade: rehash with Argon2id
+                      // Async upgrade: rehash with PBKDF2
                       try
                       {
                           std::string newHash = oauth2::utils::PasswordHasher::hash(password);
@@ -48,7 +48,7 @@ void AuthService::validateUser(
                           db->execSqlAsync(
                             "UPDATE users SET password_hash = $1, salt = '' WHERE id = $2",
                             [userId](const drogon::orm::Result &) {
-                                LOG_INFO << "Upgraded password hash to Argon2id for user "
+                                LOG_INFO << "Upgraded password hash to PBKDF2 for user "
                                          << userId;
                             },
                             [userId](const drogon::orm::DrogonDbException &e) {
@@ -64,7 +64,11 @@ void AuthService::validateUser(
                           LOG_WARN << "Password rehash failed: " << e.what();
                       }
                   }
-                  (*sharedCb)(user.getValueOfId());
+
+                  AuthResult result;
+                  result.internalId = user.getValueOfId();
+                  result.publicSub = user.getValueOfPublicSub();
+                  (*sharedCb)(result);
               }
               else
               {
@@ -210,7 +214,7 @@ void AuthService::getUserInfo(
                 "ur.role_id WHERE ur.user_id = $1",
                 [sharedCb, user, userId](const Result &r) {
                     Json::Value json;
-                    json["sub"] = std::to_string(userId);
+                    json["sub"] = user.getValueOfPublicSub();
                     json["name"] = user.getValueOfUsername();
                     json["email"] = user.getValueOfEmail();
 
@@ -229,7 +233,7 @@ void AuthService::getUserInfo(
                     LOG_WARN << "Failed to fetch roles for user " << userId << ": "
                              << e.base().what();
                     Json::Value json;
-                    json["sub"] = std::to_string(userId);
+                    json["sub"] = user.getValueOfPublicSub();
                     json["name"] = user.getValueOfUsername();
                     json["email"] = user.getValueOfEmail();
                     json["roles"] = Json::Value(Json::arrayValue);

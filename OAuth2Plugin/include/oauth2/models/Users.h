@@ -55,6 +55,7 @@ class Users
         static const std::string _salt;
         static const std::string _email;
         static const std::string _created_at;
+        static const std::string _public_sub;
     };
 
     static const int primaryKeyNumber;
@@ -160,8 +161,17 @@ class Users
     void setCreatedAt(const ::trantor::Date &pCreatedAt) noexcept;
     void setCreatedAtToNull() noexcept;
 
+    /**  For column public_sub  */
+    ///Get the value of the column public_sub, returns the default value if the column is null
+    const std::string &getValueOfPublicSub() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getPublicSub() const noexcept;
+    ///Set the value of the column public_sub
+    void setPublicSub(const std::string &pPublicSub) noexcept;
+    void setPublicSub(std::string &&pPublicSub) noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 6;  }
+
+    static size_t getColumnNumber() noexcept {  return 7;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -205,6 +215,7 @@ class Users
     std::shared_ptr<std::string> salt_;
     std::shared_ptr<std::string> email_;
     std::shared_ptr<::trantor::Date> createdAt_;
+    std::shared_ptr<std::string> publicSub_;
     struct MetaData
     {
         const std::string colName_;
@@ -216,7 +227,7 @@ class Users
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[6]={ false };
+    bool dirtyFlag_[7]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -262,6 +273,12 @@ class Users
         {
             needSelection=true;
         }
+        sql += "public_sub,";
+        ++parametersCount;
+        if(!dirtyFlag_[6])
+        {
+            needSelection=true;
+        }
         needSelection=true;
         if(parametersCount > 0)
         {
@@ -296,6 +313,15 @@ class Users
             sql.append(placeholderStr, n);
         }
         if(dirtyFlag_[5])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[6])
         {
             n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
             sql.append(placeholderStr, n);

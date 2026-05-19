@@ -249,10 +249,10 @@ void OAuth2Controller::login(
        state,
        codeChallenge,
        codeChallengeMethod,
-       callback = std::move(callback)](std::optional<int> userId) mutable {
-          if (userId)
+       callback = std::move(callback)](std::optional<services::AuthResult> authResult) mutable {
+          if (authResult)
           {
-              req->session()->insert("userId", std::to_string(*userId));
+              req->session()->insert("userId", std::to_string(authResult->internalId));
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
@@ -266,12 +266,11 @@ void OAuth2Controller::login(
 
               plugin->generateAuthorizationCode(
                 clientId,
-                std::to_string(*userId),  // Subject
+                authResult->publicSub,  // Use public UUID as subject
                 scope,
-                redirectUri,          // CRITICAL: Pass redirect_uri for RFC 6749
-                                      // Section 4.1.3 validation
-                codeChallenge,        // PKCE code challenge
-                codeChallengeMethod,  // PKCE code challenge method
+                redirectUri,
+                codeChallenge,
+                codeChallengeMethod,
                 [req,
                  redirectUri,
                  state,
