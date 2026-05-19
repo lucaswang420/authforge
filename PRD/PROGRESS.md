@@ -15,10 +15,10 @@
 | Task 13 | ✅ | 密码重置流程 |
 | Task 14 | ✅ | 邮箱验证 |
 | Task 15 | ✅ | MFA (TOTP) |
-| Task 16 | 进行中 | 审计日志 |
+| Task 16 | ✅ | 审计日志 |
 | Task 17 | 待做 | Admin REST API |
 | Task 18 | 待做 | 用户自服务 |
-| Task 19 | 待做 | PKCE 强制 |
+| Task 19 | ✅ | PKCE 强制 (advisory) |
 | Task 20 | 待做 | CachedStorage 写后失效 |
 | Task 21 | 待做 | Schema Migration 工具 |
 
