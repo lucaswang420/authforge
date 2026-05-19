@@ -347,11 +347,30 @@ int main()
 
         if (!migrationsDir.empty())
         {
-            LOG_INFO << "Running schema migrations from: "
+            LOG_INFO << "Schema migrations directory found: "
                      << std::filesystem::absolute(migrationsDir).string();
-            if (!schema::SchemaManager::migrate(migrationsDir.string()))
+
+            // Auto-migration is opt-in via OAUTH2_AUTO_MIGRATE=true
+            // In production, use setup_database.bat or CI pipeline for migrations
+            const char *autoMigrate = std::getenv("OAUTH2_AUTO_MIGRATE");
+            if (autoMigrate && std::string(autoMigrate) == "true")
             {
-                LOG_ERROR << "Schema migration failed! Server may not function correctly.";
+                std::string migrationsDirStr = migrationsDir.string();
+                drogon::app().registerBeginningAdvice([migrationsDirStr]() {
+                    // Run in a detached thread to avoid blocking the event loop
+                    std::thread([migrationsDirStr]() {
+                        // Small delay to ensure DB pool is ready
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                        if (!schema::SchemaManager::migrate(migrationsDirStr))
+                        {
+                            LOG_ERROR << "Schema migration failed!";
+                        }
+                    }).detach();
+                });
+            }
+            else
+            {
+                LOG_INFO << "Auto-migration disabled. Set OAUTH2_AUTO_MIGRATE=true to enable.";
             }
         }
         else

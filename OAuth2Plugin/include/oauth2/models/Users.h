@@ -56,6 +56,10 @@ class Users
         static const std::string _email;
         static const std::string _created_at;
         static const std::string _public_sub;
+        static const std::string _email_verified;
+        static const std::string _mfa_enabled;
+        static const std::string _mfa_secret;
+        static const std::string _mfa_backup_codes;
     };
 
     static const int primaryKeyNumber;
@@ -170,8 +174,46 @@ class Users
     void setPublicSub(const std::string &pPublicSub) noexcept;
     void setPublicSub(std::string &&pPublicSub) noexcept;
 
+    /**  For column email_verified  */
+    ///Get the value of the column email_verified, returns the default value if the column is null
+    const bool &getValueOfEmailVerified() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<bool> &getEmailVerified() const noexcept;
+    ///Set the value of the column email_verified
+    void setEmailVerified(const bool &pEmailVerified) noexcept;
+    void setEmailVerifiedToNull() noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 7;  }
+    /**  For column mfa_enabled  */
+    ///Get the value of the column mfa_enabled, returns the default value if the column is null
+    const bool &getValueOfMfaEnabled() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<bool> &getMfaEnabled() const noexcept;
+    ///Set the value of the column mfa_enabled
+    void setMfaEnabled(const bool &pMfaEnabled) noexcept;
+    void setMfaEnabledToNull() noexcept;
+
+    /**  For column mfa_secret  */
+    ///Get the value of the column mfa_secret, returns the default value if the column is null
+    const std::string &getValueOfMfaSecret() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getMfaSecret() const noexcept;
+    ///Set the value of the column mfa_secret
+    void setMfaSecret(const std::string &pMfaSecret) noexcept;
+    void setMfaSecret(std::string &&pMfaSecret) noexcept;
+    void setMfaSecretToNull() noexcept;
+
+    /**  For column mfa_backup_codes  */
+    ///Get the value of the column mfa_backup_codes, returns the default value if the column is null
+    const std::string &getValueOfMfaBackupCodes() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getMfaBackupCodes() const noexcept;
+    ///Set the value of the column mfa_backup_codes
+    void setMfaBackupCodes(const std::string &pMfaBackupCodes) noexcept;
+    void setMfaBackupCodes(std::string &&pMfaBackupCodes) noexcept;
+    void setMfaBackupCodesToNull() noexcept;
+
+
+    static size_t getColumnNumber() noexcept {  return 11;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -216,6 +258,10 @@ class Users
     std::shared_ptr<std::string> email_;
     std::shared_ptr<::trantor::Date> createdAt_;
     std::shared_ptr<std::string> publicSub_;
+    std::shared_ptr<bool> emailVerified_;
+    std::shared_ptr<bool> mfaEnabled_;
+    std::shared_ptr<std::string> mfaSecret_;
+    std::shared_ptr<std::string> mfaBackupCodes_;
     struct MetaData
     {
         const std::string colName_;
@@ -227,7 +273,7 @@ class Users
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[7]={ false };
+    bool dirtyFlag_[11]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -279,6 +325,28 @@ class Users
         {
             needSelection=true;
         }
+        sql += "email_verified,";
+        ++parametersCount;
+        if(!dirtyFlag_[7])
+        {
+            needSelection=true;
+        }
+        sql += "mfa_enabled,";
+        ++parametersCount;
+        if(!dirtyFlag_[8])
+        {
+            needSelection=true;
+        }
+        if(dirtyFlag_[9])
+        {
+            sql += "mfa_secret,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[10])
+        {
+            sql += "mfa_backup_codes,";
+            ++parametersCount;
+        }
         needSelection=true;
         if(parametersCount > 0)
         {
@@ -329,6 +397,34 @@ class Users
         else
         {
             sql +="default,";
+        }
+        if(dirtyFlag_[7])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[8])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[9])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        if(dirtyFlag_[10])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
         }
         if(parametersCount > 0)
         {

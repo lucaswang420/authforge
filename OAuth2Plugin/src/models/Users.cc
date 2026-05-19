@@ -25,6 +25,10 @@ const std::string Users::Cols::_salt = "\"salt\"";
 const std::string Users::Cols::_email = "\"email\"";
 const std::string Users::Cols::_created_at = "\"created_at\"";
 const std::string Users::Cols::_public_sub = "\"public_sub\"";
+const std::string Users::Cols::_email_verified = "\"email_verified\"";
+const std::string Users::Cols::_mfa_enabled = "\"mfa_enabled\"";
+const std::string Users::Cols::_mfa_secret = "\"mfa_secret\"";
+const std::string Users::Cols::_mfa_backup_codes = "\"mfa_backup_codes\"";
 const std::string Users::primaryKeyName = "id";
 const bool Users::hasPrimaryKey = true;
 const std::string Users::tableName = "\"users\"";
@@ -36,7 +40,11 @@ const std::vector<typename Users::MetaData> Users::metaData_={
 {"salt","std::string","character varying",36,0,0,1},
 {"email","std::string","character varying",100,0,0,0},
 {"created_at","::trantor::Date","timestamp without time zone",0,0,0,0},
-{"public_sub","std::string","uuid",0,0,0,1}
+{"public_sub","std::string","uuid",0,0,0,1},
+{"email_verified","bool","boolean",1,0,0,0},
+{"mfa_enabled","bool","boolean",1,0,0,0},
+{"mfa_secret","std::string","character varying",64,0,0,0},
+{"mfa_backup_codes","std::string","text",0,0,0,0}
 };
 const std::string &Users::getColumnName(size_t index) noexcept(false)
 {
@@ -93,11 +101,27 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             publicSub_=std::make_shared<std::string>(r["public_sub"].as<std::string>());
         }
+        if(!r["email_verified"].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(r["email_verified"].as<bool>());
+        }
+        if(!r["mfa_enabled"].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(r["mfa_enabled"].as<bool>());
+        }
+        if(!r["mfa_secret"].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(r["mfa_secret"].as<std::string>());
+        }
+        if(!r["mfa_backup_codes"].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(r["mfa_backup_codes"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 11 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -156,13 +180,33 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             publicSub_=std::make_shared<std::string>(r[index].as<std::string>());
         }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(r[index].as<bool>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(r[index].as<bool>());
+        }
+        index = offset + 9;
+        if(!r[index].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 10;
+        if(!r[index].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 11)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -239,6 +283,38 @@ Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasquera
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
             publicSub_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(pJson[pMasqueradingVector[7]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(pJson[pMasqueradingVector[8]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(pJson[pMasqueradingVector[10]].asString());
         }
     }
 }
@@ -319,12 +395,44 @@ Users::Users(const Json::Value &pJson) noexcept(false)
             publicSub_=std::make_shared<std::string>(pJson["public_sub"].asString());
         }
     }
+    if(pJson.isMember("email_verified"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["email_verified"].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(pJson["email_verified"].asBool());
+        }
+    }
+    if(pJson.isMember("mfa_enabled"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["mfa_enabled"].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(pJson["mfa_enabled"].asBool());
+        }
+    }
+    if(pJson.isMember("mfa_secret"))
+    {
+        dirtyFlag_[9]=true;
+        if(!pJson["mfa_secret"].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(pJson["mfa_secret"].asString());
+        }
+    }
+    if(pJson.isMember("mfa_backup_codes"))
+    {
+        dirtyFlag_[10]=true;
+        if(!pJson["mfa_backup_codes"].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(pJson["mfa_backup_codes"].asString());
+        }
+    }
 }
 
 void Users::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 11)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -402,6 +510,38 @@ void Users::updateByMasqueradedJson(const Json::Value &pJson,
             publicSub_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
         }
     }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(pJson[pMasqueradingVector[7]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(pJson[pMasqueradingVector[8]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(pJson[pMasqueradingVector[10]].asString());
+        }
+    }
 }
 
 void Users::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -477,6 +617,38 @@ void Users::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["public_sub"].isNull())
         {
             publicSub_=std::make_shared<std::string>(pJson["public_sub"].asString());
+        }
+    }
+    if(pJson.isMember("email_verified"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["email_verified"].isNull())
+        {
+            emailVerified_=std::make_shared<bool>(pJson["email_verified"].asBool());
+        }
+    }
+    if(pJson.isMember("mfa_enabled"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["mfa_enabled"].isNull())
+        {
+            mfaEnabled_=std::make_shared<bool>(pJson["mfa_enabled"].asBool());
+        }
+    }
+    if(pJson.isMember("mfa_secret"))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson["mfa_secret"].isNull())
+        {
+            mfaSecret_=std::make_shared<std::string>(pJson["mfa_secret"].asString());
+        }
+    }
+    if(pJson.isMember("mfa_backup_codes"))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson["mfa_backup_codes"].isNull())
+        {
+            mfaBackupCodes_=std::make_shared<std::string>(pJson["mfa_backup_codes"].asString());
         }
     }
 }
@@ -640,6 +812,104 @@ void Users::setPublicSub(std::string &&pPublicSub) noexcept
     dirtyFlag_[6] = true;
 }
 
+const bool &Users::getValueOfEmailVerified() const noexcept
+{
+    static const bool defaultValue = bool();
+    if(emailVerified_)
+        return *emailVerified_;
+    return defaultValue;
+}
+const std::shared_ptr<bool> &Users::getEmailVerified() const noexcept
+{
+    return emailVerified_;
+}
+void Users::setEmailVerified(const bool &pEmailVerified) noexcept
+{
+    emailVerified_ = std::make_shared<bool>(pEmailVerified);
+    dirtyFlag_[7] = true;
+}
+void Users::setEmailVerifiedToNull() noexcept
+{
+    emailVerified_.reset();
+    dirtyFlag_[7] = true;
+}
+
+const bool &Users::getValueOfMfaEnabled() const noexcept
+{
+    static const bool defaultValue = bool();
+    if(mfaEnabled_)
+        return *mfaEnabled_;
+    return defaultValue;
+}
+const std::shared_ptr<bool> &Users::getMfaEnabled() const noexcept
+{
+    return mfaEnabled_;
+}
+void Users::setMfaEnabled(const bool &pMfaEnabled) noexcept
+{
+    mfaEnabled_ = std::make_shared<bool>(pMfaEnabled);
+    dirtyFlag_[8] = true;
+}
+void Users::setMfaEnabledToNull() noexcept
+{
+    mfaEnabled_.reset();
+    dirtyFlag_[8] = true;
+}
+
+const std::string &Users::getValueOfMfaSecret() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(mfaSecret_)
+        return *mfaSecret_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Users::getMfaSecret() const noexcept
+{
+    return mfaSecret_;
+}
+void Users::setMfaSecret(const std::string &pMfaSecret) noexcept
+{
+    mfaSecret_ = std::make_shared<std::string>(pMfaSecret);
+    dirtyFlag_[9] = true;
+}
+void Users::setMfaSecret(std::string &&pMfaSecret) noexcept
+{
+    mfaSecret_ = std::make_shared<std::string>(std::move(pMfaSecret));
+    dirtyFlag_[9] = true;
+}
+void Users::setMfaSecretToNull() noexcept
+{
+    mfaSecret_.reset();
+    dirtyFlag_[9] = true;
+}
+
+const std::string &Users::getValueOfMfaBackupCodes() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(mfaBackupCodes_)
+        return *mfaBackupCodes_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Users::getMfaBackupCodes() const noexcept
+{
+    return mfaBackupCodes_;
+}
+void Users::setMfaBackupCodes(const std::string &pMfaBackupCodes) noexcept
+{
+    mfaBackupCodes_ = std::make_shared<std::string>(pMfaBackupCodes);
+    dirtyFlag_[10] = true;
+}
+void Users::setMfaBackupCodes(std::string &&pMfaBackupCodes) noexcept
+{
+    mfaBackupCodes_ = std::make_shared<std::string>(std::move(pMfaBackupCodes));
+    dirtyFlag_[10] = true;
+}
+void Users::setMfaBackupCodesToNull() noexcept
+{
+    mfaBackupCodes_.reset();
+    dirtyFlag_[10] = true;
+}
+
 void Users::updateId(const uint64_t id)
 {
 }
@@ -652,7 +922,11 @@ const std::vector<std::string> &Users::insertColumns() noexcept
         "salt",
         "email",
         "created_at",
-        "public_sub"
+        "public_sub",
+        "email_verified",
+        "mfa_enabled",
+        "mfa_secret",
+        "mfa_backup_codes"
     };
     return inCols;
 }
@@ -725,6 +999,50 @@ void Users::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getEmailVerified())
+        {
+            binder << getValueOfEmailVerified();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getMfaEnabled())
+        {
+            binder << getValueOfMfaEnabled();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getMfaSecret())
+        {
+            binder << getValueOfMfaSecret();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getMfaBackupCodes())
+        {
+            binder << getValueOfMfaBackupCodes();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Users::updateColumns() const
@@ -753,6 +1071,22 @@ const std::vector<std::string> Users::updateColumns() const
     if(dirtyFlag_[6])
     {
         ret.push_back(getColumnName(6));
+    }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
+    }
+    if(dirtyFlag_[10])
+    {
+        ret.push_back(getColumnName(10));
     }
     return ret;
 }
@@ -825,6 +1159,50 @@ void Users::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getEmailVerified())
+        {
+            binder << getValueOfEmailVerified();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getMfaEnabled())
+        {
+            binder << getValueOfMfaEnabled();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getMfaSecret())
+        {
+            binder << getValueOfMfaSecret();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getMfaBackupCodes())
+        {
+            binder << getValueOfMfaBackupCodes();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Users::toJson() const
 {
@@ -885,6 +1263,38 @@ Json::Value Users::toJson() const
     {
         ret["public_sub"]=Json::Value();
     }
+    if(getEmailVerified())
+    {
+        ret["email_verified"]=getValueOfEmailVerified();
+    }
+    else
+    {
+        ret["email_verified"]=Json::Value();
+    }
+    if(getMfaEnabled())
+    {
+        ret["mfa_enabled"]=getValueOfMfaEnabled();
+    }
+    else
+    {
+        ret["mfa_enabled"]=Json::Value();
+    }
+    if(getMfaSecret())
+    {
+        ret["mfa_secret"]=getValueOfMfaSecret();
+    }
+    else
+    {
+        ret["mfa_secret"]=Json::Value();
+    }
+    if(getMfaBackupCodes())
+    {
+        ret["mfa_backup_codes"]=getValueOfMfaBackupCodes();
+    }
+    else
+    {
+        ret["mfa_backup_codes"]=Json::Value();
+    }
     return ret;
 }
 
@@ -897,7 +1307,7 @@ Json::Value Users::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 11)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -976,6 +1386,50 @@ Json::Value Users::toMasqueradedJson(
                 ret[pMasqueradingVector[6]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getEmailVerified())
+            {
+                ret[pMasqueradingVector[7]]=getValueOfEmailVerified();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getMfaEnabled())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfMfaEnabled();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getMfaSecret())
+            {
+                ret[pMasqueradingVector[9]]=getValueOfMfaSecret();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[10].empty())
+        {
+            if(getMfaBackupCodes())
+            {
+                ret[pMasqueradingVector[10]]=getValueOfMfaBackupCodes();
+            }
+            else
+            {
+                ret[pMasqueradingVector[10]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -1035,6 +1489,38 @@ Json::Value Users::toMasqueradedJson(
     {
         ret["public_sub"]=Json::Value();
     }
+    if(getEmailVerified())
+    {
+        ret["email_verified"]=getValueOfEmailVerified();
+    }
+    else
+    {
+        ret["email_verified"]=Json::Value();
+    }
+    if(getMfaEnabled())
+    {
+        ret["mfa_enabled"]=getValueOfMfaEnabled();
+    }
+    else
+    {
+        ret["mfa_enabled"]=Json::Value();
+    }
+    if(getMfaSecret())
+    {
+        ret["mfa_secret"]=getValueOfMfaSecret();
+    }
+    else
+    {
+        ret["mfa_secret"]=Json::Value();
+    }
+    if(getMfaBackupCodes())
+    {
+        ret["mfa_backup_codes"]=getValueOfMfaBackupCodes();
+    }
+    else
+    {
+        ret["mfa_backup_codes"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1090,13 +1576,33 @@ bool Users::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(6, "public_sub", pJson["public_sub"], err, true))
             return false;
     }
+    if(pJson.isMember("email_verified"))
+    {
+        if(!validJsonOfField(7, "email_verified", pJson["email_verified"], err, true))
+            return false;
+    }
+    if(pJson.isMember("mfa_enabled"))
+    {
+        if(!validJsonOfField(8, "mfa_enabled", pJson["mfa_enabled"], err, true))
+            return false;
+    }
+    if(pJson.isMember("mfa_secret"))
+    {
+        if(!validJsonOfField(9, "mfa_secret", pJson["mfa_secret"], err, true))
+            return false;
+    }
+    if(pJson.isMember("mfa_backup_codes"))
+    {
+        if(!validJsonOfField(10, "mfa_backup_codes", pJson["mfa_backup_codes"], err, true))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                const std::vector<std::string> &pMasqueradingVector,
                                                std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 11)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1173,6 +1679,38 @@ bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[10].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[10]))
+          {
+              if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1223,13 +1761,33 @@ bool Users::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(6, "public_sub", pJson["public_sub"], err, false))
             return false;
     }
+    if(pJson.isMember("email_verified"))
+    {
+        if(!validJsonOfField(7, "email_verified", pJson["email_verified"], err, false))
+            return false;
+    }
+    if(pJson.isMember("mfa_enabled"))
+    {
+        if(!validJsonOfField(8, "mfa_enabled", pJson["mfa_enabled"], err, false))
+            return false;
+    }
+    if(pJson.isMember("mfa_secret"))
+    {
+        if(!validJsonOfField(9, "mfa_secret", pJson["mfa_secret"], err, false))
+            return false;
+    }
+    if(pJson.isMember("mfa_backup_codes"))
+    {
+        if(!validJsonOfField(10, "mfa_backup_codes", pJson["mfa_backup_codes"], err, false))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                              const std::vector<std::string> &pMasqueradingVector,
                                              std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 11)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1273,6 +1831,26 @@ bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+      {
+          if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, false))
               return false;
       }
     }
@@ -1403,6 +1981,58 @@ bool Users::validJsonOfField(size_t index,
             {
                 err="The " + fieldName + " column cannot be null";
                 return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isBool())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isBool())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 9:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 64)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 64)";
+                return false;
+            }
+            break;
+        case 10:
+            if(pJson.isNull())
+            {
+                return true;
             }
             if(!pJson.isString())
             {
