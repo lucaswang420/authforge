@@ -1078,6 +1078,50 @@ void PostgresOAuth2Storage::createSubjectMapping(
     }
 }
 
+void PostgresOAuth2Storage::createUserForExternalLogin(
+  const std::string &externalId,
+  const std::string &provider,
+  OptionalIntCallback &&cb
+)
+{
+    if (!dbClientMaster_)
+    {
+        cb(std::nullopt);
+        return;
+    }
+    auto sharedCb = std::make_shared<OptionalIntCallback>(std::move(cb));
+
+    // Generate a unique username from provider:externalId
+    std::string username = provider + "_" + externalId.substr(0, 20);
+
+    // Insert user with placeholder password (external auth, no local password)
+    dbClientMaster_->execSqlAsync(
+      "INSERT INTO users (username, password_hash, salt, email) "
+      "VALUES ($1, 'EXTERNAL_AUTH_NO_PASSWORD', '', '') "
+      "ON CONFLICT (username) DO UPDATE SET username = users.username "
+      "RETURNING id",
+      [sharedCb, provider, externalId](const drogon::orm::Result &r) {
+          if (r.empty())
+          {
+              LOG_ERROR << "createUserForExternalLogin: no ID returned for "
+                        << provider << ":" << externalId;
+              (*sharedCb)(std::nullopt);
+              return;
+          }
+          int32_t newId = r[0]["id"].as<int32_t>();
+          LOG_INFO << "Created/found user for external login: " << provider << ":" << externalId
+                   << " -> id=" << newId;
+          (*sharedCb)(newId);
+      },
+      [sharedCb, provider, externalId](const drogon::orm::DrogonDbException &e) {
+          LOG_ERROR << "createUserForExternalLogin failed for " << provider << ":" << externalId
+                    << ": " << e.base().what();
+          (*sharedCb)(std::nullopt);
+      },
+      username
+    );
+}
+
 // ========== Authorization Transaction Operations ==========
 
 void PostgresOAuth2Storage::saveAuthorizationTransaction(

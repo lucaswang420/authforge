@@ -70,13 +70,26 @@ void IdentityService::handleFirstTimeLogin(
 
     auto [prov, sub] = utils::SubjectGenerator::parse(subject);
 
-    // Simplification for demo: assign a unique ID
-    static int32_t nextUserId = 1000;
-    int32_t newUserId = nextUserId++;
-
-    storage_->createSubjectMapping(
-      sub, newUserId, prov, [newUserId, callback = std::move(callback)](bool success) {
-          callback(success ? newUserId : 0);
+    // Create a real user in the database via storage interface
+    storage_->createUserForExternalLogin(
+      sub,
+      prov,
+      [this, sub, prov, callback = std::move(callback)](std::optional<int32_t> newUserId) {
+          if (!newUserId || *newUserId == 0)
+          {
+              LOG_ERROR << "Failed to create user for external login: " << prov << ":" << sub;
+              callback(0);
+              return;
+          }
+          // Create subject mapping
+          storage_->createSubjectMapping(
+            sub,
+            *newUserId,
+            prov,
+            [newUserId = *newUserId, callback = std::move(callback)](bool success) {
+                callback(success ? newUserId : 0);
+            }
+          );
       }
     );
 }

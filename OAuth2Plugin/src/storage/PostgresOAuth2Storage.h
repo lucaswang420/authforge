@@ -72,6 +72,12 @@ class PostgresOAuth2Storage : public IOAuth2Storage
       BoolCallback &&cb
     ) override;
 
+    void createUserForExternalLogin(
+      const std::string &externalId,
+      const std::string &provider,
+      OptionalIntCallback &&cb
+    ) override;
+
     // Authorization Transaction Operations
     void saveAuthorizationTransaction(
       const AuthorizationTransaction &transaction,

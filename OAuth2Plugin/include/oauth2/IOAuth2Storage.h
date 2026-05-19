@@ -342,6 +342,25 @@ class IOAuth2Storage
       BoolCallback &&cb
     ) = 0;
 
+    /**
+     * @brief Create a user record for external (third-party) login
+     * Inserts into users table with a placeholder password and returns the new user ID.
+     * Used by handleFirstTimeLogin for Google/WeChat/etc. providers.
+     *
+     * @param externalId External user identifier (e.g., Google sub)
+     * @param provider Provider name (google, wechat, etc.)
+     * @param cb Callback with new internal user ID, or nullopt on failure
+     */
+    virtual void createUserForExternalLogin(
+      const std::string &externalId,
+      const std::string &provider,
+      OptionalIntCallback &&cb
+    )
+    {
+        // Default implementation: not supported (for Memory/Redis backends)
+        cb(std::nullopt);
+    }
+
     // ========== Authorization Transaction Operations ==========
 
     /**
