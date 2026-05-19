@@ -951,8 +951,28 @@ void PostgresOAuth2Storage::getUserRoles(const std::string &userId, StringListCa
     }
     catch (...)
     {
-        LOG_WARN << "getUserRoles: Invalid userId (not int): " << userId;
-        (*sharedCb)({});
+        // Not numeric - try as UUID (public_sub)
+        dbClientReader_->execSqlAsync(
+          "SELECT id FROM users WHERE public_sub::text = $1",
+          [sharedCb, this](const drogon::orm::Result &r) {
+              if (r.empty())
+              {
+                  (*sharedCb)({});
+                  return;
+              }
+              int32_t resolvedId = r[0]["id"].as<int32_t>();
+              // Call the int overload
+              getUserRoles(resolvedId, [sharedCb](std::vector<std::string> roles) {
+                  (*sharedCb)(roles);
+              });
+          },
+          [sharedCb, userId](const drogon::orm::DrogonDbException &e) {
+              LOG_WARN << "getUserRoles: Failed to resolve UUID " << userId << ": "
+                       << e.base().what();
+              (*sharedCb)({});
+          },
+          userId
+        );
         return;
     }
 
@@ -1586,7 +1606,7 @@ void PostgresOAuth2Storage::revokeAccessToken(
 
 void PostgresOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)
 {
-    // Try numeric userId first
+    // Try numeric userId first (legacy)
     try
     {
         int32_t numericUserId = std::stoi(userId);
@@ -1595,9 +1615,39 @@ void PostgresOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonC
     }
     catch (...)
     {
-        // Not a numeric ID, return nullopt
-        cb(std::nullopt);
+        // Not numeric - try as UUID (public_sub)
     }
+
+    if (!dbClientReader_)
+    {
+        cb(std::nullopt);
+        return;
+    }
+
+    auto sharedCb = std::make_shared<OptionalJsonCallback>(std::move(cb));
+    dbClientReader_->execSqlAsync(
+      "SELECT id, username, email FROM users WHERE public_sub::text = $1",
+      [sharedCb](const Result &result) {
+          if (result.empty())
+          {
+              (*sharedCb)(std::nullopt);
+              return;
+          }
+          auto row = result[0];
+          Json::Value userInfo;
+          userInfo["id"] = row["id"].as<int32_t>();
+          if (!row["username"].isNull())
+              userInfo["username"] = row["username"].as<std::string>();
+          if (!row["email"].isNull())
+              userInfo["email"] = row["email"].as<std::string>();
+          (*sharedCb)(userInfo);
+      },
+      [sharedCb](const DrogonDbException &e) {
+          LOG_WARN << "getUserInfo by public_sub failed: " << e.base().what();
+          (*sharedCb)(std::nullopt);
+      },
+      userId
+    );
 }
 
 void PostgresOAuth2Storage::getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb)
