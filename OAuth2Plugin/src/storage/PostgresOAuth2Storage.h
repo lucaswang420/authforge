@@ -38,6 +38,13 @@ class PostgresOAuth2Storage : public IOAuth2Storage
     void saveAccessToken(const OAuth2AccessToken &token, VoidCallback &&cb) override;
     void getAccessToken(const std::string &token, AccessTokenCallback &&cb) override;
 
+    // Transactional token pair save
+    void saveTokenPair(
+      const OAuth2AccessToken &at,
+      const OAuth2RefreshToken &rt,
+      VoidCallback &&cb
+    ) override;
+
     // Refresh Token Operations
     void saveRefreshToken(const OAuth2RefreshToken &token, VoidCallback &&cb) override;
     void getRefreshToken(const std::string &token, RefreshTokenCallback &&cb) override;

@@ -438,72 +438,57 @@ void PostgresOAuth2Storage::consumeAuthCode(
     }
     auto sharedCb = std::make_shared<AuthCodeCallback>(std::move(cb));
 
-    // Use ORM to implement atomic check-and-consume operation
-    // Step 1: Find the auth code
-    try
-    {
-        Mapper<Oauth2Codes> mapper(dbClientMaster_);
-        mapper.findOne(
-          Criteria(Oauth2Codes::Cols::_code, CompareOperator::EQ, code),
-          [sharedCb, code, redirectUri, this](const Oauth2Codes &row) mutable {
-              // Step 2: Check if already used
-              if (row.getValueOfUsed())
-              {
-                  LOG_DEBUG << "[SECURITY] Auth code already used: " << code;
-                  (*sharedCb)(std::nullopt);
-                  return;
-              }
-
-              // Step 2.5: CRITICAL - Validate redirect_uri matches
-              // authorization Per OAuth2 RFC 6749 Section 4.1.3
-              std::string storedRedirectUri = row.getValueOfRedirectUri();
-              if (!redirectUri.empty() && redirectUri != storedRedirectUri)
-              {
-                  LOG_WARN << "[SECURITY] redirect_uri mismatch in token "
-                              "exchange. "
-                           << "Expected: " << storedRedirectUri << ", Got: " << redirectUri
-                           << ", Code: " << code;
-                  (*sharedCb)(std::nullopt);
-                  return;
-              }
-
-              // Step 3: Mark as used using update
-              Mapper<Oauth2Codes> updateMapper(dbClientMaster_);  // Need new mapper for update
-              Oauth2Codes updateObj;
-              updateObj.setCode(code);
-              updateObj.setUsed(true);
-
-              updateMapper.update(
-                updateObj,
-                [sharedCb, row](const size_t) {
-                    // Success: return the consumed auth code data
-                    OAuth2AuthCode c;
-                    c.code = row.getValueOfCode();
-                    c.clientId = row.getValueOfClientId();
-                    c.userId = row.getValueOfUserId();
-                    c.scope = row.getValueOfScope();
-                    c.redirectUri = row.getValueOfRedirectUri();
-                    c.expiresAt = row.getValueOfExpiresAt();
-                    c.used = true;
-                    (*sharedCb)(c);
-                },
-                [sharedCb](const DrogonDbException &e) {
-                    LOG_ERROR << "consumeAuthCode update failed: " << e.base().what();
-                    (*sharedCb)(std::nullopt);
-                }
-              );
-          },
-          [sharedCb](const DrogonDbException &e) {
-              // Code not found
+    // Atomic CAS: UPDATE ... WHERE used=false RETURNING *
+    // This prevents race conditions where two concurrent requests consume the same code
+    dbClientMaster_->execSqlAsync(
+      "UPDATE oauth2_codes SET used = true "
+      "WHERE code = $1 AND used = false "
+      "RETURNING code, client_id, user_id, scope, redirect_uri, "
+      "code_challenge, code_challenge_method, expires_at",
+      [sharedCb, redirectUri, code](const drogon::orm::Result &r) {
+          if (r.empty())
+          {
+              LOG_DEBUG << "[SECURITY] Auth code not found or already used: " << code.substr(0, 8);
               (*sharedCb)(std::nullopt);
+              return;
           }
-        );
-    }
-    catch (...)
-    {
-        LOG_ERROR << "consumeAuthCode Exception";
-        (*sharedCb)(std::nullopt);
-    }
+
+          auto row = r[0];
+
+          // Validate redirect_uri matches (RFC 6749 Section 4.1.3)
+          std::string storedRedirectUri = row["redirect_uri"].isNull()
+                                           ? ""
+                                           : row["redirect_uri"].as<std::string>();
+          if (!redirectUri.empty() && redirectUri != storedRedirectUri)
+          {
+              LOG_WARN << "[SECURITY] redirect_uri mismatch in token exchange. "
+                       << "Expected: " << storedRedirectUri << ", Got: " << redirectUri;
+              (*sharedCb)(std::nullopt);
+              return;
+          }
+
+          OAuth2AuthCode c;
+          c.code = row["code"].as<std::string>();
+          c.clientId = row["client_id"].as<std::string>();
+          c.userId = row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
+          c.scope = row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+          c.redirectUri = storedRedirectUri;
+          c.codeChallenge = row["code_challenge"].isNull()
+                              ? ""
+                              : row["code_challenge"].as<std::string>();
+          c.codeChallengeMethod = row["code_challenge_method"].isNull()
+                                    ? ""
+                                    : row["code_challenge_method"].as<std::string>();
+          c.expiresAt = row["expires_at"].as<int64_t>();
+          c.used = true;
+          (*sharedCb)(c);
+      },
+      [sharedCb, code](const DrogonDbException &e) {
+          LOG_ERROR << "consumeAuthCode atomic SQL error: " << e.base().what();
+          (*sharedCb)(std::nullopt);
+      },
+      code
+    );
 }
 
 void PostgresOAuth2Storage::saveAccessToken(
@@ -548,6 +533,91 @@ void PostgresOAuth2Storage::saveAccessToken(
         if (*sharedCb)
             (*sharedCb)();
     }
+}
+
+void PostgresOAuth2Storage::saveTokenPair(
+  const OAuth2AccessToken &at,
+  const OAuth2RefreshToken &rt,
+  IOAuth2Storage::VoidCallback &&cb
+)
+{
+    if (!dbClientMaster_)
+    {
+        if (cb)
+            cb();
+        return;
+    }
+    auto sharedCb = std::make_shared<VoidCallback>(std::move(cb));
+
+    // Use a transaction to ensure both tokens are saved atomically
+    auto transPtr = dbClientMaster_->newTransaction();
+    transPtr->execSqlAsync(
+      "INSERT INTO oauth2_access_tokens (token, client_id, user_id, scope, expires_at, revoked) "
+      "VALUES ($1, $2, $3, $4, $5, $6)",
+      [transPtr, sharedCb, rt](const drogon::orm::Result &) {
+          // Access token saved, now save refresh token
+          if (rt.familyId.empty())
+          {
+              transPtr->execSqlAsync(
+                "INSERT INTO oauth2_refresh_tokens "
+                "(token, access_token, client_id, user_id, scope, expires_at, revoked) "
+                "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                [sharedCb](const drogon::orm::Result &) {
+                    if (*sharedCb)
+                        (*sharedCb)();
+                },
+                [sharedCb](const DrogonDbException &e) {
+                    LOG_ERROR << "saveTokenPair (refresh) failed: " << e.base().what();
+                    if (*sharedCb)
+                        (*sharedCb)();
+                },
+                rt.token,
+                rt.accessToken,
+                rt.clientId,
+                rt.userId,
+                rt.scope,
+                rt.expiresAt,
+                rt.revoked
+              );
+          }
+          else
+          {
+              transPtr->execSqlAsync(
+                "INSERT INTO oauth2_refresh_tokens "
+                "(token, access_token, client_id, user_id, scope, expires_at, revoked, family_id) "
+                "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                [sharedCb](const drogon::orm::Result &) {
+                    if (*sharedCb)
+                        (*sharedCb)();
+                },
+                [sharedCb](const DrogonDbException &e) {
+                    LOG_ERROR << "saveTokenPair (refresh) failed: " << e.base().what();
+                    if (*sharedCb)
+                        (*sharedCb)();
+                },
+                rt.token,
+                rt.accessToken,
+                rt.clientId,
+                rt.userId,
+                rt.scope,
+                rt.expiresAt,
+                rt.revoked,
+                rt.familyId
+              );
+          }
+      },
+      [sharedCb](const DrogonDbException &e) {
+          LOG_ERROR << "saveTokenPair (access) failed: " << e.base().what();
+          if (*sharedCb)
+              (*sharedCb)();
+      },
+      at.token,
+      at.clientId,
+      at.userId,
+      at.scope,
+      at.expiresAt,
+      at.revoked
+    );
 }
 
 void PostgresOAuth2Storage::getAccessToken(

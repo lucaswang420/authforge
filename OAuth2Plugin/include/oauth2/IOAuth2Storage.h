@@ -219,6 +219,29 @@ class IOAuth2Storage
      */
     virtual void getAccessToken(const std::string &token, AccessTokenCallback &&cb) = 0;
 
+    // ========== Token Pair Operations (Transactional) ==========
+
+    /**
+     * @brief Save access token + refresh token as an atomic pair
+     * Default implementation calls saveAccessToken then saveRefreshToken sequentially.
+     * PostgreSQL override uses a database transaction for atomicity.
+     *
+     * @param at Access token to save
+     * @param rt Refresh token to save
+     * @param cb Callback invoked when both are saved (or on failure)
+     */
+    virtual void saveTokenPair(
+      const OAuth2AccessToken &at,
+      const OAuth2RefreshToken &rt,
+      VoidCallback &&cb
+    )
+    {
+        // Default: sequential (non-transactional) for Memory/Redis
+        saveAccessToken(at, [this, rt, cb = std::move(cb)]() mutable {
+            saveRefreshToken(rt, std::move(cb));
+        });
+    }
+
     // ========== Refresh Token Operations ==========
 
     /**

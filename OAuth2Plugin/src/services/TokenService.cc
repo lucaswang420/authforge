@@ -161,20 +161,16 @@ void TokenService::exchangeCodeForToken(
                       refreshToken.expiresAt = now + refreshTokenTtl_;
                       refreshToken.familyId = familyId;
 
-                      storage_->saveAccessToken(
-                        token, [this, callback, tokenStr, refreshTokenStr, refreshToken, rolesJson]() {
-                            storage_->saveRefreshToken(
-                              refreshToken, [callback, tokenStr, refreshTokenStr, rolesJson]() {
-                                  Json::Value json;
-                                  json["access_token"] = tokenStr;
-                                  json["token_type"] = "Bearer";
-                                  json["expires_in"] =
-                                    (Json::Int64)(3600);  // approximate
-                                  json["refresh_token"] = refreshTokenStr;
-                                  json["roles"] = rolesJson;
-                                  callback(json);
-                              }
-                            );
+                      storage_->saveTokenPair(
+                        token, refreshToken,
+                        [callback, tokenStr, refreshTokenStr, rolesJson]() {
+                            Json::Value json;
+                            json["access_token"] = tokenStr;
+                            json["token_type"] = "Bearer";
+                            json["expires_in"] = (Json::Int64)(3600);
+                            json["refresh_token"] = refreshTokenStr;
+                            json["roles"] = rolesJson;
+                            callback(json);
                         }
                       );
                   }
@@ -273,18 +269,15 @@ void TokenService::refreshAccessToken(
           newRt.expiresAt = now + refreshTokenTtl_;
           newRt.familyId = storedRt->familyId;  // Inherit family
 
-          storage_->saveAccessToken(
-            token, [this, callback, newTokenStr, newRefreshTokenStr, newRt]() {
-                storage_->saveRefreshToken(
-                  newRt, [callback, newTokenStr, newRefreshTokenStr]() {
-                      Json::Value json;
-                      json["access_token"] = newTokenStr;
-                      json["token_type"] = "Bearer";
-                      json["expires_in"] = (Json::Int64)3600;
-                      json["refresh_token"] = newRefreshTokenStr;
-                      callback(json);
-                  }
-                );
+          storage_->saveTokenPair(
+            token, newRt,
+            [callback, newTokenStr, newRefreshTokenStr]() {
+                Json::Value json;
+                json["access_token"] = newTokenStr;
+                json["token_type"] = "Bearer";
+                json["expires_in"] = (Json::Int64)3600;
+                json["refresh_token"] = newRefreshTokenStr;
+                callback(json);
             }
           );
       }
