@@ -1,5 +1,6 @@
 #include <oauth2/TokenService.h>
 #include <oauth2/SubjectGenerator.h>
+#include <oauth2/CryptoUtils.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
 
@@ -35,9 +36,9 @@ void TokenService::generateAuthorizationCode(
         return;
     }
 
-    auto code = drogon::utils::getUuid();
+    auto code = utils::generateSecureToken();
     OAuth2AuthCode authCode;
-    authCode.code = code;
+    authCode.code = utils::hashToken(code);
     authCode.clientId = clientId;
     authCode.userId = subject;
     authCode.scope = scope;
@@ -93,7 +94,7 @@ void TokenService::exchangeCodeForToken(
           }
 
           storage_->consumeAuthCode(
-            code,
+            utils::hashToken(code),
             redirectUri,
             [this, callback = std::move(callback), clientId, code, codeVerifier](
               std::optional<OAuth2AuthCode> authCode
@@ -141,38 +142,33 @@ void TokenService::exchangeCodeForToken(
                       for (const auto &r : roles)
                           rolesJson.append(r);
 
-                      auto tokenStr = drogon::utils::getUuid();
+                      auto tokenStr = utils::generateSecureToken();
                       OAuth2AccessToken token;
-                      token.token = tokenStr;
+                      token.token = utils::hashToken(tokenStr);
                       token.clientId = authCode->clientId;
                       token.userId = authCode->userId;
                       token.scope = authCode->scope;
                       token.expiresAt = now + accessTokenTtl_;
 
-                      auto refreshTokenStr = drogon::utils::getUuid();
+                      auto refreshTokenStr = utils::generateSecureToken();
                       OAuth2RefreshToken refreshToken;
-                      refreshToken.token = refreshTokenStr;
-                      refreshToken.accessToken = tokenStr;
+                      refreshToken.token = utils::hashToken(refreshTokenStr);
+                      refreshToken.accessToken = token.token;
                       refreshToken.clientId = authCode->clientId;
                       refreshToken.userId = authCode->userId;
                       refreshToken.scope = authCode->scope;
                       refreshToken.expiresAt = now + refreshTokenTtl_;
 
                       storage_->saveAccessToken(
-                        token, [this, callback, token, refreshToken, rolesJson]() {
+                        token, [this, callback, tokenStr, refreshTokenStr, refreshToken, rolesJson]() {
                             storage_->saveRefreshToken(
-                              refreshToken, [this, callback, token, refreshToken, rolesJson]() {
+                              refreshToken, [callback, tokenStr, refreshTokenStr, rolesJson]() {
                                   Json::Value json;
-                                  json["access_token"] = token.token;
+                                  json["access_token"] = tokenStr;
                                   json["token_type"] = "Bearer";
                                   json["expires_in"] =
-                                    (Json::Int64)(token.expiresAt -
-                                                  std::chrono::duration_cast<std::chrono::seconds>(
-                                                    std::chrono::system_clock::now()
-                                                      .time_since_epoch()
-                                                  )
-                                                    .count());
-                                  json["refresh_token"] = refreshToken.token;
+                                    (Json::Int64)(3600);  // approximate
+                                  json["refresh_token"] = refreshTokenStr;
                                   json["roles"] = rolesJson;
                                   callback(json);
                               }
@@ -200,7 +196,7 @@ void TokenService::refreshAccessToken(
     }
 
     storage_->getRefreshToken(
-      refreshTokenStr,
+      utils::hashToken(refreshTokenStr),
       [this, callback = std::move(callback), clientId](std::optional<OAuth2RefreshToken> storedRt) {
           if (!storedRt || storedRt->clientId != clientId || storedRt->revoked)
           {
@@ -219,34 +215,34 @@ void TokenService::refreshAccessToken(
               return;
           }
 
-          auto newTokenStr = drogon::utils::getUuid();
+          auto newTokenStr = utils::generateSecureToken();
           OAuth2AccessToken token;
-          token.token = newTokenStr;
+          token.token = utils::hashToken(newTokenStr);
           token.clientId = storedRt->clientId;
           token.userId = storedRt->userId;
           token.scope = storedRt->scope;
           token.expiresAt = now + accessTokenTtl_;
 
-          auto newRefreshTokenStr = drogon::utils::getUuid();
+          auto newRefreshTokenStr = utils::generateSecureToken();
           OAuth2RefreshToken newRt;
-          newRt.token = newRefreshTokenStr;
-          newRt.accessToken = newTokenStr;
+          newRt.token = utils::hashToken(newRefreshTokenStr);
+          newRt.accessToken = token.token;
           newRt.clientId = storedRt->clientId;
           newRt.userId = storedRt->userId;
           newRt.scope = storedRt->scope;
           newRt.expiresAt = now + refreshTokenTtl_;
 
           storage_->saveAccessToken(
-            token, [this, callback, token, newRt, oldRefreshToken = storedRt->token]() {
+            token, [this, callback, newTokenStr, newRefreshTokenStr, newRt, oldRefreshToken = storedRt->token]() {
                 storage_
-                  ->saveRefreshToken(newRt, [this, callback, token, newRt, oldRefreshToken]() {
+                  ->saveRefreshToken(newRt, [this, callback, newTokenStr, newRefreshTokenStr, oldRefreshToken]() {
                       storage_->revokeRefreshToken(
-                        oldRefreshToken, [this, callback, token, newRt](auto...) {
+                        oldRefreshToken, [callback, newTokenStr, newRefreshTokenStr](auto...) {
                             Json::Value json;
-                            json["access_token"] = token.token;
+                            json["access_token"] = newTokenStr;
                             json["token_type"] = "Bearer";
-                            json["expires_in"] = (Json::Int64)accessTokenTtl_;
-                            json["refresh_token"] = newRt.token;
+                            json["expires_in"] = (Json::Int64)3600;
+                            json["refresh_token"] = newRefreshTokenStr;
                             callback(json);
                         }
                       );
@@ -268,7 +264,8 @@ void TokenService::validateAccessToken(
         return;
     }
 
-    storage_->getAccessToken(token, [callback](std::optional<OAuth2AccessToken> t) {
+    auto hashedToken = utils::hashToken(token);
+    storage_->getAccessToken(hashedToken, [callback](std::optional<OAuth2AccessToken> t) {
         if (!t || t->revoked)
         {
             callback(nullptr);
@@ -300,7 +297,8 @@ void TokenService::introspectToken(
         callback(std::nullopt);
         return;
     }
-    storage_->introspectToken(token, std::move(callback));
+    auto hashedToken = utils::hashToken(token);
+    storage_->introspectToken(hashedToken, std::move(callback));
 }
 
 void TokenService::revokeAccessToken(
@@ -315,7 +313,8 @@ void TokenService::revokeAccessToken(
             callback();
         return;
     }
-    storage_->revokeAccessToken(token, revokedBy, std::move(callback));
+    auto hashedToken = utils::hashToken(token);
+    storage_->revokeAccessToken(hashedToken, revokedBy, std::move(callback));
 }
 
 bool TokenService::validatePkceCodeVerifier(

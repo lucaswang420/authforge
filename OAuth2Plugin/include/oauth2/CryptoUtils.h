@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 #include <drogon/utils/Utilities.h>
-#include <openssl/evp.h>
+
+// Forward declare OpenSSL types only when needed in implementation
+// For header-only functions, we use Drogon's wrappers which handle OpenSSL internally
 
 namespace oauth2
 {
@@ -40,20 +42,28 @@ inline std::string base64UrlEncode(const unsigned char *bytes, size_t length)
 /**
  * @brief Compute SHA-256 hash (RFC 7636 for PKCE)
  *
+ * Uses Drogon's getSha256 which returns a hex string, then converts to binary.
+ *
  * @param data Input data
- * @return SHA-256 hash (32 bytes)
+ * @return SHA-256 hash as vector of unsigned chars (32 bytes)
  */
 inline std::vector<unsigned char> sha256(const std::string &data)
 {
-    const int SHA256_DIGEST_LENGTH = 32;
-    std::vector<unsigned char> hash(SHA256_DIGEST_LENGTH);
-
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
-    EVP_DigestUpdate(ctx, data.c_str(), data.length());
-    EVP_DigestFinal_ex(ctx, hash.data(), nullptr);
-    EVP_MD_CTX_free(ctx);
-
+    // Drogon getSha256 returns lowercase hex string (64 chars)
+    std::string hexStr = drogon::utils::getSha256(data.data(), data.length());
+    std::vector<unsigned char> hash;
+    hash.reserve(32);
+    for (size_t i = 0; i + 1 < hexStr.size(); i += 2)
+    {
+        unsigned char byte = 0;
+        char hi = hexStr[i];
+        char lo = hexStr[i + 1];
+        byte = static_cast<unsigned char>(
+            ((hi >= 'a' ? hi - 'a' + 10 : hi - '0') << 4) |
+            (lo >= 'a' ? lo - 'a' + 10 : lo - '0')
+        );
+        hash.push_back(byte);
+    }
     return hash;
 }
 
@@ -140,6 +150,42 @@ inline bool isValidCodeChallenge(const std::string &codeChallenge)
     }
 
     return true;
+}
+
+/**
+ * @brief Generate a cryptographically secure random token
+ *
+ * Uses Drogon's secureRandomBytes to generate high-entropy random data,
+ * then encodes it as base64url (no padding).
+ * Default 32 bytes = 256 bits of entropy, producing a 43-character string.
+ *
+ * @param bytes Number of random bytes (default 32 = 256 bits)
+ * @return Base64URL encoded random token string
+ */
+inline std::string generateSecureToken(size_t bytes = 32)
+{
+    std::vector<unsigned char> buffer(bytes);
+    if (!drogon::utils::secureRandomBytes(buffer.data(), bytes))
+    {
+        // Fallback to Drogon UUID if secure random fails (should never happen)
+        return drogon::utils::getUuid() + drogon::utils::getUuid();
+    }
+    return base64UrlEncode(buffer.data(), buffer.size());
+}
+
+/**
+ * @brief Hash a token for secure storage
+ *
+ * Computes SHA-256 of the raw token and returns lowercase hex string (64 chars).
+ * Used to store tokens in the database without exposing the raw value.
+ * On lookup, the raw token from the client is hashed before querying.
+ *
+ * @param rawToken The raw token string (as returned to the client)
+ * @return Lowercase hex SHA-256 hash (64 characters)
+ */
+inline std::string hashToken(const std::string &rawToken)
+{
+    return drogon::utils::getSha256(rawToken.data(), rawToken.length());
 }
 
 }  // namespace utils
