@@ -2,8 +2,10 @@
 #include "../AuthService.h"
 #include "EmailVerificationController.h"
 #include <drogon/drogon.h>
+#include <drogon/HttpClient.h>
 #include <oauth2/OAuth2Metrics.h>
 #include <oauth2/OAuth2Plugin.h>
+#include <oauth2/JwkManager.h>
 #include <oauth2/AuditLogger.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
@@ -400,21 +402,173 @@ void OAuth2Controller::registerUser(
 
 // ...
 
+namespace
+{
+/**
+ * @brief Send backchannel logout notifications to all clients with a configured
+ * backchannel_logout_uri for the given user.
+ *
+ * This is fire-and-forget: failures are logged but do not affect the logout response.
+ */
+void sendBackchannelLogoutNotifications(const std::string &userPublicSub)
+{
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+        return;
+
+    auto jwkManager = plugin->getJwkManager();
+    if (!jwkManager || !jwkManager->isInitialized())
+    {
+        LOG_WARN << "Backchannel logout: JwkManager not initialized, skipping notifications";
+        return;
+    }
+
+    // Get issuer from config
+    auto customConfig = drogon::app().getCustomConfig();
+    std::string issuer = "http://localhost:5555";
+    if (customConfig.isMember("metadata") && customConfig["metadata"].isMember("issuer"))
+    {
+        issuer = customConfig["metadata"]["issuer"].asString();
+    }
+
+    // Query clients with backchannel_logout_uri that the user has authorized
+    auto db = drogon::app().getDbClient();
+    if (!db)
+    {
+        LOG_ERROR << "Backchannel logout: No DB client available";
+        return;
+    }
+
+    db->execSqlAsync(
+      "SELECT c.client_id, c.backchannel_logout_uri "
+      "FROM oauth2_clients c "
+      "JOIN oauth2_user_consents uc ON c.client_id = uc.client_id "
+      "WHERE uc.internal_user_id = (SELECT id FROM users WHERE public_sub::text = $1::text) "
+      "AND c.backchannel_logout_uri IS NOT NULL "
+      "AND c.backchannel_logout_uri != ''",
+      [jwkManager, issuer, userPublicSub](const drogon::orm::Result &result) {
+          if (result.empty())
+          {
+              LOG_DEBUG << "Backchannel logout: No clients with backchannel_logout_uri for user "
+                        << userPublicSub;
+              return;
+          }
+
+          for (const auto &row : result)
+          {
+              std::string clientId = row["client_id"].as<std::string>();
+              std::string logoutUri = row["backchannel_logout_uri"].as<std::string>();
+
+              // Build logout_token claims
+              auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                           std::chrono::system_clock::now().time_since_epoch()
+              )
+                           .count();
+
+              Json::Value claims;
+              claims["iss"] = issuer;
+              claims["sub"] = userPublicSub;
+              claims["aud"] = clientId;
+              claims["iat"] = (Json::Int64)now;
+              claims["jti"] = drogon::utils::getUuid();
+
+              // OIDC backchannel logout event claim
+              Json::Value events;
+              events["http://schemas.openid.net/event/backchannel-logout"] = Json::objectValue;
+              claims["events"] = events;
+
+              std::string logoutToken = jwkManager->signJwt(claims);
+              if (logoutToken.empty())
+              {
+                  LOG_ERROR << "Backchannel logout: Failed to sign logout_token for client "
+                            << clientId;
+                  continue;
+              }
+
+              LOG_INFO << "Backchannel logout: Sending logout_token to client " << clientId
+                       << " at " << logoutUri;
+
+              // Fire-and-forget POST to the client's backchannel_logout_uri
+              try
+              {
+                  auto client = drogon::HttpClient::newHttpClient(logoutUri);
+                  auto request = drogon::HttpRequest::newHttpRequest();
+                  request->setMethod(drogon::Post);
+                  request->setPath("/");  // Path is already in the full URI
+                  request->setContentTypeCode(drogon::CT_APPLICATION_X_FORM);
+                  request->setBody("logout_token=" + logoutToken);
+
+                  client->sendRequest(
+                    request,
+                    [clientId, logoutUri](drogon::ReqResult result, const drogon::HttpResponsePtr &resp) {
+                        if (result == drogon::ReqResult::Ok && resp)
+                        {
+                            LOG_INFO << "Backchannel logout: Client " << clientId << " responded "
+                                     << resp->getStatusCode();
+                        }
+                        else
+                        {
+                            LOG_WARN << "Backchannel logout: Failed to notify client " << clientId
+                                     << " at " << logoutUri;
+                        }
+                    }
+                  );
+              }
+              catch (const std::exception &e)
+              {
+                  LOG_ERROR << "Backchannel logout: Exception sending to client " << clientId
+                            << ": " << e.what();
+              }
+          }
+      },
+      [userPublicSub](const drogon::orm::DrogonDbException &e) {
+          LOG_ERROR << "Backchannel logout: DB query failed for user " << userPublicSub << ": "
+                    << e.base().what();
+      },
+      userPublicSub
+    );
+}
+}  // namespace
+
 void OAuth2Controller::logout(
   const HttpRequestPtr &req,
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
-    auto middleware = std::make_shared<oauth2::filters::OAuth2Middleware>();
-    middleware->doFilter(
-      req,
-      [&](const HttpResponsePtr &resp) { callback(resp); },  // Filter 拦截失败（返�?401/error�?
-      [&]() {                                                // Filter 校验通过
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setStatusCode(k200OK);
-          callback(resp);
-      }
-    );
+    // The OAuth2Middleware filter has already validated the token and set attributes
+    auto attrs = req->getAttributes();
+    std::string userId = attrs->get<std::string>("userId");
+    std::string clientId = attrs->get<std::string>("clientId");
+
+    // Extract the bearer token for revocation
+    auto authHeader = req->getHeader("Authorization");
+    std::string token = authHeader.substr(7);  // Remove "Bearer "
+
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+    {
+        LOG_ERROR << "OAuth2 Plugin not loaded during logout";
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("Internal Server Error: Plugin not loaded");
+        callback(resp);
+        return;
+    }
+
+    // Revoke the access token
+    plugin->revokeAccessToken(token, clientId, [userId, callback = std::move(callback)]() mutable {
+        LOG_INFO << "Logout: Token revoked for user " << userId;
+
+        // Send backchannel logout notifications (fire-and-forget)
+        sendBackchannelLogoutNotifications(userId);
+
+        // Respond immediately without waiting for backchannel notifications
+        Json::Value json;
+        json["message"] = "Logged out successfully";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k200OK);
+        callback(resp);
+    });
 }
 
 void OAuth2Controller::healthLive(
