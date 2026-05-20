@@ -535,13 +535,23 @@ void OAuth2Controller::logout(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
+    // Check Authorization header (OAuth2Middleware normally handles this,
+    // but direct calls in tests may bypass the filter)
+    auto authHeader = req->getHeader("Authorization");
+    if (authHeader.empty() || authHeader.length() < 8 || authHeader.substr(0, 7) != "Bearer ")
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k401Unauthorized);
+        resp->setBody("Missing or invalid Authorization header");
+        callback(resp);
+        return;
+    }
+
     // The OAuth2Middleware filter has already validated the token and set attributes
     auto attrs = req->getAttributes();
     std::string userId = attrs->get<std::string>("userId");
     std::string clientId = attrs->get<std::string>("clientId");
 
-    // Extract the bearer token for revocation
-    auto authHeader = req->getHeader("Authorization");
     std::string token = authHeader.substr(7);  // Remove "Bearer "
 
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();

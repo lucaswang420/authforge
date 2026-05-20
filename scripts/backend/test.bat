@@ -46,7 +46,7 @@ cd /d "%PROJECT_DIR%\build"
 REM --- Run 1: Standard config.json ---
 echo.
 echo [1/2] Running tests with standard config.json...
-ctest -C %BUILD_TYPE% %VERBOSE%
+ctest -V -C %BUILD_TYPE% %VERBOSE%
 if errorlevel 1 (
     echo [FAIL] Tests failed with standard config.json
     exit /b 1
@@ -66,7 +66,7 @@ if exist "%PROJECT_DIR%\OAuth2Server\config.ci.json" (
     copy /Y "%TEST_WORK_DIR%\config.json" "%TEST_WORK_DIR%\config.json.bak" >nul
     copy /Y "%PROJECT_DIR%\OAuth2Server\config.ci.json" "%TEST_WORK_DIR%\config.json" >nul
     
-    ctest -C %BUILD_TYPE% %VERBOSE%
+    ctest -V -C %BUILD_TYPE% %VERBOSE%
     set CI_RESULT=%errorlevel%
     
     REM Restore original config

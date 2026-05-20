@@ -176,6 +176,11 @@ int main()
     if (!std::filesystem::exists(configPath))
         configPath = "../../../config.json";
 
+    if (!std::filesystem::exists(configPath))
+    {
+        std::cerr << "WARNING: config.json not found during pre-start check." << std::endl;
+        return 1;
+    }
     // Ensure log directory exists
     createLogDirFromConfig(configPath);
 

@@ -218,6 +218,7 @@ int main(int argc, char **argv)
     else
     {
         std::cerr << "WARNING: config.json not found during pre-start check." << std::endl;
+        return 1;
     }
 
     std::promise<void> p1;
@@ -272,6 +273,7 @@ int main(int argc, char **argv)
     {
         std::cerr << "TIMEOUT: drogon app failed to start within 60s!" << std::endl;
         std::_Exit(1);
+        return 1;
     }
     f1.get();
 

@@ -30,7 +30,18 @@ set PASSED=0
 set FAILED=0
 
 REM Run all tests via a single PowerShell script for reliability
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0test-oauth2-endpoints.ps1" -BaseUrl "%BASE_URL%"
+for %%I in ("%~dp0.") do set "SCRIPT_DIR=%%~fI\"
+set "PS_SCRIPT=%SCRIPT_DIR%test-oauth2-endpoints.ps1"
+if not exist "%PS_SCRIPT%" (
+    echo ERROR: PowerShell script not found at %PS_SCRIPT%
+    echo Trying alternate path...
+    set "PS_SCRIPT=%~dp0\test-oauth2-endpoints.ps1"
+)
+if not exist "%PS_SCRIPT%" (
+    REM Last resort: look relative to current directory
+    set "PS_SCRIPT=scripts\backend\test-oauth2-endpoints.ps1"
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" -BaseUrl "%BASE_URL%"
 if %ERRORLEVEL% neq 0 (
     echo.
     echo === Testing Failed ===
