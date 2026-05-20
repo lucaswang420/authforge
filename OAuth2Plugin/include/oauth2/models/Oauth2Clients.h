@@ -43,6 +43,7 @@ class Oauth2ClientScopes;
 class Oauth2Codes;
 class Oauth2RefreshTokens;
 class Oauth2Scopes;
+class Organizations;
 
 class Oauth2Clients
 {
@@ -56,6 +57,9 @@ class Oauth2Clients
         static const std::string _name;
         static const std::string _redirect_uris;
         static const std::string _allowed_grant_types;
+        static const std::string _backchannel_logout_uri;
+        static const std::string _backchannel_logout_session_required;
+        static const std::string _org_id;
     };
 
     static const int primaryKeyNumber;
@@ -173,8 +177,36 @@ class Oauth2Clients
     void setAllowedGrantTypes(std::string &&pAllowedGrantTypes) noexcept;
     void setAllowedGrantTypesToNull() noexcept;
 
+    /**  For column backchannel_logout_uri  */
+    ///Get the value of the column backchannel_logout_uri, returns the default value if the column is null
+    const std::string &getValueOfBackchannelLogoutUri() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getBackchannelLogoutUri() const noexcept;
+    ///Set the value of the column backchannel_logout_uri
+    void setBackchannelLogoutUri(const std::string &pBackchannelLogoutUri) noexcept;
+    void setBackchannelLogoutUri(std::string &&pBackchannelLogoutUri) noexcept;
+    void setBackchannelLogoutUriToNull() noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 7;  }
+    /**  For column backchannel_logout_session_required  */
+    ///Get the value of the column backchannel_logout_session_required, returns the default value if the column is null
+    const bool &getValueOfBackchannelLogoutSessionRequired() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<bool> &getBackchannelLogoutSessionRequired() const noexcept;
+    ///Set the value of the column backchannel_logout_session_required
+    void setBackchannelLogoutSessionRequired(const bool &pBackchannelLogoutSessionRequired) noexcept;
+    void setBackchannelLogoutSessionRequiredToNull() noexcept;
+
+    /**  For column org_id  */
+    ///Get the value of the column org_id, returns the default value if the column is null
+    const int32_t &getValueOfOrgId() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int32_t> &getOrgId() const noexcept;
+    ///Set the value of the column org_id
+    void setOrgId(const int32_t &pOrgId) noexcept;
+    void setOrgIdToNull() noexcept;
+
+
+    static size_t getColumnNumber() noexcept {  return 10;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -197,6 +229,10 @@ class Oauth2Clients
     void getScope(const drogon::orm::DbClientPtr &clientPtr,
                   const std::function<void(std::vector<std::pair<Oauth2Scopes,Oauth2ClientScopes>>)> &rcb,
                   const drogon::orm::ExceptionCallback &ecb) const;
+    Organizations getOrganizations(const drogon::orm::DbClientPtr &clientPtr) const;
+    void getOrganizations(const drogon::orm::DbClientPtr &clientPtr,
+                          const std::function<void(Organizations)> &rcb,
+                          const drogon::orm::ExceptionCallback &ecb) const;
   private:
     friend drogon::orm::Mapper<Oauth2Clients>;
     friend drogon::orm::BaseBuilder<Oauth2Clients, true, true>;
@@ -219,6 +255,9 @@ class Oauth2Clients
     std::shared_ptr<std::string> name_;
     std::shared_ptr<std::string> redirectUris_;
     std::shared_ptr<std::string> allowedGrantTypes_;
+    std::shared_ptr<std::string> backchannelLogoutUri_;
+    std::shared_ptr<bool> backchannelLogoutSessionRequired_;
+    std::shared_ptr<int32_t> orgId_;
     struct MetaData
     {
         const std::string colName_;
@@ -230,7 +269,7 @@ class Oauth2Clients
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[7]={ false };
+    bool dirtyFlag_[10]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -284,6 +323,22 @@ class Oauth2Clients
             sql += "allowed_grant_types,";
             ++parametersCount;
         }
+        if(dirtyFlag_[7])
+        {
+            sql += "backchannel_logout_uri,";
+            ++parametersCount;
+        }
+        sql += "backchannel_logout_session_required,";
+        ++parametersCount;
+        if(!dirtyFlag_[8])
+        {
+            needSelection=true;
+        }
+        if(dirtyFlag_[9])
+        {
+            sql += "org_id,";
+            ++parametersCount;
+        }
         if(parametersCount > 0)
         {
             sql[sql.length()-1]=')';
@@ -330,6 +385,25 @@ class Oauth2Clients
             sql.append(placeholderStr, n);
         }
         if(dirtyFlag_[6])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        if(dirtyFlag_[7])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        if(dirtyFlag_[8])
+        {
+            n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
+            sql.append(placeholderStr, n);
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[9])
         {
             n = snprintf(placeholderStr,sizeof(placeholderStr),"$%d,",placeholder++);
             sql.append(placeholderStr, n);

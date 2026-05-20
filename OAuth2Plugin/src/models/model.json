@@ -6,6 +6,7 @@
     "user": "test",
     "passwd": "123456",
     "tables": [
+        "organizations",
         "users",
         "roles",
         "permissions",

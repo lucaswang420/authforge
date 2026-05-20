@@ -11,6 +11,7 @@
 #include "Oauth2Codes.h"
 #include "Oauth2RefreshTokens.h"
 #include "Oauth2Scopes.h"
+#include "Organizations.h"
 #include <drogon/utils/Utilities.h>
 #include <string>
 
@@ -25,6 +26,9 @@ const std::string Oauth2Clients::Cols::_salt = "\"salt\"";
 const std::string Oauth2Clients::Cols::_name = "\"name\"";
 const std::string Oauth2Clients::Cols::_redirect_uris = "\"redirect_uris\"";
 const std::string Oauth2Clients::Cols::_allowed_grant_types = "\"allowed_grant_types\"";
+const std::string Oauth2Clients::Cols::_backchannel_logout_uri = "\"backchannel_logout_uri\"";
+const std::string Oauth2Clients::Cols::_backchannel_logout_session_required = "\"backchannel_logout_session_required\"";
+const std::string Oauth2Clients::Cols::_org_id = "\"org_id\"";
 const std::string Oauth2Clients::primaryKeyName = "client_id";
 const bool Oauth2Clients::hasPrimaryKey = true;
 const std::string Oauth2Clients::tableName = "\"oauth2_clients\"";
@@ -36,7 +40,10 @@ const std::vector<typename Oauth2Clients::MetaData> Oauth2Clients::metaData_={
 {"salt","std::string","character varying",50,0,0,1},
 {"name","std::string","character varying",100,0,0,0},
 {"redirect_uris","std::string","text",0,0,0,0},
-{"allowed_grant_types","std::string","text",0,0,0,0}
+{"allowed_grant_types","std::string","text",0,0,0,0},
+{"backchannel_logout_uri","std::string","character varying",512,0,0,0},
+{"backchannel_logout_session_required","bool","boolean",1,0,0,0},
+{"org_id","int32_t","integer",4,0,0,0}
 };
 const std::string &Oauth2Clients::getColumnName(size_t index) noexcept(false)
 {
@@ -75,11 +82,23 @@ Oauth2Clients::Oauth2Clients(const Row &r, const ssize_t indexOffset) noexcept
         {
             allowedGrantTypes_=std::make_shared<std::string>(r["allowed_grant_types"].as<std::string>());
         }
+        if(!r["backchannel_logout_uri"].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(r["backchannel_logout_uri"].as<std::string>());
+        }
+        if(!r["backchannel_logout_session_required"].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(r["backchannel_logout_session_required"].as<bool>());
+        }
+        if(!r["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>(r["org_id"].as<int32_t>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 10 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -120,13 +139,28 @@ Oauth2Clients::Oauth2Clients(const Row &r, const ssize_t indexOffset) noexcept
         {
             allowedGrantTypes_=std::make_shared<std::string>(r[index].as<std::string>());
         }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(r[index].as<bool>());
+        }
+        index = offset + 9;
+        if(!r[index].isNull())
+        {
+            orgId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+        }
     }
 
 }
 
 Oauth2Clients::Oauth2Clients(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -185,6 +219,30 @@ Oauth2Clients::Oauth2Clients(const Json::Value &pJson, const std::vector<std::st
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
             allowedGrantTypes_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(pJson[pMasqueradingVector[8]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[9]].asInt64());
         }
     }
 }
@@ -247,12 +305,36 @@ Oauth2Clients::Oauth2Clients(const Json::Value &pJson) noexcept(false)
             allowedGrantTypes_=std::make_shared<std::string>(pJson["allowed_grant_types"].asString());
         }
     }
+    if(pJson.isMember("backchannel_logout_uri"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["backchannel_logout_uri"].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(pJson["backchannel_logout_uri"].asString());
+        }
+    }
+    if(pJson.isMember("backchannel_logout_session_required"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["backchannel_logout_session_required"].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(pJson["backchannel_logout_session_required"].asBool());
+        }
+    }
+    if(pJson.isMember("org_id"))
+    {
+        dirtyFlag_[9]=true;
+        if(!pJson["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson["org_id"].asInt64());
+        }
+    }
 }
 
 void Oauth2Clients::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -312,6 +394,30 @@ void Oauth2Clients::updateByMasqueradedJson(const Json::Value &pJson,
             allowedGrantTypes_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
         }
     }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(pJson[pMasqueradingVector[8]].asBool());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[9]].asInt64());
+        }
+    }
 }
 
 void Oauth2Clients::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -369,6 +475,30 @@ void Oauth2Clients::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["allowed_grant_types"].isNull())
         {
             allowedGrantTypes_=std::make_shared<std::string>(pJson["allowed_grant_types"].asString());
+        }
+    }
+    if(pJson.isMember("backchannel_logout_uri"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["backchannel_logout_uri"].isNull())
+        {
+            backchannelLogoutUri_=std::make_shared<std::string>(pJson["backchannel_logout_uri"].asString());
+        }
+    }
+    if(pJson.isMember("backchannel_logout_session_required"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["backchannel_logout_session_required"].isNull())
+        {
+            backchannelLogoutSessionRequired_=std::make_shared<bool>(pJson["backchannel_logout_session_required"].asBool());
+        }
+    }
+    if(pJson.isMember("org_id"))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson["org_id"].asInt64());
         }
     }
 }
@@ -547,6 +677,77 @@ void Oauth2Clients::setAllowedGrantTypesToNull() noexcept
     dirtyFlag_[6] = true;
 }
 
+const std::string &Oauth2Clients::getValueOfBackchannelLogoutUri() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(backchannelLogoutUri_)
+        return *backchannelLogoutUri_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Oauth2Clients::getBackchannelLogoutUri() const noexcept
+{
+    return backchannelLogoutUri_;
+}
+void Oauth2Clients::setBackchannelLogoutUri(const std::string &pBackchannelLogoutUri) noexcept
+{
+    backchannelLogoutUri_ = std::make_shared<std::string>(pBackchannelLogoutUri);
+    dirtyFlag_[7] = true;
+}
+void Oauth2Clients::setBackchannelLogoutUri(std::string &&pBackchannelLogoutUri) noexcept
+{
+    backchannelLogoutUri_ = std::make_shared<std::string>(std::move(pBackchannelLogoutUri));
+    dirtyFlag_[7] = true;
+}
+void Oauth2Clients::setBackchannelLogoutUriToNull() noexcept
+{
+    backchannelLogoutUri_.reset();
+    dirtyFlag_[7] = true;
+}
+
+const bool &Oauth2Clients::getValueOfBackchannelLogoutSessionRequired() const noexcept
+{
+    static const bool defaultValue = bool();
+    if(backchannelLogoutSessionRequired_)
+        return *backchannelLogoutSessionRequired_;
+    return defaultValue;
+}
+const std::shared_ptr<bool> &Oauth2Clients::getBackchannelLogoutSessionRequired() const noexcept
+{
+    return backchannelLogoutSessionRequired_;
+}
+void Oauth2Clients::setBackchannelLogoutSessionRequired(const bool &pBackchannelLogoutSessionRequired) noexcept
+{
+    backchannelLogoutSessionRequired_ = std::make_shared<bool>(pBackchannelLogoutSessionRequired);
+    dirtyFlag_[8] = true;
+}
+void Oauth2Clients::setBackchannelLogoutSessionRequiredToNull() noexcept
+{
+    backchannelLogoutSessionRequired_.reset();
+    dirtyFlag_[8] = true;
+}
+
+const int32_t &Oauth2Clients::getValueOfOrgId() const noexcept
+{
+    static const int32_t defaultValue = int32_t();
+    if(orgId_)
+        return *orgId_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Oauth2Clients::getOrgId() const noexcept
+{
+    return orgId_;
+}
+void Oauth2Clients::setOrgId(const int32_t &pOrgId) noexcept
+{
+    orgId_ = std::make_shared<int32_t>(pOrgId);
+    dirtyFlag_[9] = true;
+}
+void Oauth2Clients::setOrgIdToNull() noexcept
+{
+    orgId_.reset();
+    dirtyFlag_[9] = true;
+}
+
 void Oauth2Clients::updateId(const uint64_t id)
 {
 }
@@ -560,7 +761,10 @@ const std::vector<std::string> &Oauth2Clients::insertColumns() noexcept
         "salt",
         "name",
         "redirect_uris",
-        "allowed_grant_types"
+        "allowed_grant_types",
+        "backchannel_logout_uri",
+        "backchannel_logout_session_required",
+        "org_id"
     };
     return inCols;
 }
@@ -644,6 +848,39 @@ void Oauth2Clients::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getBackchannelLogoutUri())
+        {
+            binder << getValueOfBackchannelLogoutUri();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getBackchannelLogoutSessionRequired())
+        {
+            binder << getValueOfBackchannelLogoutSessionRequired();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getOrgId())
+        {
+            binder << getValueOfOrgId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Oauth2Clients::updateColumns() const
@@ -676,6 +913,18 @@ const std::vector<std::string> Oauth2Clients::updateColumns() const
     if(dirtyFlag_[6])
     {
         ret.push_back(getColumnName(6));
+    }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
     }
     return ret;
 }
@@ -759,6 +1008,39 @@ void Oauth2Clients::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getBackchannelLogoutUri())
+        {
+            binder << getValueOfBackchannelLogoutUri();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getBackchannelLogoutSessionRequired())
+        {
+            binder << getValueOfBackchannelLogoutSessionRequired();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getOrgId())
+        {
+            binder << getValueOfOrgId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Oauth2Clients::toJson() const
 {
@@ -819,6 +1101,30 @@ Json::Value Oauth2Clients::toJson() const
     {
         ret["allowed_grant_types"]=Json::Value();
     }
+    if(getBackchannelLogoutUri())
+    {
+        ret["backchannel_logout_uri"]=getValueOfBackchannelLogoutUri();
+    }
+    else
+    {
+        ret["backchannel_logout_uri"]=Json::Value();
+    }
+    if(getBackchannelLogoutSessionRequired())
+    {
+        ret["backchannel_logout_session_required"]=getValueOfBackchannelLogoutSessionRequired();
+    }
+    else
+    {
+        ret["backchannel_logout_session_required"]=Json::Value();
+    }
+    if(getOrgId())
+    {
+        ret["org_id"]=getValueOfOrgId();
+    }
+    else
+    {
+        ret["org_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -831,7 +1137,7 @@ Json::Value Oauth2Clients::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 10)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -910,6 +1216,39 @@ Json::Value Oauth2Clients::toMasqueradedJson(
                 ret[pMasqueradingVector[6]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getBackchannelLogoutUri())
+            {
+                ret[pMasqueradingVector[7]]=getValueOfBackchannelLogoutUri();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getBackchannelLogoutSessionRequired())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfBackchannelLogoutSessionRequired();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getOrgId())
+            {
+                ret[pMasqueradingVector[9]]=getValueOfOrgId();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -969,6 +1308,30 @@ Json::Value Oauth2Clients::toMasqueradedJson(
     {
         ret["allowed_grant_types"]=Json::Value();
     }
+    if(getBackchannelLogoutUri())
+    {
+        ret["backchannel_logout_uri"]=getValueOfBackchannelLogoutUri();
+    }
+    else
+    {
+        ret["backchannel_logout_uri"]=Json::Value();
+    }
+    if(getBackchannelLogoutSessionRequired())
+    {
+        ret["backchannel_logout_session_required"]=getValueOfBackchannelLogoutSessionRequired();
+    }
+    else
+    {
+        ret["backchannel_logout_session_required"]=Json::Value();
+    }
+    if(getOrgId())
+    {
+        ret["org_id"]=getValueOfOrgId();
+    }
+    else
+    {
+        ret["org_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1024,13 +1387,28 @@ bool Oauth2Clients::validateJsonForCreation(const Json::Value &pJson, std::strin
         if(!validJsonOfField(6, "allowed_grant_types", pJson["allowed_grant_types"], err, true))
             return false;
     }
+    if(pJson.isMember("backchannel_logout_uri"))
+    {
+        if(!validJsonOfField(7, "backchannel_logout_uri", pJson["backchannel_logout_uri"], err, true))
+            return false;
+    }
+    if(pJson.isMember("backchannel_logout_session_required"))
+    {
+        if(!validJsonOfField(8, "backchannel_logout_session_required", pJson["backchannel_logout_session_required"], err, true))
+            return false;
+    }
+    if(pJson.isMember("org_id"))
+    {
+        if(!validJsonOfField(9, "org_id", pJson["org_id"], err, true))
+            return false;
+    }
     return true;
 }
 bool Oauth2Clients::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                        const std::vector<std::string> &pMasqueradingVector,
                                                        std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1107,6 +1485,30 @@ bool Oauth2Clients::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1157,13 +1559,28 @@ bool Oauth2Clients::validateJsonForUpdate(const Json::Value &pJson, std::string 
         if(!validJsonOfField(6, "allowed_grant_types", pJson["allowed_grant_types"], err, false))
             return false;
     }
+    if(pJson.isMember("backchannel_logout_uri"))
+    {
+        if(!validJsonOfField(7, "backchannel_logout_uri", pJson["backchannel_logout_uri"], err, false))
+            return false;
+    }
+    if(pJson.isMember("backchannel_logout_session_required"))
+    {
+        if(!validJsonOfField(8, "backchannel_logout_session_required", pJson["backchannel_logout_session_required"], err, false))
+            return false;
+    }
+    if(pJson.isMember("org_id"))
+    {
+        if(!validJsonOfField(9, "org_id", pJson["org_id"], err, false))
+            return false;
+    }
     return true;
 }
 bool Oauth2Clients::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                      const std::vector<std::string> &pMasqueradingVector,
                                                      std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1207,6 +1624,21 @@ bool Oauth2Clients::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
               return false;
       }
     }
@@ -1341,6 +1773,47 @@ bool Oauth2Clients::validJsonOfField(size_t index,
                 return true;
             }
             if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 512)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 512)";
+                return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isBool())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 9:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;
@@ -1495,6 +1968,49 @@ void Oauth2Clients::getScope(const DbClientPtr &clientPtr,
                            Oauth2Scopes(row),Oauth2ClientScopes(row,Oauth2Scopes::getColumnNumber())));
                    }
                    rcb(ret);
+               }
+               >> ecb;
+}
+Organizations Oauth2Clients::getOrganizations(const DbClientPtr &clientPtr) const {
+    static const std::string sql = "select * from organizations where id = $1";
+    Result r(nullptr);
+    {
+        auto binder = *clientPtr << sql;
+        binder << *orgId_ << Mode::Blocking >>
+            [&r](const Result &result) { r = result; };
+        binder.exec();
+    }
+    if (r.size() == 0)
+    {
+        throw UnexpectedRows("0 rows found");
+    }
+    else if (r.size() > 1)
+    {
+        throw UnexpectedRows("Found more than one row");
+    }
+    return Organizations(r[0]);
+}
+
+void Oauth2Clients::getOrganizations(const DbClientPtr &clientPtr,
+                                     const std::function<void(Organizations)> &rcb,
+                                     const ExceptionCallback &ecb) const
+{
+    static const std::string sql = "select * from organizations where id = $1";
+    *clientPtr << sql
+               << *orgId_
+               >> [rcb = std::move(rcb), ecb](const Result &r){
+                    if (r.size() == 0)
+                    {
+                        ecb(UnexpectedRows("0 rows found"));
+                    }
+                    else if (r.size() > 1)
+                    {
+                        ecb(UnexpectedRows("Found more than one row"));
+                    }
+                    else
+                    {
+                        rcb(Organizations(r[0]));
+                    }
                }
                >> ecb;
 }

@@ -9,6 +9,7 @@
 #include "Oauth2AccessTokens.h"
 #include "Oauth2SubjectMappings.h"
 #include "Oauth2UserConsents.h"
+#include "Organizations.h"
 #include "Roles.h"
 #include "UserRoles.h"
 #include <drogon/utils/Utilities.h>
@@ -32,6 +33,7 @@ const std::string Users::Cols::_mfa_backup_codes = "\"mfa_backup_codes\"";
 const std::string Users::Cols::_failed_login_count = "\"failed_login_count\"";
 const std::string Users::Cols::_locked_until = "\"locked_until\"";
 const std::string Users::Cols::_last_failed_login = "\"last_failed_login\"";
+const std::string Users::Cols::_org_id = "\"org_id\"";
 const std::string Users::primaryKeyName = "id";
 const bool Users::hasPrimaryKey = true;
 const std::string Users::tableName = "\"users\"";
@@ -50,7 +52,8 @@ const std::vector<typename Users::MetaData> Users::metaData_={
 {"mfa_backup_codes","std::string","text",0,0,0,0},
 {"failed_login_count","int32_t","integer",4,0,0,0},
 {"locked_until","int64_t","bigint",8,0,0,0},
-{"last_failed_login","int64_t","bigint",8,0,0,0}
+{"last_failed_login","int64_t","bigint",8,0,0,0},
+{"org_id","int32_t","integer",4,0,0,0}
 };
 const std::string &Users::getColumnName(size_t index) noexcept(false)
 {
@@ -135,11 +138,15 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             lastFailedLogin_=std::make_shared<int64_t>(r["last_failed_login"].as<int64_t>());
         }
+        if(!r["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>(r["org_id"].as<int32_t>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 14 > r.size())
+        if(offset + 15 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -233,13 +240,18 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             lastFailedLogin_=std::make_shared<int64_t>(r[index].as<int64_t>());
         }
+        index = offset + 14;
+        if(!r[index].isNull())
+        {
+            orgId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+        }
     }
 
 }
 
 Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 14)
+    if(pMasqueradingVector.size() != 15)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -372,6 +384,14 @@ Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasquera
         if(!pJson[pMasqueradingVector[13]].isNull())
         {
             lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[13]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[14].empty() && pJson.isMember(pMasqueradingVector[14]))
+    {
+        dirtyFlag_[14] = true;
+        if(!pJson[pMasqueradingVector[14]].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[14]].asInt64());
         }
     }
 }
@@ -508,12 +528,20 @@ Users::Users(const Json::Value &pJson) noexcept(false)
             lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson["last_failed_login"].asInt64());
         }
     }
+    if(pJson.isMember("org_id"))
+    {
+        dirtyFlag_[14]=true;
+        if(!pJson["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson["org_id"].asInt64());
+        }
+    }
 }
 
 void Users::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 14)
+    if(pMasqueradingVector.size() != 15)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -647,6 +675,14 @@ void Users::updateByMasqueradedJson(const Json::Value &pJson,
             lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[13]].asInt64());
         }
     }
+    if(!pMasqueradingVector[14].empty() && pJson.isMember(pMasqueradingVector[14]))
+    {
+        dirtyFlag_[14] = true;
+        if(!pJson[pMasqueradingVector[14]].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[14]].asInt64());
+        }
+    }
 }
 
 void Users::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -778,6 +814,14 @@ void Users::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["last_failed_login"].isNull())
         {
             lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson["last_failed_login"].asInt64());
+        }
+    }
+    if(pJson.isMember("org_id"))
+    {
+        dirtyFlag_[14] = true;
+        if(!pJson["org_id"].isNull())
+        {
+            orgId_=std::make_shared<int32_t>((int32_t)pJson["org_id"].asInt64());
         }
     }
 }
@@ -1105,6 +1149,28 @@ void Users::setLastFailedLoginToNull() noexcept
     dirtyFlag_[13] = true;
 }
 
+const int32_t &Users::getValueOfOrgId() const noexcept
+{
+    static const int32_t defaultValue = int32_t();
+    if(orgId_)
+        return *orgId_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Users::getOrgId() const noexcept
+{
+    return orgId_;
+}
+void Users::setOrgId(const int32_t &pOrgId) noexcept
+{
+    orgId_ = std::make_shared<int32_t>(pOrgId);
+    dirtyFlag_[14] = true;
+}
+void Users::setOrgIdToNull() noexcept
+{
+    orgId_.reset();
+    dirtyFlag_[14] = true;
+}
+
 void Users::updateId(const uint64_t id)
 {
 }
@@ -1124,7 +1190,8 @@ const std::vector<std::string> &Users::insertColumns() noexcept
         "mfa_backup_codes",
         "failed_login_count",
         "locked_until",
-        "last_failed_login"
+        "last_failed_login",
+        "org_id"
     };
     return inCols;
 }
@@ -1274,6 +1341,17 @@ void Users::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[14])
+    {
+        if(getOrgId())
+        {
+            binder << getValueOfOrgId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Users::updateColumns() const
@@ -1330,6 +1408,10 @@ const std::vector<std::string> Users::updateColumns() const
     if(dirtyFlag_[13])
     {
         ret.push_back(getColumnName(13));
+    }
+    if(dirtyFlag_[14])
+    {
+        ret.push_back(getColumnName(14));
     }
     return ret;
 }
@@ -1479,6 +1561,17 @@ void Users::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[14])
+    {
+        if(getOrgId())
+        {
+            binder << getValueOfOrgId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Users::toJson() const
 {
@@ -1595,6 +1688,14 @@ Json::Value Users::toJson() const
     {
         ret["last_failed_login"]=Json::Value();
     }
+    if(getOrgId())
+    {
+        ret["org_id"]=getValueOfOrgId();
+    }
+    else
+    {
+        ret["org_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1607,7 +1708,7 @@ Json::Value Users::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 14)
+    if(pMasqueradingVector.size() == 15)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1763,6 +1864,17 @@ Json::Value Users::toMasqueradedJson(
                 ret[pMasqueradingVector[13]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[14].empty())
+        {
+            if(getOrgId())
+            {
+                ret[pMasqueradingVector[14]]=getValueOfOrgId();
+            }
+            else
+            {
+                ret[pMasqueradingVector[14]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -1878,6 +1990,14 @@ Json::Value Users::toMasqueradedJson(
     {
         ret["last_failed_login"]=Json::Value();
     }
+    if(getOrgId())
+    {
+        ret["org_id"]=getValueOfOrgId();
+    }
+    else
+    {
+        ret["org_id"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1968,13 +2088,18 @@ bool Users::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(13, "last_failed_login", pJson["last_failed_login"], err, true))
             return false;
     }
+    if(pJson.isMember("org_id"))
+    {
+        if(!validJsonOfField(14, "org_id", pJson["org_id"], err, true))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                const std::vector<std::string> &pMasqueradingVector,
                                                std::string &err)
 {
-    if(pMasqueradingVector.size() != 14)
+    if(pMasqueradingVector.size() != 15)
     {
         err = "Bad masquerading vector";
         return false;
@@ -2107,6 +2232,14 @@ bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[14].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[14]))
+          {
+              if(!validJsonOfField(14, pMasqueradingVector[14], pJson[pMasqueradingVector[14]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -2192,13 +2325,18 @@ bool Users::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(13, "last_failed_login", pJson["last_failed_login"], err, false))
             return false;
     }
+    if(pJson.isMember("org_id"))
+    {
+        if(!validJsonOfField(14, "org_id", pJson["org_id"], err, false))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                              const std::vector<std::string> &pMasqueradingVector,
                                              std::string &err)
 {
-    if(pMasqueradingVector.size() != 14)
+    if(pMasqueradingVector.size() != 15)
     {
         err = "Bad masquerading vector";
         return false;
@@ -2277,6 +2415,11 @@ bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
       {
           if(!validJsonOfField(13, pMasqueradingVector[13], pJson[pMasqueradingVector[13]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[14].empty() && pJson.isMember(pMasqueradingVector[14]))
+      {
+          if(!validJsonOfField(14, pMasqueradingVector[14], pJson[pMasqueradingVector[14]], err, false))
               return false;
       }
     }
@@ -2499,6 +2642,17 @@ bool Users::validJsonOfField(size_t index,
                 return false;
             }
             break;
+        case 14:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
         default:
             err="Internal error in the server";
             return false;
@@ -2648,6 +2802,49 @@ void Users::getSubjectMappings(const DbClientPtr &clientPtr,
                        ret.emplace_back(Oauth2SubjectMappings(row));
                    }
                    rcb(ret);
+               }
+               >> ecb;
+}
+Organizations Users::getOrganizations(const DbClientPtr &clientPtr) const {
+    static const std::string sql = "select * from organizations where id = $1";
+    Result r(nullptr);
+    {
+        auto binder = *clientPtr << sql;
+        binder << *orgId_ << Mode::Blocking >>
+            [&r](const Result &result) { r = result; };
+        binder.exec();
+    }
+    if (r.size() == 0)
+    {
+        throw UnexpectedRows("0 rows found");
+    }
+    else if (r.size() > 1)
+    {
+        throw UnexpectedRows("Found more than one row");
+    }
+    return Organizations(r[0]);
+}
+
+void Users::getOrganizations(const DbClientPtr &clientPtr,
+                             const std::function<void(Organizations)> &rcb,
+                             const ExceptionCallback &ecb) const
+{
+    static const std::string sql = "select * from organizations where id = $1";
+    *clientPtr << sql
+               << *orgId_
+               >> [rcb = std::move(rcb), ecb](const Result &r){
+                    if (r.size() == 0)
+                    {
+                        ecb(UnexpectedRows("0 rows found"));
+                    }
+                    else if (r.size() > 1)
+                    {
+                        ecb(UnexpectedRows("Found more than one row"));
+                    }
+                    else
+                    {
+                        rcb(Organizations(r[0]));
+                    }
                }
                >> ecb;
 }
