@@ -107,6 +107,8 @@ void AuthService::validateUser(
                   AuthResult result;
                   result.internalId = user.getValueOfId();
                   result.publicSub = user.getValueOfPublicSub();
+                  try { result.emailVerified = user.getValueOfEmailVerified(); } catch (...) {}
+                  try { result.mfaEnabled = user.getValueOfMfaEnabled(); } catch (...) {}
                   (*sharedCb)(result);
               }
               else

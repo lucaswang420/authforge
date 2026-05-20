@@ -264,6 +264,59 @@ void OAuth2Controller::login(
                 "login_success", "success", req, authResult->publicSub, "user", authResult->publicSub
               );
 
+              // === CHECK 1: Email verification enforcement ===
+              auto customCfg = drogon::app().getCustomConfig();
+              bool requireEmailVerification = false;
+              if (customCfg.isMember("auth") && customCfg["auth"].isMember("require_email_verification"))
+              {
+                  requireEmailVerification = customCfg["auth"]["require_email_verification"].asBool();
+              }
+              if (requireEmailVerification && !authResult->emailVerified)
+              {
+                  Json::Value err;
+                  err["error"] = "email_not_verified";
+                  err["error_description"] = "Please verify your email address before logging in";
+                  auto resp = HttpResponse::newHttpJsonResponse(err);
+                  resp->setStatusCode(k403Forbidden);
+                  callback(resp);
+                  return;
+              }
+
+              // === CHECK 2: MFA enforcement ===
+              if (authResult->mfaEnabled)
+              {
+                  // MFA is enabled - don't issue auth code yet
+                  // Return mfa_required response with a temporary token
+                  Json::Value mfaResp;
+                  mfaResp["mfa_required"] = true;
+                  mfaResp["mfa_token"] = std::to_string(authResult->internalId);
+                  mfaResp["message"] = "MFA verification required. Submit TOTP code to /oauth2/mfa/verify";
+                  auto resp = HttpResponse::newHttpJsonResponse(mfaResp);
+                  resp->setStatusCode(k200OK);
+                  callback(resp);
+                  return;
+              }
+
+              // === CHECK 3: PKCE enforcement for PUBLIC clients ===
+              bool requirePkce = false;
+              if (customCfg.isMember("auth") && customCfg["auth"].isMember("require_pkce_for_public"))
+              {
+                  requirePkce = customCfg["auth"]["require_pkce_for_public"].asBool();
+              }
+              if (requirePkce && codeChallenge.empty())
+              {
+                  // Check will be done after getClient - for now log warning
+                  LOG_WARN << "[SECURITY] PUBLIC client " << clientId
+                           << " login without PKCE (enforcement enabled)";
+                  Json::Value err;
+                  err["error"] = "invalid_request";
+                  err["error_description"] = "PKCE (code_challenge) is required for public clients. Use code_challenge_method=S256.";
+                  auto resp = HttpResponse::newHttpJsonResponse(err);
+                  resp->setStatusCode(k400BadRequest);
+                  callback(resp);
+                  return;
+              }
+
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
