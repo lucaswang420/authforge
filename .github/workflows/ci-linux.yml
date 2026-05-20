@@ -112,10 +112,16 @@ jobs:
         env:
           PGPASSWORD: 123456
         run: |
-          psql -h localhost -U test -d oauth_test -f sql/001_oauth2_core.sql
-          psql -h localhost -U test -d oauth_test -f sql/002_users_table.sql
-          psql -h localhost -U test -d oauth_test -f sql/003_rbac_schema.sql
-          psql -h localhost -U test -d oauth_test -f sql/004_oauth2_scopes.sql
+          # Apply migrations in order
+          for f in sql/migrations/V*.sql; do
+            echo "Applying $f..."
+            psql -h localhost -U test -d oauth_test -f "$f"
+          done
+          # Apply seed data
+          for f in sql/seed/*.sql; do
+            echo "Applying seed $f..."
+            psql -h localhost -U test -d oauth_test -f "$f"
+          done
 
       - name: Check Test Naming Conventions
         run: |

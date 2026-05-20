@@ -126,32 +126,24 @@ if %ERRORLEVEL% neq 0 (
     goto cleanup_and_exit
 )
 
-echo Applying OAuth2 core schema...
-docker exec -i oauth2-postgres psql -U test -d oauth_test < "%PROJECT_DIR%\OAuth2Server\sql\001_oauth2_core.sql"
-if %ERRORLEVEL% neq 0 (
-    echo [FAILED] Failed to apply OAuth2 core schema
-    goto cleanup_and_exit
+echo Applying migrations...
+for %%f in ("%PROJECT_DIR%\OAuth2Server\sql\migrations\V*.sql") do (
+    echo   Applying %%~nxf...
+    docker exec -i oauth2-postgres psql -U test -d oauth_test < "%%f"
+    if %ERRORLEVEL% neq 0 (
+        echo [FAILED] Failed to apply %%~nxf
+        goto cleanup_and_exit
+    )
 )
 
-echo Creating users table...
-docker exec -i oauth2-postgres psql -U test -d oauth_test < "%PROJECT_DIR%\OAuth2Server\sql\002_users_table.sql"
-if %ERRORLEVEL% neq 0 (
-    echo [FAILED] Failed to create users table
-    goto cleanup_and_exit
-)
-
-echo Applying RBAC schema...
-docker exec -i oauth2-postgres psql -U test -d oauth_test < "%PROJECT_DIR%\OAuth2Server\sql\003_rbac_schema.sql"
-if %ERRORLEVEL% neq 0 (
-    echo [FAILED] Failed to apply RBAC schema
-    goto cleanup_and_exit
-)
-
-echo Applying OAuth2 scopes schema...
-docker exec -i oauth2-postgres psql -U test -d oauth_test < "%PROJECT_DIR%\OAuth2Server\sql\004_oauth2_scopes.sql"
-if %ERRORLEVEL% neq 0 (
-    echo [FAILED] Failed to apply OAuth2 scopes schema
-    goto cleanup_and_exit
+echo Applying seed data...
+for %%f in ("%PROJECT_DIR%\OAuth2Server\sql\seed\*.sql") do (
+    echo   Applying %%~nxf...
+    docker exec -i oauth2-postgres psql -U test -d oauth_test < "%%f"
+    if %ERRORLEVEL% neq 0 (
+        echo [FAILED] Failed to apply seed %%~nxf
+        goto cleanup_and_exit
+    )
 )
 
 echo [SUCCESS] Database initialized
