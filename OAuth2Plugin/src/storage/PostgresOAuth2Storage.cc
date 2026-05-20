@@ -936,6 +936,21 @@ void PostgresOAuth2Storage::deleteExpiredData()
               LOG_ERROR << "Cleanup RefreshTokens Error: " << e.base().what();
           }
         );
+
+        // 4. Archive old tokens (older than 30 days)
+        dbClientMaster_->execSqlAsync(
+          "SELECT archive_expired_tokens(30)",
+          [](const drogon::orm::Result &r) {
+              if (!r.empty() && r[0][0].as<int>() > 0)
+              {
+                  LOG_INFO << "Archived " << r[0][0].as<int>() << " expired tokens";
+              }
+          },
+          [](const DrogonDbException &e) {
+              LOG_DEBUG << "Token archival skipped (function may not exist): "
+                        << e.base().what();
+          }
+        );
     }
     catch (...)
     {
