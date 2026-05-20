@@ -29,6 +29,9 @@ const std::string Users::Cols::_email_verified = "\"email_verified\"";
 const std::string Users::Cols::_mfa_enabled = "\"mfa_enabled\"";
 const std::string Users::Cols::_mfa_secret = "\"mfa_secret\"";
 const std::string Users::Cols::_mfa_backup_codes = "\"mfa_backup_codes\"";
+const std::string Users::Cols::_failed_login_count = "\"failed_login_count\"";
+const std::string Users::Cols::_locked_until = "\"locked_until\"";
+const std::string Users::Cols::_last_failed_login = "\"last_failed_login\"";
 const std::string Users::primaryKeyName = "id";
 const bool Users::hasPrimaryKey = true;
 const std::string Users::tableName = "\"users\"";
@@ -44,7 +47,10 @@ const std::vector<typename Users::MetaData> Users::metaData_={
 {"email_verified","bool","boolean",1,0,0,0},
 {"mfa_enabled","bool","boolean",1,0,0,0},
 {"mfa_secret","std::string","character varying",64,0,0,0},
-{"mfa_backup_codes","std::string","text",0,0,0,0}
+{"mfa_backup_codes","std::string","text",0,0,0,0},
+{"failed_login_count","int32_t","integer",4,0,0,0},
+{"locked_until","int64_t","bigint",8,0,0,0},
+{"last_failed_login","int64_t","bigint",8,0,0,0}
 };
 const std::string &Users::getColumnName(size_t index) noexcept(false)
 {
@@ -117,11 +123,23 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             mfaBackupCodes_=std::make_shared<std::string>(r["mfa_backup_codes"].as<std::string>());
         }
+        if(!r["failed_login_count"].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>(r["failed_login_count"].as<int32_t>());
+        }
+        if(!r["locked_until"].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>(r["locked_until"].as<int64_t>());
+        }
+        if(!r["last_failed_login"].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>(r["last_failed_login"].as<int64_t>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 11 > r.size())
+        if(offset + 14 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -200,13 +218,28 @@ Users::Users(const Row &r, const ssize_t indexOffset) noexcept
         {
             mfaBackupCodes_=std::make_shared<std::string>(r[index].as<std::string>());
         }
+        index = offset + 11;
+        if(!r[index].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>(r[index].as<int32_t>());
+        }
+        index = offset + 12;
+        if(!r[index].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
+        index = offset + 13;
+        if(!r[index].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>(r[index].as<int64_t>());
+        }
     }
 
 }
 
 Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 11)
+    if(pMasqueradingVector.size() != 14)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -315,6 +348,30 @@ Users::Users(const Json::Value &pJson, const std::vector<std::string> &pMasquera
         if(!pJson[pMasqueradingVector[10]].isNull())
         {
             mfaBackupCodes_=std::make_shared<std::string>(pJson[pMasqueradingVector[10]].asString());
+        }
+    }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[12]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
+    {
+        dirtyFlag_[13] = true;
+        if(!pJson[pMasqueradingVector[13]].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[13]].asInt64());
         }
     }
 }
@@ -427,12 +484,36 @@ Users::Users(const Json::Value &pJson) noexcept(false)
             mfaBackupCodes_=std::make_shared<std::string>(pJson["mfa_backup_codes"].asString());
         }
     }
+    if(pJson.isMember("failed_login_count"))
+    {
+        dirtyFlag_[11]=true;
+        if(!pJson["failed_login_count"].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>((int32_t)pJson["failed_login_count"].asInt64());
+        }
+    }
+    if(pJson.isMember("locked_until"))
+    {
+        dirtyFlag_[12]=true;
+        if(!pJson["locked_until"].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>((int64_t)pJson["locked_until"].asInt64());
+        }
+    }
+    if(pJson.isMember("last_failed_login"))
+    {
+        dirtyFlag_[13]=true;
+        if(!pJson["last_failed_login"].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson["last_failed_login"].asInt64());
+        }
+    }
 }
 
 void Users::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 11)
+    if(pMasqueradingVector.size() != 14)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -542,6 +623,30 @@ void Users::updateByMasqueradedJson(const Json::Value &pJson,
             mfaBackupCodes_=std::make_shared<std::string>(pJson[pMasqueradingVector[10]].asString());
         }
     }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[12]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
+    {
+        dirtyFlag_[13] = true;
+        if(!pJson[pMasqueradingVector[13]].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson[pMasqueradingVector[13]].asInt64());
+        }
+    }
 }
 
 void Users::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -649,6 +754,30 @@ void Users::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["mfa_backup_codes"].isNull())
         {
             mfaBackupCodes_=std::make_shared<std::string>(pJson["mfa_backup_codes"].asString());
+        }
+    }
+    if(pJson.isMember("failed_login_count"))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson["failed_login_count"].isNull())
+        {
+            failedLoginCount_=std::make_shared<int32_t>((int32_t)pJson["failed_login_count"].asInt64());
+        }
+    }
+    if(pJson.isMember("locked_until"))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson["locked_until"].isNull())
+        {
+            lockedUntil_=std::make_shared<int64_t>((int64_t)pJson["locked_until"].asInt64());
+        }
+    }
+    if(pJson.isMember("last_failed_login"))
+    {
+        dirtyFlag_[13] = true;
+        if(!pJson["last_failed_login"].isNull())
+        {
+            lastFailedLogin_=std::make_shared<int64_t>((int64_t)pJson["last_failed_login"].asInt64());
         }
     }
 }
@@ -910,6 +1039,72 @@ void Users::setMfaBackupCodesToNull() noexcept
     dirtyFlag_[10] = true;
 }
 
+const int32_t &Users::getValueOfFailedLoginCount() const noexcept
+{
+    static const int32_t defaultValue = int32_t();
+    if(failedLoginCount_)
+        return *failedLoginCount_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Users::getFailedLoginCount() const noexcept
+{
+    return failedLoginCount_;
+}
+void Users::setFailedLoginCount(const int32_t &pFailedLoginCount) noexcept
+{
+    failedLoginCount_ = std::make_shared<int32_t>(pFailedLoginCount);
+    dirtyFlag_[11] = true;
+}
+void Users::setFailedLoginCountToNull() noexcept
+{
+    failedLoginCount_.reset();
+    dirtyFlag_[11] = true;
+}
+
+const int64_t &Users::getValueOfLockedUntil() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(lockedUntil_)
+        return *lockedUntil_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Users::getLockedUntil() const noexcept
+{
+    return lockedUntil_;
+}
+void Users::setLockedUntil(const int64_t &pLockedUntil) noexcept
+{
+    lockedUntil_ = std::make_shared<int64_t>(pLockedUntil);
+    dirtyFlag_[12] = true;
+}
+void Users::setLockedUntilToNull() noexcept
+{
+    lockedUntil_.reset();
+    dirtyFlag_[12] = true;
+}
+
+const int64_t &Users::getValueOfLastFailedLogin() const noexcept
+{
+    static const int64_t defaultValue = int64_t();
+    if(lastFailedLogin_)
+        return *lastFailedLogin_;
+    return defaultValue;
+}
+const std::shared_ptr<int64_t> &Users::getLastFailedLogin() const noexcept
+{
+    return lastFailedLogin_;
+}
+void Users::setLastFailedLogin(const int64_t &pLastFailedLogin) noexcept
+{
+    lastFailedLogin_ = std::make_shared<int64_t>(pLastFailedLogin);
+    dirtyFlag_[13] = true;
+}
+void Users::setLastFailedLoginToNull() noexcept
+{
+    lastFailedLogin_.reset();
+    dirtyFlag_[13] = true;
+}
+
 void Users::updateId(const uint64_t id)
 {
 }
@@ -926,7 +1121,10 @@ const std::vector<std::string> &Users::insertColumns() noexcept
         "email_verified",
         "mfa_enabled",
         "mfa_secret",
-        "mfa_backup_codes"
+        "mfa_backup_codes",
+        "failed_login_count",
+        "locked_until",
+        "last_failed_login"
     };
     return inCols;
 }
@@ -1043,6 +1241,39 @@ void Users::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[11])
+    {
+        if(getFailedLoginCount())
+        {
+            binder << getValueOfFailedLoginCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[12])
+    {
+        if(getLockedUntil())
+        {
+            binder << getValueOfLockedUntil();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[13])
+    {
+        if(getLastFailedLogin())
+        {
+            binder << getValueOfLastFailedLogin();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Users::updateColumns() const
@@ -1087,6 +1318,18 @@ const std::vector<std::string> Users::updateColumns() const
     if(dirtyFlag_[10])
     {
         ret.push_back(getColumnName(10));
+    }
+    if(dirtyFlag_[11])
+    {
+        ret.push_back(getColumnName(11));
+    }
+    if(dirtyFlag_[12])
+    {
+        ret.push_back(getColumnName(12));
+    }
+    if(dirtyFlag_[13])
+    {
+        ret.push_back(getColumnName(13));
     }
     return ret;
 }
@@ -1203,6 +1446,39 @@ void Users::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[11])
+    {
+        if(getFailedLoginCount())
+        {
+            binder << getValueOfFailedLoginCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[12])
+    {
+        if(getLockedUntil())
+        {
+            binder << getValueOfLockedUntil();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[13])
+    {
+        if(getLastFailedLogin())
+        {
+            binder << getValueOfLastFailedLogin();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Users::toJson() const
 {
@@ -1295,6 +1571,30 @@ Json::Value Users::toJson() const
     {
         ret["mfa_backup_codes"]=Json::Value();
     }
+    if(getFailedLoginCount())
+    {
+        ret["failed_login_count"]=getValueOfFailedLoginCount();
+    }
+    else
+    {
+        ret["failed_login_count"]=Json::Value();
+    }
+    if(getLockedUntil())
+    {
+        ret["locked_until"]=(Json::Int64)getValueOfLockedUntil();
+    }
+    else
+    {
+        ret["locked_until"]=Json::Value();
+    }
+    if(getLastFailedLogin())
+    {
+        ret["last_failed_login"]=(Json::Int64)getValueOfLastFailedLogin();
+    }
+    else
+    {
+        ret["last_failed_login"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1307,7 +1607,7 @@ Json::Value Users::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 11)
+    if(pMasqueradingVector.size() == 14)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1430,6 +1730,39 @@ Json::Value Users::toMasqueradedJson(
                 ret[pMasqueradingVector[10]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[11].empty())
+        {
+            if(getFailedLoginCount())
+            {
+                ret[pMasqueradingVector[11]]=getValueOfFailedLoginCount();
+            }
+            else
+            {
+                ret[pMasqueradingVector[11]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[12].empty())
+        {
+            if(getLockedUntil())
+            {
+                ret[pMasqueradingVector[12]]=(Json::Int64)getValueOfLockedUntil();
+            }
+            else
+            {
+                ret[pMasqueradingVector[12]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[13].empty())
+        {
+            if(getLastFailedLogin())
+            {
+                ret[pMasqueradingVector[13]]=(Json::Int64)getValueOfLastFailedLogin();
+            }
+            else
+            {
+                ret[pMasqueradingVector[13]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -1521,6 +1854,30 @@ Json::Value Users::toMasqueradedJson(
     {
         ret["mfa_backup_codes"]=Json::Value();
     }
+    if(getFailedLoginCount())
+    {
+        ret["failed_login_count"]=getValueOfFailedLoginCount();
+    }
+    else
+    {
+        ret["failed_login_count"]=Json::Value();
+    }
+    if(getLockedUntil())
+    {
+        ret["locked_until"]=(Json::Int64)getValueOfLockedUntil();
+    }
+    else
+    {
+        ret["locked_until"]=Json::Value();
+    }
+    if(getLastFailedLogin())
+    {
+        ret["last_failed_login"]=(Json::Int64)getValueOfLastFailedLogin();
+    }
+    else
+    {
+        ret["last_failed_login"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1596,13 +1953,28 @@ bool Users::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(10, "mfa_backup_codes", pJson["mfa_backup_codes"], err, true))
             return false;
     }
+    if(pJson.isMember("failed_login_count"))
+    {
+        if(!validJsonOfField(11, "failed_login_count", pJson["failed_login_count"], err, true))
+            return false;
+    }
+    if(pJson.isMember("locked_until"))
+    {
+        if(!validJsonOfField(12, "locked_until", pJson["locked_until"], err, true))
+            return false;
+    }
+    if(pJson.isMember("last_failed_login"))
+    {
+        if(!validJsonOfField(13, "last_failed_login", pJson["last_failed_login"], err, true))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                const std::vector<std::string> &pMasqueradingVector,
                                                std::string &err)
 {
-    if(pMasqueradingVector.size() != 11)
+    if(pMasqueradingVector.size() != 14)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1711,6 +2083,30 @@ bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[11].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[11]))
+          {
+              if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[12].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[12]))
+          {
+              if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[13].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[13]))
+          {
+              if(!validJsonOfField(13, pMasqueradingVector[13], pJson[pMasqueradingVector[13]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1781,13 +2177,28 @@ bool Users::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(10, "mfa_backup_codes", pJson["mfa_backup_codes"], err, false))
             return false;
     }
+    if(pJson.isMember("failed_login_count"))
+    {
+        if(!validJsonOfField(11, "failed_login_count", pJson["failed_login_count"], err, false))
+            return false;
+    }
+    if(pJson.isMember("locked_until"))
+    {
+        if(!validJsonOfField(12, "locked_until", pJson["locked_until"], err, false))
+            return false;
+    }
+    if(pJson.isMember("last_failed_login"))
+    {
+        if(!validJsonOfField(13, "last_failed_login", pJson["last_failed_login"], err, false))
+            return false;
+    }
     return true;
 }
 bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                              const std::vector<std::string> &pMasqueradingVector,
                                              std::string &err)
 {
-    if(pMasqueradingVector.size() != 11)
+    if(pMasqueradingVector.size() != 14)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1851,6 +2262,21 @@ bool Users::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
       {
           if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+      {
+          if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+      {
+          if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
+      {
+          if(!validJsonOfField(13, pMasqueradingVector[13], pJson[pMasqueradingVector[13]], err, false))
               return false;
       }
     }
@@ -2035,6 +2461,39 @@ bool Users::validJsonOfField(size_t index,
                 return true;
             }
             if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 11:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 12:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt64())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 13:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt64())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;

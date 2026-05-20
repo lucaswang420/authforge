@@ -27,7 +27,33 @@ void AuthService::validateUser(
         // Find user by username
         mapper.findOne(
           {drogon_model::oauth_test::Users::Cols::_username, CompareOperator::EQ, username},
-          [sharedCb, password](const drogon_model::oauth_test::Users &user) {
+          [sharedCb, password, username](const drogon_model::oauth_test::Users &user) {
+              // Account lockout check
+              auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                           std::chrono::system_clock::now().time_since_epoch()
+              )
+                           .count();
+
+              int64_t lockedUntil = 0;
+              int failedCount = 0;
+              try
+              {
+                  // These columns may not exist in older schemas
+                  lockedUntil = user.getValueOfLockedUntil();
+                  failedCount = user.getValueOfFailedLoginCount();
+              }
+              catch (...)
+              {
+              }
+
+              if (lockedUntil > now)
+              {
+                  LOG_WARN << "Account locked for user: " << username
+                           << " until " << lockedUntil;
+                  (*sharedCb)(std::nullopt);
+                  return;
+              }
+
               // Compute Hash using PasswordHasher (supports PBKDF2 + legacy SHA-256)
               std::string salt = user.getValueOfSalt();
               std::string dbHash = user.getValueOfPasswordHash();
@@ -36,6 +62,19 @@ void AuthService::validateUser(
 
               if (valid)
               {
+                  // Reset failed login count on success
+                  if (failedCount > 0)
+                  {
+                      auto db = app().getDbClient();
+                      int userId = user.getValueOfId();
+                      db->execSqlAsync(
+                        "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE id = $1",
+                        [](const drogon::orm::Result &) {},
+                        [](const drogon::orm::DrogonDbException &) {},
+                        userId
+                      );
+                  }
+
                   // Check if password hash needs upgrade to PBKDF2
                   if (oauth2::utils::PasswordHasher::needsRehash(dbHash))
                   {
@@ -72,6 +111,33 @@ void AuthService::validateUser(
               }
               else
               {
+                  // Login failed - increment failed count and potentially lock
+                  int newFailedCount = failedCount + 1;
+                  int64_t newLockedUntil = 0;
+
+                  // Progressive backoff: 5 fails = 1min, 10 = 5min, 15 = 30min, 20+ = 1hr
+                  if (newFailedCount >= 20)
+                      newLockedUntil = now + 3600;
+                  else if (newFailedCount >= 15)
+                      newLockedUntil = now + 1800;
+                  else if (newFailedCount >= 10)
+                      newLockedUntil = now + 300;
+                  else if (newFailedCount >= 5)
+                      newLockedUntil = now + 60;
+
+                  auto db = app().getDbClient();
+                  int userId = user.getValueOfId();
+                  db->execSqlAsync(
+                    "UPDATE users SET failed_login_count = $1, locked_until = $2, "
+                    "last_failed_login = $3 WHERE id = $4",
+                    [](const drogon::orm::Result &) {},
+                    [](const drogon::orm::DrogonDbException &) {},
+                    newFailedCount,
+                    newLockedUntil,
+                    now,
+                    userId
+                  );
+
                   (*sharedCb)(std::nullopt);
               }
           },
