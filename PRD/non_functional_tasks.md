@@ -46,40 +46,35 @@
 
 ## 三、P1-High: E2E 测试覆盖
 
-### NF-3: test-oauth2-endpoints.bat 新增核心接口测试
+### NF-3: test-oauth2-endpoints.bat 全面覆盖核心接口
 
 **当前覆盖**: Health, Login, Token Exchange, UserInfo, Admin Dashboard (5 个)
 
-**需新增**:
+**合并 NF-4 内容，统一在 test-oauth2-endpoints.bat 中覆盖所有核心接口**:
 
 | # | 测试 | 端点 | 验证点 |
 |---|------|------|--------|
-| 6 | Client Credentials | POST /oauth2/token | grant_type=client_credentials → 返回 access_token, 无 refresh_token |
+| 1 | Health Check | GET /health | status=ok |
+| 2 | OAuth2 Login | POST /oauth2/login | 返回 auth code (43+ chars) |
+| 3 | Token Exchange | POST /oauth2/token | access_token (base64url 43+), refresh_token, id_token (scope=openid) |
+| 4 | UserInfo | GET /oauth2/userinfo | sub=UUID, name=username (非 UUID), roles 非空 |
+| 5 | Admin Dashboard | GET /api/admin/dashboard | 200 + message |
+| 6 | Client Credentials | POST /oauth2/token | grant_type=client_credentials → access_token, 无 refresh_token |
 | 7 | Token Refresh | POST /oauth2/token | grant_type=refresh_token → 新 access_token + 新 refresh_token |
-| 8 | OIDC Discovery | GET /.well-known/openid-configuration | 返回 issuer, jwks_uri, 支持的 scopes |
-| 9 | JWKS | GET /.well-known/jwks.json | 返回 keys 数组, kty=RSA, alg=RS256 |
-| 10 | Token Introspection | POST /oauth2/introspect | active=true, 包含 sub/scope/exp |
-| 11 | Token Revocation | POST /oauth2/revoke | 200 OK, 之后 introspect 返回 active=false |
+| 8 | OIDC Discovery | GET /.well-known/openid-configuration | issuer, jwks_uri, scopes_supported |
+| 9 | JWKS | GET /.well-known/jwks.json | keys 数组非空, kty=RSA |
+| 10 | Token Introspection | POST /oauth2/introspect | active=true, sub, scope |
+| 11 | Token Revocation + 验证 | POST /oauth2/revoke → introspect | revoke 后 active=false |
 | 12 | User Registration | POST /api/register | 200, 新用户可登录 |
-| 13 | User Profile | GET /api/me | 返回 username, email, mfa_enabled |
+| 13 | User Profile | GET /api/me | username, email, mfa_enabled |
+| 14 | Password Change | PUT /api/me/password | 200, 旧 token 失效 |
+| 15 | Password Reset Request | POST /api/password-reset/request | 200 (无论邮箱是否存在) |
+| 16 | id_token 验证 | (从 Test 3 结果) | JWT 3 段, payload 含 iss/sub/aud/exp |
+| 17 | Health Live/Ready | GET /health/live, /health/ready | live=200, ready=200 |
+
+**前置条件**: 需要 CONFIDENTIAL 客户端 seed (NF-5)
 
 **文件**: `scripts/backend/test-oauth2-endpoints.bat`
-
----
-
-### NF-4: 新增 test-p1-features.bat (P1 功能专项测试)
-
-**独立脚本**, 测试 P1 新增的复杂流程:
-
-| # | 测试 | 流程 |
-|---|------|------|
-| 1 | 密码重置 | request → 从日志获取 token → confirm → 旧 token 失效 |
-| 2 | MFA 设置 | setup → 获取 secret → 生成 TOTP → verify → 启用成功 |
-| 3 | 用户自服务 | GET /api/me → PUT /api/me/password → 旧 token 失效 |
-| 4 | Admin API | GET /api/admin/clients → POST /api/admin/clients → 验证创建 |
-| 5 | id_token 验证 | login(scope=openid) → token → 验证 id_token 有 3 段 JWT |
-
-**文件**: `scripts/backend/test-p1-features.bat` (新建)
 
 ---
 
@@ -261,11 +256,11 @@ ON CONFLICT (client_id) DO NOTHING;
 
 ```
 Phase 1 (立即): NF-1, NF-2 — 修复 CI/Docker 脚本 (1h)
-Phase 2 (当天): NF-3, NF-5 — E2E 测试核心接口 (2h)
+Phase 2 (当天): NF-5, NF-3 — Seed + E2E 测试全覆盖 (3-4h)
 Phase 3 (次日): NF-6 — OpenAPI 更新 (2h)
 Phase 4 (次日): NF-7, NF-8, NF-10 — 单元测试 (3h)
 Phase 5 (后续): NF-9, NF-11, NF-12 — 集成测试 + CI (2h)
-Phase 6 (后续): NF-4, NF-13, NF-14, NF-15 — 文档 + P1 专项测试 (3h)
+Phase 6 (后续): NF-13, NF-14, NF-15 — 文档 (3h)
 ```
 
 ---
