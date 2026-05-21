@@ -40,6 +40,36 @@ npm run build
 | Audit Logs | /admin/logs | Security event viewer |
 | Settings | /admin/settings | Scopes + system config |
 
+## E2E Testing (Playwright)
+
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install chromium
+
+# Run all E2E tests (headless)
+npm run test:e2e
+
+# Run with browser visible
+npm run test:e2e:headed
+
+# Run with Playwright UI (interactive debug)
+npm run test:e2e:ui
+```
+
+Tests use API mocking (no backend required). Coverage:
+
+| Test File | Tests | Scope |
+|-----------|-------|-------|
+| auth.spec.ts | 6 | Login / logout / MFA / permission denied |
+| dashboard.spec.ts | 6 | Health status / quick links / error state |
+| applications.spec.ts | 10 | CRUD / secret reset / empty state |
+| users.spec.ts | 8 | List / role assignment / status badges |
+| logs.spec.ts | 10 | Pagination / filters / empty state |
+| settings.spec.ts | 8 | Scopes table / indicators |
+| navigation.spec.ts | 5 | Sidebar / routing / active highlight |
+
+Total: **53 tests**, runs in ~5 seconds.
+
 ## Docker Deployment
 
 ```bash
