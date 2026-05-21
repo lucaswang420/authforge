@@ -9,19 +9,17 @@ class EmailVerificationController : public drogon::HttpController<EmailVerificat
   public:
     METHOD_LIST_BEGIN
     ADD_METHOD_TO(EmailVerificationController::verify, "/api/verify-email", Get);
-    ADD_METHOD_TO(EmailVerificationController::resend, "/api/verify-email/resend", Post,
-                  "oauth2::filters::OAuth2Middleware");
+    ADD_METHOD_TO(
+      EmailVerificationController::resend,
+      "/api/verify-email/resend",
+      Post,
+      "oauth2::filters::OAuth2Middleware"
+    );
     METHOD_LIST_END
 
-    void verify(
-      const HttpRequestPtr &req,
-      std::function<void(const HttpResponsePtr &)> &&callback
-    );
+    void verify(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 
-    void resend(
-      const HttpRequestPtr &req,
-      std::function<void(const HttpResponsePtr &)> &&callback
-    );
+    void resend(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 
     // Helper: send verification email for a user
     static void sendVerificationEmail(int userId, const std::string &email);

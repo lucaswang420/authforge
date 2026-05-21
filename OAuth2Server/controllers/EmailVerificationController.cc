@@ -29,11 +29,9 @@ void EmailVerificationController::sendVerificationEmail(int userId, const std::s
       "VALUES ($1, $2, $3, $4) "
       "ON CONFLICT (token_hash) DO NOTHING",
       [rawToken, email](const Result &) {
-          std::string verifyLink =
-            "http://localhost:5555/api/verify-email?token=" + rawToken;
-          std::string body =
-            "Please verify your email by clicking:\n\n" + verifyLink +
-            "\n\nThis link expires in 24 hours.";
+          std::string verifyLink = "http://localhost:5555/api/verify-email?token=" + rawToken;
+          std::string body = "Please verify your email by clicking:\n\n" + verifyLink +
+                             "\n\nThis link expires in 24 hours.";
 
           emailService_.sendEmail(email, "Verify Your Email", body, [](bool) {});
       },
@@ -64,9 +62,8 @@ void EmailVerificationController::verify(
         return;
     }
 
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     std::string tokenHash = oauth2::utils::hashToken(token);
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -143,9 +140,8 @@ void EmailVerificationController::resend(
         return;
     }
 
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(

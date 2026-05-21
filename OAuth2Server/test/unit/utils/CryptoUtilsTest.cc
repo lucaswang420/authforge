@@ -24,7 +24,8 @@ DROGON_TEST(Unit_CryptoUtils_HashToken)
     auto hash = hashToken("test-token");
     CHECK(hash.length() == 64);  // SHA-256 hex = 64 chars
     // All hex characters (case-insensitive)
-    for (char c : hash) {
+    for (char c : hash)
+    {
         bool isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
         CHECK(isHex == true);
     }

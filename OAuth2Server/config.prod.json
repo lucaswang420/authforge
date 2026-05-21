@@ -12,9 +12,9 @@
             "rdbms": "postgresql",
             "host": "postgres",
             "port": 5432,
-            "dbname": "oauth_test",
-            "user": "test",
-            "passwd": "123456",
+            "dbname": "oauth_prod",
+            "user": "oauth_user",
+            "passwd": "OVERRIDE_VIA_OAUTH2_DB_PASSWORD",
             "is_fast": false,
             "client_encoding": "",
             "number_of_connections": 4,
@@ -31,7 +31,7 @@
             "host": "redis",
             "port": 6379,
             "username": "",
-            "passwd": "123456",
+            "passwd": "OVERRIDE_VIA_OAUTH2_REDIS_PASSWORD",
             "db": 0,
             "is_fast": false,
             "number_of_connections": 4,
@@ -218,6 +218,13 @@
         }
     ],
     "custom_config": {
+        "metadata": {
+            "issuer": "https://auth.example.com"
+        },
+        "auth": {
+            "require_email_verification": true,
+            "require_pkce_for_public": true
+        },
         "rbac_rules": {
             "/api/admin/.*": [
                 "admin"
@@ -229,25 +236,23 @@
         },
         "cors": {
             "allow_origins": [
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://localhost:8080",
-                "https://editor.swagger.io"
+                "https://app.example.com",
+                "https://admin.example.com"
             ]
         },
         "frontend": {
-            "url": "http://localhost:8080",
+            "url": "https://app.example.com",
             "register_path": "/register"
         },
         "external_auth": {
             "wechat": {
-                "appid": "YOUR_WECHAT_APPID",
-                "secret": "YOUR_WECHAT_SECRET"
+                "appid": "OVERRIDE_VIA_ENV",
+                "secret": "OVERRIDE_VIA_ENV"
             },
             "google": {
-                "client_id": "YOUR_GOOGLE_CLIENT_ID",
-                "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
-                "redirect_uri": "http://localhost:5173/callback"
+                "client_id": "OVERRIDE_VIA_ENV",
+                "client_secret": "OVERRIDE_VIA_ENV",
+                "redirect_uri": "https://app.example.com/callback"
             }
         }
     }

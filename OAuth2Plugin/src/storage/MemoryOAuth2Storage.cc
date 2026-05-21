@@ -58,7 +58,7 @@ void MemoryOAuth2Storage::initFromConfig(
         {
             client.clientType = stringToClientType(clientTypeStr);
         }
-        catch (const std::exception &e)
+        catch (const std::exception &)
         {
             LOG_WARN << "MemoryOAuth2Storage: Invalid client type '" << clientTypeStr << "' for "
                      << clientId << ", defaulting to CONFIDENTIAL";

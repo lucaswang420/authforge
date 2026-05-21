@@ -53,10 +53,7 @@ class SchemaManager
     /**
      * @brief Execute a single migration file and record it
      */
-    static bool applyMigration(
-      const drogon::orm::DbClientPtr &db,
-      const MigrationFile &migration
-    );
+    static bool applyMigration(const drogon::orm::DbClientPtr &db, const MigrationFile &migration);
 
     /**
      * @brief Compute SHA-256 checksum of file content

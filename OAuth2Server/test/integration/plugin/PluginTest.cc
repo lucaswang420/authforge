@@ -57,6 +57,7 @@ DROGON_TEST(Integration_P0_Plugin_General_Works)
           "http://localhost/cb",  // redirect_uri
           "",                     // codeChallenge (empty for non-PKCE test)
           "",                     // codeChallengeMethod (empty for non-PKCE test)
+          "",                     // nonce
           [&](bool success, std::string code, std::string error) {
               if (success)
               {
@@ -164,6 +165,7 @@ DROGON_TEST(Integration_P0_Plugin_General_Works)
           "http://localhost/cb",  // redirect_uri
           "",                     // codeChallenge (empty for non-PKCE test)
           "",                     // codeChallengeMethod (empty for non-PKCE test)
+          "",                     // nonce
           [&](bool success, std::string code, std::string error) {
               if (success)
               {

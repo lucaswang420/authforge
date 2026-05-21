@@ -541,9 +541,7 @@ void RedisOAuth2Storage::atomicRevokeRefreshToken(
             return;
         }
         auto captured = *rt;
-        revokeRefreshToken(token, [cb = std::move(cb), captured]() {
-            cb(captured);
-        });
+        revokeRefreshToken(token, [cb = std::move(cb), captured]() { cb(captured); });
     });
 }
 

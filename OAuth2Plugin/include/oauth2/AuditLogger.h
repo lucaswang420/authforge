@@ -21,7 +21,7 @@ struct AuditEvent
     std::string ip;
     std::string userAgent;
     std::string requestId;
-    Json::Value details;     // Additional context
+    Json::Value details;  // Additional context
 };
 
 /**

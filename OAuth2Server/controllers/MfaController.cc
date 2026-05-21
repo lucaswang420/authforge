@@ -14,9 +14,8 @@ void MfaController::setup(
 )
 {
     std::string userId = req->getAttributes()->get<std::string>("userId");
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     // Generate TOTP secret
     std::string secret = oauth2::utils::TotpUtils::generateSecret();
@@ -26,9 +25,8 @@ void MfaController::setup(
     db->execSqlAsync(
       "UPDATE users SET mfa_secret = $1 WHERE public_sub::text = $2::text",
       [sharedCb, secret, userId](const Result &) {
-          std::string otpUri = oauth2::utils::TotpUtils::generateOtpAuthUri(
-            secret, userId, "OAuth2Server"
-          );
+          std::string otpUri =
+            oauth2::utils::TotpUtils::generateOtpAuthUri(secret, userId, "OAuth2Server");
 
           Json::Value json;
           json["secret"] = secret;
@@ -79,9 +77,8 @@ void MfaController::verifySetup(
         return;
     }
 
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(
@@ -169,9 +166,8 @@ void MfaController::disable(
 {
     std::string userId = req->getAttributes()->get<std::string>("userId");
 
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(
@@ -232,9 +228,8 @@ void MfaController::verifyLogin(
     // For now, MFA login verification uses session-based approach
     // The mfa_token is the userId stored in session during first login step
     // In production, this should be a signed short-lived JWT
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(
@@ -251,7 +246,8 @@ void MfaController::verifyLogin(
               return;
           }
 
-          std::string secret = r[0]["mfa_secret"].isNull() ? "" : r[0]["mfa_secret"].as<std::string>();
+          std::string secret =
+            r[0]["mfa_secret"].isNull() ? "" : r[0]["mfa_secret"].as<std::string>();
           std::string publicSub = r[0]["public_sub"].as<std::string>();
 
           // Try TOTP code first

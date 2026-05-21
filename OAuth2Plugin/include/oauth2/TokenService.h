@@ -36,6 +36,7 @@ class TokenService
       const std::string &redirectUri,
       const std::string &codeChallenge,
       const std::string &codeChallengeMethod,
+      const std::string &nonce,
       std::function<void(bool, std::string, std::string)> &&callback
     );
 

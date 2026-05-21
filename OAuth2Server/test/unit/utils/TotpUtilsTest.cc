@@ -8,7 +8,8 @@ DROGON_TEST(Unit_TotpUtils_GenerateSecret)
     auto secret = TotpUtils::generateSecret();
     CHECK(secret.length() == 32);  // 20 bytes base32 = 32 chars
     // All chars should be valid base32
-    for (char c : secret) {
+    for (char c : secret)
+    {
         bool validBase32 = (c >= 'A' && c <= 'Z') || (c >= '2' && c <= '7');
         CHECK(validBase32 == true);
     }
@@ -20,7 +21,8 @@ DROGON_TEST(Unit_TotpUtils_GenerateCode)
     auto code = TotpUtils::generateCode(secret);
     CHECK(code.length() == 6);
     // All digits
-    for (char c : code) {
+    for (char c : code)
+    {
         bool isDigit = (c >= '0' && c <= '9');
         CHECK(isDigit == true);
     }
@@ -38,7 +40,8 @@ DROGON_TEST(Unit_TotpUtils_GenerateBackupCodes)
 {
     auto codes = TotpUtils::generateBackupCodes(10);
     CHECK(codes.size() == 10);
-    for (const auto& code : codes) {
+    for (const auto &code : codes)
+    {
         CHECK(code.length() == 8);
     }
 }

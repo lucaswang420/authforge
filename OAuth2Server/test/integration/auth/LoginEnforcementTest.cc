@@ -40,9 +40,7 @@ DROGON_TEST(Integration_Login_MFA_Enforcement)
     std::promise<bool> pVerify;
     db->execSqlAsync(
       "SELECT mfa_enabled FROM users WHERE username = 'admin'",
-      [&](const Result &r) {
-          pVerify.set_value(!r.empty() && r[0]["mfa_enabled"].as<bool>());
-      },
+      [&](const Result &r) { pVerify.set_value(!r.empty() && r[0]["mfa_enabled"].as<bool>()); },
       [&](const DrogonDbException &) { pVerify.set_value(false); }
     );
     CHECK(pVerify.get_future().get() == true);
@@ -108,9 +106,7 @@ DROGON_TEST(Integration_Login_EmailVerification_Field)
     std::promise<bool> pRead;
     db->execSqlAsync(
       "SELECT email_verified FROM users WHERE username = 'admin'",
-      [&](const Result &r) {
-          pRead.set_value(!r.empty() && r[0]["email_verified"].as<bool>());
-      },
+      [&](const Result &r) { pRead.set_value(!r.empty() && r[0]["email_verified"].as<bool>()); },
       [&](const DrogonDbException &) { pRead.set_value(false); }
     );
     CHECK(pRead.get_future().get() == true);
@@ -166,7 +162,8 @@ DROGON_TEST(Integration_Login_AccountLockout_Fields)
     // Verify lockout columns exist
     std::promise<bool> pCheck;
     db->execSqlAsync(
-      "SELECT failed_login_count, locked_until, last_failed_login FROM users WHERE username = 'admin'",
+      "SELECT failed_login_count, locked_until, last_failed_login FROM users WHERE username = "
+      "'admin'",
       [&](const Result &r) {
           if (r.empty())
           {
@@ -174,7 +171,8 @@ DROGON_TEST(Integration_Login_AccountLockout_Fields)
               return;
           }
           // All columns should be readable (value may be non-zero from other tests)
-          int failedCount = r[0]["failed_login_count"].isNull() ? 0 : r[0]["failed_login_count"].as<int>();
+          int failedCount =
+            r[0]["failed_login_count"].isNull() ? 0 : r[0]["failed_login_count"].as<int>();
           CHECK(failedCount >= 0);  // Just verify it's a valid integer
           pCheck.set_value(true);
       },

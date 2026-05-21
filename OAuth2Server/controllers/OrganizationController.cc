@@ -8,7 +8,8 @@ void OrganizationController::list(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
     auto db = drogon::app().getDbClient();
     db->execSqlAsync(
       "SELECT id, slug, name, logo_uri, primary_color, issuer_override, created_at "
@@ -23,8 +24,10 @@ void OrganizationController::list(
               org["slug"] = row["slug"].as<std::string>();
               org["name"] = row["name"].as<std::string>();
               org["logo_uri"] = row["logo_uri"].isNull() ? "" : row["logo_uri"].as<std::string>();
-              org["primary_color"] = row["primary_color"].isNull() ? "" : row["primary_color"].as<std::string>();
-              org["issuer_override"] = row["issuer_override"].isNull() ? "" : row["issuer_override"].as<std::string>();
+              org["primary_color"] =
+                row["primary_color"].isNull() ? "" : row["primary_color"].as<std::string>();
+              org["issuer_override"] =
+                row["issuer_override"].isNull() ? "" : row["issuer_override"].as<std::string>();
               orgs.append(org);
           }
           json["organizations"] = orgs;
@@ -47,7 +50,8 @@ void OrganizationController::create(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
@@ -96,7 +100,9 @@ void OrganizationController::create(
       "VALUES ($1, $2, $3, $4, $5) RETURNING id",
       [sharedCb, slug, name, req](const drogon::orm::Result &r) {
           int id = r[0]["id"].as<int>();
-          oauth2::AuditLogger::log("organization_created", "success", req, "", "organization", slug);
+          oauth2::AuditLogger::log(
+            "organization_created", "success", req, "", "organization", slug
+          );
           Json::Value json;
           json["id"] = id;
           json["slug"] = slug;
@@ -114,7 +120,11 @@ void OrganizationController::create(
           resp->setStatusCode(k409Conflict);
           (*sharedCb)(resp);
       },
-      slug, name, logoUri, primaryColor, issuerOverride
+      slug,
+      name,
+      logoUri,
+      primaryColor,
+      issuerOverride
     );
 }
 
@@ -124,7 +134,8 @@ void OrganizationController::getBySlug(
   const std::string &slug
 )
 {
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
     auto db = drogon::app().getDbClient();
     db->execSqlAsync(
       "SELECT id, slug, name, logo_uri, primary_color, issuer_override, created_at "
@@ -145,8 +156,10 @@ void OrganizationController::getBySlug(
           json["slug"] = row["slug"].as<std::string>();
           json["name"] = row["name"].as<std::string>();
           json["logo_uri"] = row["logo_uri"].isNull() ? "" : row["logo_uri"].as<std::string>();
-          json["primary_color"] = row["primary_color"].isNull() ? "" : row["primary_color"].as<std::string>();
-          json["issuer_override"] = row["issuer_override"].isNull() ? "" : row["issuer_override"].as<std::string>();
+          json["primary_color"] =
+            row["primary_color"].isNull() ? "" : row["primary_color"].as<std::string>();
+          json["issuer_override"] =
+            row["issuer_override"].isNull() ? "" : row["issuer_override"].as<std::string>();
           (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
       },
       [sharedCb](const drogon::orm::DrogonDbException &e) {

@@ -43,9 +43,8 @@ void PasswordResetController::request(
     }
 
     // Always return 200 regardless of whether email exists (prevent enumeration)
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(
@@ -83,17 +82,12 @@ void PasswordResetController::request(
             "VALUES ($1, $2, $3)",
             [sharedCb, json, rawToken, email](const Result &) {
                 // Send email with reset link
-                std::string resetLink =
-                  "http://localhost:5173/reset-password?token=" + rawToken;
-                std::string emailBody =
-                  "Click the following link to reset your password:\n\n" + resetLink +
-                  "\n\nThis link expires in 15 minutes.";
+                std::string resetLink = "http://localhost:5173/reset-password?token=" + rawToken;
+                std::string emailBody = "Click the following link to reset your password:\n\n" +
+                                        resetLink + "\n\nThis link expires in 15 minutes.";
 
                 emailService_.sendEmail(
-                  email,
-                  "Password Reset Request",
-                  emailBody,
-                  [](bool) {}  // fire-and-forget
+                  email, "Password Reset Request", emailBody, [](bool) {}  // fire-and-forget
                 );
 
                 auto resp = HttpResponse::newHttpJsonResponse(json);
@@ -164,9 +158,8 @@ void PasswordResetController::confirm(
         return;
     }
 
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(
-      std::move(callback)
-    );
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     // Hash the token and look up
     std::string tokenHash = oauth2::utils::hashToken(token);

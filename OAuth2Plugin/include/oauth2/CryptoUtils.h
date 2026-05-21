@@ -59,8 +59,7 @@ inline std::vector<unsigned char> sha256(const std::string &data)
         char hi = hexStr[i];
         char lo = hexStr[i + 1];
         byte = static_cast<unsigned char>(
-            ((hi >= 'a' ? hi - 'a' + 10 : hi - '0') << 4) |
-            (lo >= 'a' ? lo - 'a' + 10 : lo - '0')
+          ((hi >= 'a' ? hi - 'a' + 10 : hi - '0') << 4) | (lo >= 'a' ? lo - 'a' + 10 : lo - '0')
         );
         hash.push_back(byte);
     }

@@ -48,8 +48,7 @@ void AuthService::validateUser(
 
               if (lockedUntil > now)
               {
-                  LOG_WARN << "Account locked for user: " << username
-                           << " until " << lockedUntil;
+                  LOG_WARN << "Account locked for user: " << username << " until " << lockedUntil;
                   (*sharedCb)(std::nullopt);
                   return;
               }
@@ -87,8 +86,7 @@ void AuthService::validateUser(
                           db->execSqlAsync(
                             "UPDATE users SET password_hash = $1, salt = '' WHERE id = $2",
                             [userId](const drogon::orm::Result &) {
-                                LOG_INFO << "Upgraded password hash to PBKDF2 for user "
-                                         << userId;
+                                LOG_INFO << "Upgraded password hash to PBKDF2 for user " << userId;
                             },
                             [userId](const drogon::orm::DrogonDbException &e) {
                                 LOG_WARN << "Failed to upgrade password hash for user " << userId
@@ -107,8 +105,20 @@ void AuthService::validateUser(
                   AuthResult result;
                   result.internalId = user.getValueOfId();
                   result.publicSub = user.getValueOfPublicSub();
-                  try { result.emailVerified = user.getValueOfEmailVerified(); } catch (...) {}
-                  try { result.mfaEnabled = user.getValueOfMfaEnabled(); } catch (...) {}
+                  try
+                  {
+                      result.emailVerified = user.getValueOfEmailVerified();
+                  }
+                  catch (...)
+                  {
+                  }
+                  try
+                  {
+                      result.mfaEnabled = user.getValueOfMfaEnabled();
+                  }
+                  catch (...)
+                  {
+                  }
                   (*sharedCb)(result);
               }
               else

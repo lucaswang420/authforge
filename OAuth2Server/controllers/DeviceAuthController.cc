@@ -16,8 +16,10 @@ constexpr int USER_CODE_LENGTH = 8;
 std::string getVerificationUri()
 {
     auto customConfig = drogon::app().getCustomConfig();
-    if (customConfig.isMember("device_authorization") &&
-        customConfig["device_authorization"].isMember("verification_uri"))
+    if (
+      customConfig.isMember("device_authorization") &&
+      customConfig["device_authorization"].isMember("verification_uri")
+    )
     {
         return customConfig["device_authorization"]["verification_uri"].asString();
     }

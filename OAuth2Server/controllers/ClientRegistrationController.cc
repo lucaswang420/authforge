@@ -181,13 +181,7 @@ void ClientRegistrationController::registerClient(
 
               // Audit log the failure
               oauth2::AuditLogger::log(
-                "client_registered",
-                "failure",
-                req,
-                "",
-                "client",
-                "",
-                Json::Value(e.base().what())
+                "client_registered", "failure", req, "", "client", "", Json::Value(e.base().what())
               );
 
               (*sharedCb)(resp);

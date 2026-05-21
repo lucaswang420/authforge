@@ -14,8 +14,8 @@ namespace utils
 
 // PBKDF2-SHA256 parameters (OWASP recommended minimum: 600,000 iterations for SHA-256)
 static constexpr int PBKDF2_ITERATIONS = 310000;  // OWASP 2023 recommendation
-static constexpr int PBKDF2_KEY_LENGTH = 32;       // 256 bits
-static constexpr int PBKDF2_SALT_LENGTH = 16;      // 128 bits
+static constexpr int PBKDF2_KEY_LENGTH = 32;      // 256 bits
+static constexpr int PBKDF2_SALT_LENGTH = 16;     // 128 bits
 
 // Output format: $pbkdf2-sha256$iterations$base64salt$base64hash
 // This is compatible with Python's passlib and many other implementations.

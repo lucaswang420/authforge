@@ -1,4 +1,4 @@
-#include <oauth2/controllers/OAuth2StandardController.h>
+﻿#include <oauth2/controllers/OAuth2StandardController.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/OAuth2Metrics.h>
 #include <oauth2/ValidatorHelper.h>
@@ -846,6 +846,7 @@ void OAuth2StandardController::authorize(
                                             redirectUri,
                                             "",  // codeChallenge
                                             "",  // codeChallengeMethod
+                                            "",  // nonce
                                             [redirectUri, state, callback = std::move(callback)](
                                               bool success, std::string code, std::string error
                                             ) {
@@ -1068,7 +1069,8 @@ void OAuth2StandardController::token(
         {
             Json::Value error;
             error["error"] = "invalid_client";
-            error["error_description"] = "Client authentication required for client_credentials grant";
+            error["error_description"] =
+              "Client authentication required for client_credentials grant";
             auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(drogon::k401Unauthorized);
             callback(resp);
@@ -1079,10 +1081,8 @@ void OAuth2StandardController::token(
           std::move(callback)
         );
 
-        plugin->validateClient(
-          clientId,
-          clientSecret,
-          [plugin, clientId, req, sharedCb](bool valid) {
+        plugin
+          ->validateClient(clientId, clientSecret, [plugin, clientId, req, sharedCb](bool valid) {
               if (!valid)
               {
                   Json::Value error;
@@ -1123,9 +1123,7 @@ void OAuth2StandardController::token(
 
                     // Determine scope (intersection of requested and allowed)
                     std::string requestedScope = req->getParameter("scope");
-                    std::string grantedScope = requestedScope.empty()
-                                                 ? "read"
-                                                 : requestedScope;
+                    std::string grantedScope = requestedScope.empty() ? "read" : requestedScope;
 
                     // Generate access token (no refresh token for client_credentials)
                     auto tokenStr = oauth2::utils::generateSecureToken();
@@ -1142,24 +1140,20 @@ void OAuth2StandardController::token(
                     token.expiresAt = now + 3600;
 
                     auto storage2 = plugin->getStorage();
-                    storage2->saveAccessToken(
-                      token,
-                      [sharedCb, tokenStr, grantedScope]() {
-                          Json::Value json;
-                          json["access_token"] = tokenStr;
-                          json["token_type"] = "Bearer";
-                          json["expires_in"] = 3600;
-                          json["scope"] = grantedScope;
-                          // No refresh_token for client_credentials
-                          auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
-                          Metrics::incRequest("token", 200);
-                          (*sharedCb)(resp);
-                      }
-                    );
+                    storage2->saveAccessToken(token, [sharedCb, tokenStr, grantedScope]() {
+                        Json::Value json;
+                        json["access_token"] = tokenStr;
+                        json["token_type"] = "Bearer";
+                        json["expires_in"] = 3600;
+                        json["scope"] = grantedScope;
+                        // No refresh_token for client_credentials
+                        auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
+                        Metrics::incRequest("token", 200);
+                        (*sharedCb)(resp);
+                    });
                 }
               );
-          }
-        );
+          });
     }
     else if (grantType == "urn:ietf:params:oauth:grant-type:device_code")
     {
@@ -1259,8 +1253,7 @@ void OAuth2StandardController::token(
               {
                   Json::Value error;
                   error["error"] = "authorization_pending";
-                  error["error_description"] =
-                    "The authorization request is still pending";
+                  error["error_description"] = "The authorization request is still pending";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
                   Metrics::incRequest("token", 400);
@@ -1292,7 +1285,7 @@ void OAuth2StandardController::token(
                   return;
               }
 
-              // Status is "approved" — issue tokens
+              // Status is "approved" 鈥?issue tokens
               auto accessTokenStr = oauth2::utils::generateSecureToken();
               auto refreshTokenStr = oauth2::utils::generateSecureToken();
               std::string familyId = oauth2::utils::generateSecureToken(16);
@@ -1473,6 +1466,7 @@ void OAuth2StandardController::checkUserConsentAndProceed(
           redirectUri,
           "",  // codeChallenge
           "",  // codeChallengeMethod
+          "",  // nonce
           [clientId, redirectUri, state, callback = std::move(callback)](
             bool success, std::string code, std::string error
           ) mutable {

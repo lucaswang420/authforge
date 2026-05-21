@@ -49,8 +49,8 @@ bool SchemaManager::migrate(const std::string &migrationsDir)
     int appliedCount = 0;
     for (const auto &migration : migrations)
     {
-        bool alreadyApplied = std::find(applied.begin(), applied.end(), migration.version) !=
-                              applied.end();
+        bool alreadyApplied =
+          std::find(applied.begin(), applied.end(), migration.version) != applied.end();
         if (alreadyApplied)
         {
             continue;
@@ -59,8 +59,8 @@ bool SchemaManager::migrate(const std::string &migrationsDir)
         // Step 5: Apply and record
         if (!applyMigration(db, migration))
         {
-            LOG_ERROR << "SchemaManager: Migration V"
-                      << std::to_string(migration.version) << " failed. Stopping.";
+            LOG_ERROR << "SchemaManager: Migration V" << std::to_string(migration.version)
+                      << " failed. Stopping.";
             return false;
         }
         ++appliedCount;
@@ -99,9 +99,7 @@ bool SchemaManager::ensureMigrationsTable(const drogon::orm::DbClientPtr &db)
     }
 }
 
-std::vector<SchemaManager::MigrationFile> SchemaManager::scanMigrationFiles(
-  const std::string &dir
-)
+std::vector<SchemaManager::MigrationFile> SchemaManager::scanMigrationFiles(const std::string &dir)
 {
     std::vector<MigrationFile> files;
     namespace fs = std::filesystem;
@@ -184,9 +182,8 @@ bool SchemaManager::applyMigration(
 
     std::string checksum = computeChecksum(sql);
 
-    LOG_INFO << "SchemaManager: Applying V"
-             << std::to_string(migration.version)
-             << " (" << migration.filename << ")";
+    LOG_INFO << "SchemaManager: Applying V" << std::to_string(migration.version) << " ("
+             << migration.filename << ")";
 
     try
     {

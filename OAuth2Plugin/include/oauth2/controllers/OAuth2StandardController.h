@@ -42,11 +42,7 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
       "/.well-known/openid-configuration",
       drogon::Get
     );
-    ADD_METHOD_TO(
-      OAuth2StandardController::jwks,
-      "/.well-known/jwks.json",
-      drogon::Get
-    );
+    ADD_METHOD_TO(OAuth2StandardController::jwks, "/.well-known/jwks.json", drogon::Get);
     METHOD_LIST_END
 
     void authorize(

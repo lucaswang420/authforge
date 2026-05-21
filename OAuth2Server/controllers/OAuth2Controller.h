@@ -62,6 +62,12 @@ class OAuth2Controller : public drogon::HttpController<OAuth2Controller>
     void logout(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 
     void health(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
-    void healthLive(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
-    void healthReady(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void healthLive(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+    void healthReady(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
 };

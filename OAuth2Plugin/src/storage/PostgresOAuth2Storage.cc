@@ -113,7 +113,7 @@ void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallbac
                   client.clientType = stringToClientType(clientTypeStr);
                   LOG_DEBUG << "Postgres getClient: Type -> " << clientTypeStr;
               }
-              catch (const std::exception &e)
+              catch (const std::exception &)
               {
                   LOG_WARN << "Postgres getClient: Invalid client type '" << clientTypeStr
                            << "' for " << client.clientId << ", defaulting to CONFIDENTIAL";
@@ -228,7 +228,7 @@ void PostgresOAuth2Storage::validateClient(
               {
                   clientType = stringToClientType(clientTypeStr);
               }
-              catch (const std::exception &e)
+              catch (const std::exception &)
               {
                   LOG_WARN << "Postgres validateClient: Invalid client type '" << clientTypeStr
                            << "' for " << clientId << ", defaulting to CONFIDENTIAL";
@@ -269,9 +269,8 @@ void PostgresOAuth2Storage::validateClient(
               );
 
               // Use constant-time comparison to prevent timing attacks
-              size_t cmpLen = (computedHash.length() < storedLower.length())
-                                ? computedHash.length()
-                                : storedLower.length();
+              size_t cmpLen = (computedHash.length() < storedLower.length()) ? computedHash.length()
+                                                                             : storedLower.length();
               bool match =
                 (constantTimeMemcmp(computedHash.c_str(), storedLower.c_str(), cmpLen) == 0) &&
                 computedHash.length() == storedLower.length();
@@ -466,9 +465,8 @@ void PostgresOAuth2Storage::consumeAuthCode(
           auto row = r[0];
 
           // Validate redirect_uri matches (RFC 6749 Section 4.1.3)
-          std::string storedRedirectUri = row["redirect_uri"].isNull()
-                                           ? ""
-                                           : row["redirect_uri"].as<std::string>();
+          std::string storedRedirectUri =
+            row["redirect_uri"].isNull() ? "" : row["redirect_uri"].as<std::string>();
           if (!redirectUri.empty() && redirectUri != storedRedirectUri)
           {
               LOG_WARN << "[SECURITY] redirect_uri mismatch in token exchange. "
@@ -483,9 +481,8 @@ void PostgresOAuth2Storage::consumeAuthCode(
           c.userId = row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
           c.scope = row["scope"].isNull() ? "" : row["scope"].as<std::string>();
           c.redirectUri = storedRedirectUri;
-          c.codeChallenge = row["code_challenge"].isNull()
-                              ? ""
-                              : row["code_challenge"].as<std::string>();
+          c.codeChallenge =
+            row["code_challenge"].isNull() ? "" : row["code_challenge"].as<std::string>();
           c.codeChallengeMethod = row["code_challenge_method"].isNull()
                                     ? ""
                                     : row["code_challenge_method"].as<std::string>();
@@ -947,8 +944,7 @@ void PostgresOAuth2Storage::deleteExpiredData()
               }
           },
           [](const DrogonDbException &e) {
-              LOG_DEBUG << "Token archival skipped (function may not exist): "
-                        << e.base().what();
+              LOG_DEBUG << "Token archival skipped (function may not exist): " << e.base().what();
           }
         );
     }
@@ -1157,8 +1153,8 @@ void PostgresOAuth2Storage::createUserForExternalLogin(
       [sharedCb, provider, externalId](const drogon::orm::Result &r) {
           if (r.empty())
           {
-              LOG_ERROR << "createUserForExternalLogin: no ID returned for "
-                        << provider << ":" << externalId;
+              LOG_ERROR << "createUserForExternalLogin: no ID returned for " << provider << ":"
+                        << externalId;
               (*sharedCb)(std::nullopt);
               return;
           }

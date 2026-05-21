@@ -47,7 +47,7 @@ std::optional<std::string> ValidatorHelper::validateField(
                 return fieldName + " format is invalid";
             }
         }
-        catch (const std::regex_error &e)
+        catch (const std::regex_error &)
         {
             // 如果正则表达式无效，记录警告但不阻止验证
             // 这样可以避免配置错误导致整个验证失败
@@ -252,9 +252,10 @@ std::optional<std::string> ValidatorHelper::validateGrantType(const std::string 
         return "grant_type is required";
     }
 
-    if (type != "authorization_code" && type != "refresh_token" &&
-        type != "client_credentials" &&
-        type != "urn:ietf:params:oauth:grant-type:device_code")
+    if (
+      type != "authorization_code" && type != "refresh_token" && type != "client_credentials" &&
+      type != "urn:ietf:params:oauth:grant-type:device_code"
+    )
     {
         return "grant_type must be 'authorization_code', 'refresh_token', "
                "'client_credentials', or 'urn:ietf:params:oauth:grant-type:device_code'";

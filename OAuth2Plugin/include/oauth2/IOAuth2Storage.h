@@ -36,6 +36,7 @@ struct OAuth2AuthCode
     std::string redirectUri;
     std::string codeChallenge;        // PKCE support
     std::string codeChallengeMethod;  // "plain" or "S256"
+    std::string nonce;                // OIDC nonce (anti-replay)
     int64_t expiresAt;                // Unix timestamp (seconds)
     bool used = false;
 };
@@ -270,10 +271,7 @@ class IOAuth2Storage
      * @param token The hashed refresh token
      * @param cb Callback with token data if CAS succeeded, nullopt if already revoked
      */
-    virtual void atomicRevokeRefreshToken(
-      const std::string &token,
-      RefreshTokenCallback &&cb
-    ) = 0;
+    virtual void atomicRevokeRefreshToken(const std::string &token, RefreshTokenCallback &&cb) = 0;
 
     /**
      * @brief Revoke all tokens in a refresh token family (cascade revocation)

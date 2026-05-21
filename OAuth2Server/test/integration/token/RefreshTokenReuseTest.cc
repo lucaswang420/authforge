@@ -27,7 +27,13 @@ DROGON_TEST(Integration_P0_RefreshToken_NormalRotation)
         std::promise<std::string> p;
         auto f = p.get_future();
         plugin->generateAuthorizationCode(
-          "test-client", "user1", "openid", "http://localhost/cb", "", "",
+          "test-client",
+          "user1",
+          "openid",
+          "http://localhost/cb",
+          "",
+          "",
+          "",  // nonce
           [&](bool success, std::string code, std::string error) {
               if (success)
                   p.set_value(code);
@@ -49,8 +55,9 @@ DROGON_TEST(Integration_P0_RefreshToken_NormalRotation)
         std::promise<Json::Value> p;
         auto f = p.get_future();
         plugin->exchangeCodeForToken(
-          authCode, "test-client", "", "http://localhost/cb", "",
-          [&](const Json::Value& result) { p.set_value(result); }
+          authCode, "test-client", "", "http://localhost/cb", "", [&](const Json::Value &result) {
+              p.set_value(result);
+          }
         );
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
         {
@@ -68,7 +75,7 @@ DROGON_TEST(Integration_P0_RefreshToken_NormalRotation)
     {
         std::promise<Json::Value> p;
         auto f = p.get_future();
-        plugin->refreshAccessToken(rt1, "test-client", [&](const Json::Value& r) {
+        plugin->refreshAccessToken(rt1, "test-client", [&](const Json::Value &r) {
             p.set_value(r);
         });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
@@ -87,7 +94,7 @@ DROGON_TEST(Integration_P0_RefreshToken_NormalRotation)
     {
         std::promise<Json::Value> p;
         auto f = p.get_future();
-        plugin->refreshAccessToken(rt1, "test-client", [&](const Json::Value& r) {
+        plugin->refreshAccessToken(rt1, "test-client", [&](const Json::Value &r) {
             p.set_value(r);
         });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)
@@ -103,7 +110,7 @@ DROGON_TEST(Integration_P0_RefreshToken_NormalRotation)
     {
         std::promise<Json::Value> p;
         auto f = p.get_future();
-        plugin->refreshAccessToken(rt2, "test-client", [&](const Json::Value& r) {
+        plugin->refreshAccessToken(rt2, "test-client", [&](const Json::Value &r) {
             p.set_value(r);
         });
         if (f.wait_for(std::chrono::seconds(30)) == std::future_status::timeout)

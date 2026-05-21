@@ -28,6 +28,7 @@ void TokenService::generateAuthorizationCode(
   const std::string &redirectUri,
   const std::string &codeChallenge,
   const std::string &codeChallengeMethod,
+  const std::string &nonce,
   std::function<void(bool, std::string, std::string)> &&callback
 )
 {
@@ -46,6 +47,7 @@ void TokenService::generateAuthorizationCode(
     authCode.redirectUri = redirectUri;
     authCode.codeChallenge = codeChallenge;
     authCode.codeChallengeMethod = codeChallengeMethod;
+    authCode.nonce = nonce;
 
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                  std::chrono::system_clock::now().time_since_epoch()
@@ -130,18 +132,15 @@ void TokenService::exchangeCodeForToken(
                     // No PKCE was used during authorization
                     // For PUBLIC clients, PKCE is mandatory (OAuth 2.1)
                     // We enforce this by checking if client is PUBLIC and code_verifier is missing
-                    storage_->getClient(
-                      clientId,
-                      [](std::optional<OAuth2Client> client) {
-                          // Note: enforcement is advisory here - the auth code was already consumed
-                          // Full enforcement should happen at /oauth2/authorize time
-                          if (client && client->clientType == ClientType::PUBLIC)
-                          {
-                              LOG_WARN << "[SECURITY] PUBLIC client " << client->clientId
-                                       << " used authorization code without PKCE";
-                          }
-                      }
-                    );
+                    storage_->getClient(clientId, [](std::optional<OAuth2Client> client) {
+                        // Note: enforcement is advisory here - the auth code was already consumed
+                        // Full enforcement should happen at /oauth2/authorize time
+                        if (client && client->clientType == ClientType::PUBLIC)
+                        {
+                            LOG_WARN << "[SECURITY] PUBLIC client " << client->clientId
+                                     << " used authorization code without PKCE";
+                        }
+                    });
                 }
 
                 auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -182,7 +181,8 @@ void TokenService::exchangeCodeForToken(
                       refreshToken.familyId = familyId;
 
                       storage_->saveTokenPair(
-                        token, refreshToken,
+                        token,
+                        refreshToken,
                         [this, callback, tokenStr, refreshTokenStr, rolesJson, authCode, now]() {
                             Json::Value json;
                             json["access_token"] = tokenStr;
@@ -192,13 +192,17 @@ void TokenService::exchangeCodeForToken(
                             json["roles"] = rolesJson;
 
                             // Issue id_token if scope includes "openid"
-                            if (jwkManager_ && jwkManager_->isInitialized() &&
-                                authCode->scope.find("openid") != std::string::npos)
+                            if (
+                              jwkManager_ && jwkManager_->isInitialized() &&
+                              authCode->scope.find("openid") != std::string::npos
+                            )
                             {
                                 auto customConfig = drogon::app().getCustomConfig();
                                 std::string issuer = "http://localhost:5555";
-                                if (customConfig.isMember("metadata") &&
-                                    customConfig["metadata"].isMember("issuer"))
+                                if (
+                                  customConfig.isMember("metadata") &&
+                                  customConfig["metadata"].isMember("issuer")
+                                )
                                 {
                                     issuer = customConfig["metadata"]["issuer"].asString();
                                 }
@@ -209,6 +213,10 @@ void TokenService::exchangeCodeForToken(
                                 idTokenClaims["aud"] = authCode->clientId;
                                 idTokenClaims["iat"] = (Json::Int64)now;
                                 idTokenClaims["exp"] = (Json::Int64)(now + 3600);
+                                if (!authCode->nonce.empty())
+                                {
+                                    idTokenClaims["nonce"] = authCode->nonce;
+                                }
 
                                 std::string idToken = jwkManager_->signJwt(idTokenClaims);
                                 if (!idToken.empty())
@@ -255,20 +263,16 @@ void TokenService::refreshAccessToken(
               // Try to get the token to check if it exists but is revoked
               storage_->getRefreshToken(
                 hashedRt,
-                [this, callback = std::move(callback)](
-                  std::optional<OAuth2RefreshToken> maybeRevoked
-                ) {
+                [this,
+                 callback = std::move(callback)](std::optional<OAuth2RefreshToken> maybeRevoked) {
                     if (maybeRevoked && maybeRevoked->revoked && !maybeRevoked->familyId.empty())
                     {
                         // REUSE DETECTED! Cascade revoke the entire family
                         LOG_WARN << "[SECURITY] Refresh token reuse detected! "
                                  << "Revoking token family: " << maybeRevoked->familyId;
-                        storage_->revokeTokenFamily(
-                          maybeRevoked->familyId,
-                          [callback]() {
-                              callback(makeError("invalid_grant", "Token reuse detected"));
-                          }
-                        );
+                        storage_->revokeTokenFamily(maybeRevoked->familyId, [callback]() {
+                            callback(makeError("invalid_grant", "Token reuse detected"));
+                        });
                     }
                     else
                     {
@@ -316,17 +320,14 @@ void TokenService::refreshAccessToken(
           newRt.expiresAt = now + refreshTokenTtl_;
           newRt.familyId = storedRt->familyId;  // Inherit family
 
-          storage_->saveTokenPair(
-            token, newRt,
-            [callback, newTokenStr, newRefreshTokenStr]() {
-                Json::Value json;
-                json["access_token"] = newTokenStr;
-                json["token_type"] = "Bearer";
-                json["expires_in"] = (Json::Int64)3600;
-                json["refresh_token"] = newRefreshTokenStr;
-                callback(json);
-            }
-          );
+          storage_->saveTokenPair(token, newRt, [callback, newTokenStr, newRefreshTokenStr]() {
+              Json::Value json;
+              json["access_token"] = newTokenStr;
+              json["token_type"] = "Bearer";
+              json["expires_in"] = (Json::Int64)3600;
+              json["refresh_token"] = newRefreshTokenStr;
+              callback(json);
+          });
       }
     );
 }

@@ -379,8 +379,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
                       "WHERE user_id = $1 AND client_id = $2",
                       [sharedCb, userId, clientId, req](const Result &) {
                           oauth2::AuditLogger::log(
-                            "app_authorization_revoked", "success", req, userId, "client",
-                            clientId
+                            "app_authorization_revoked", "success", req, userId, "client", clientId
                           );
                           Json::Value json;
                           json["message"] = "Authorization revoked successfully";
@@ -391,8 +390,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
                       [sharedCb, userId, clientId, req](const DrogonDbException &) {
                           // Consent was deleted, token revocation is best-effort
                           oauth2::AuditLogger::log(
-                            "app_authorization_revoked", "success", req, userId, "client",
-                            clientId
+                            "app_authorization_revoked", "success", req, userId, "client", clientId
                           );
                           Json::Value json;
                           json["message"] = "Authorization revoked successfully";
@@ -405,8 +403,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
                     );
                 },
                 [sharedCb](const DrogonDbException &e) {
-                    LOG_ERROR << "revokeAuthorizedApp consent delete failed: "
-                              << e.base().what();
+                    LOG_ERROR << "revokeAuthorizedApp consent delete failed: " << e.base().what();
                     Json::Value error;
                     error["error"] = "server_error";
                     error["error_description"] = "Failed to revoke authorization";

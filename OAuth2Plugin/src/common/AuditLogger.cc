@@ -22,9 +22,8 @@ void AuditLogger::log(const AuditEvent &event)
 
         Json::StreamWriterBuilder writer;
         writer["indentation"] = "";
-        std::string detailsStr = event.details.isNull()
-                                   ? "{}"
-                                   : Json::writeString(writer, event.details);
+        std::string detailsStr =
+          event.details.isNull() ? "{}" : Json::writeString(writer, event.details);
 
         db->execSqlAsync(
           "INSERT INTO audit_logs "

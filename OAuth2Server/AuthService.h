@@ -13,8 +13,8 @@ namespace services
  */
 struct AuthResult
 {
-    int internalId;        // Internal auto-increment ID (for DB operations)
-    std::string publicSub; // Public UUID subject (for OAuth2 tokens, never expose internalId)
+    int internalId;              // Internal auto-increment ID (for DB operations)
+    std::string publicSub;       // Public UUID subject (for OAuth2 tokens, never expose internalId)
     bool emailVerified = false;  // Whether email is verified
     bool mfaEnabled = false;     // Whether MFA (TOTP) is enabled
 };

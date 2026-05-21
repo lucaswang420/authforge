@@ -1,4 +1,4 @@
-#include "OAuth2Controller.h"
+﻿#include "OAuth2Controller.h"
 #include "../AuthService.h"
 #include "EmailVerificationController.h"
 #include <drogon/drogon.h>
@@ -212,6 +212,7 @@ void OAuth2Controller::login(
     std::string username, password;
     std::string clientId, redirectUri, scope, state;
     std::string codeChallenge, codeChallengeMethod;
+    std::string nonce;
 
     // Try JSON body first
     if (req->contentType() == CT_APPLICATION_JSON)
@@ -227,6 +228,7 @@ void OAuth2Controller::login(
             state = json->get("state", "").asString();
             codeChallenge = json->get("code_challenge", "").asString();
             codeChallengeMethod = json->get("code_challenge_method", "").asString();
+            nonce = json->get("nonce", "").asString();
         }
     }
     // Fallback to form data (Drogon automatically parses form-urlencoded)
@@ -241,6 +243,7 @@ void OAuth2Controller::login(
         state = params["state"];
         codeChallenge = params["code_challenge"];
         codeChallengeMethod = params["code_challenge_method"];
+        nonce = params["nonce"];
     }
 
     AuthService::validateUser(
@@ -252,6 +255,7 @@ void OAuth2Controller::login(
        scope,
        redirectUri,
        state,
+       nonce,
        codeChallenge,
        codeChallengeMethod,
        callback = std::move(callback)](std::optional<services::AuthResult> authResult) mutable {
@@ -261,15 +265,24 @@ void OAuth2Controller::login(
 
               // Audit: login success
               oauth2::AuditLogger::log(
-                "login_success", "success", req, authResult->publicSub, "user", authResult->publicSub
+                "login_success",
+                "success",
+                req,
+                authResult->publicSub,
+                "user",
+                authResult->publicSub
               );
 
               // === CHECK 1: Email verification enforcement ===
               auto customCfg = drogon::app().getCustomConfig();
               bool requireEmailVerification = false;
-              if (customCfg.isMember("auth") && customCfg["auth"].isMember("require_email_verification"))
+              if (
+                customCfg.isMember("auth") &&
+                customCfg["auth"].isMember("require_email_verification")
+              )
               {
-                  requireEmailVerification = customCfg["auth"]["require_email_verification"].asBool();
+                  requireEmailVerification =
+                    customCfg["auth"]["require_email_verification"].asBool();
               }
               if (requireEmailVerification && !authResult->emailVerified)
               {
@@ -290,7 +303,8 @@ void OAuth2Controller::login(
                   Json::Value mfaResp;
                   mfaResp["mfa_required"] = true;
                   mfaResp["mfa_token"] = std::to_string(authResult->internalId);
-                  mfaResp["message"] = "MFA verification required. Submit TOTP code to /oauth2/mfa/verify";
+                  mfaResp["message"] =
+                    "MFA verification required. Submit TOTP code to /oauth2/mfa/verify";
                   auto resp = HttpResponse::newHttpJsonResponse(mfaResp);
                   resp->setStatusCode(k200OK);
                   callback(resp);
@@ -299,7 +313,9 @@ void OAuth2Controller::login(
 
               // === CHECK 3: PKCE enforcement for PUBLIC clients ===
               bool requirePkce = false;
-              if (customCfg.isMember("auth") && customCfg["auth"].isMember("require_pkce_for_public"))
+              if (
+                customCfg.isMember("auth") && customCfg["auth"].isMember("require_pkce_for_public")
+              )
               {
                   requirePkce = customCfg["auth"]["require_pkce_for_public"].asBool();
               }
@@ -310,7 +326,9 @@ void OAuth2Controller::login(
                            << " login without PKCE (enforcement enabled)";
                   Json::Value err;
                   err["error"] = "invalid_request";
-                  err["error_description"] = "PKCE (code_challenge) is required for public clients. Use code_challenge_method=S256.";
+                  err["error_description"] =
+                    "PKCE (code_challenge) is required for public clients. Use "
+                    "code_challenge_method=S256.";
                   auto resp = HttpResponse::newHttpJsonResponse(err);
                   resp->setStatusCode(k400BadRequest);
                   callback(resp);
@@ -330,11 +348,12 @@ void OAuth2Controller::login(
 
               plugin->generateAuthorizationCode(
                 clientId,
-                authResult->publicSub,  // Use public UUID as subject
+                authResult->publicSub,
                 scope,
                 redirectUri,
                 codeChallenge,
                 codeChallengeMethod,
+                nonce,
                 [req,
                  redirectUri,
                  state,
@@ -342,32 +361,32 @@ void OAuth2Controller::login(
                  codeChallengeMethod,
                  callback =
                    std::move(callback)](bool success, std::string code, std::string error) mutable {
-                    if (!success)
-                    {
-                        LOG_ERROR << "Failed to generate authorization code: " << error;
-                        Json::Value jsonErr;
-                        jsonErr["error"] = "server_error";
-                        jsonErr["error_description"] = "Failed to generate authorization code";
-                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                        resp->setStatusCode(k500InternalServerError);
-                        callback(resp);
-                        return;
-                    }
-
-                    std::string location = redirectUri + "?code=" + code;
-                    if (!state.empty())
-                        location += "&state=" + state;
-                    if (req->getParameter("json") == "true")
-                    {
-                        Json::Value ret;
-                        ret["code"] = code;
-                        ret["location"] = location;
-                        auto resp = HttpResponse::newHttpJsonResponse(ret);
-                        callback(resp);
-                        return;
-                    }
-                    auto resp = HttpResponse::newRedirectionResponse(location);
+                if (!success)
+                {
+                    LOG_ERROR << "Failed to generate authorization code: " << error;
+                    Json::Value jsonErr;
+                    jsonErr["error"] = "server_error";
+                    jsonErr["error_description"] = "Failed to generate authorization code";
+                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                    resp->setStatusCode(k500InternalServerError);
                     callback(resp);
+                    return;
+                }
+
+                std::string location = redirectUri + "?code=" + code;
+                if (!state.empty())
+                    location += "&state=" + state;
+                if (req->getParameter("json") == "true")
+                {
+                    Json::Value ret;
+                    ret["code"] = code;
+                    ret["location"] = location;
+                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    callback(resp);
+                    return;
+                }
+                auto resp = HttpResponse::newRedirectionResponse(location);
+                callback(resp);
                 }
               );
           }
@@ -377,9 +396,7 @@ void OAuth2Controller::login(
               Metrics::incLoginFailure("bad_credentials");
 
               // Audit: login failure
-              oauth2::AuditLogger::log(
-                "login_failure", "failure", req, username, "user", username
-              );
+              oauth2::AuditLogger::log("login_failure", "failure", req, username, "user", username);
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k401Unauthorized);
@@ -412,43 +429,45 @@ void OAuth2Controller::registerUser(
     std::string password = params["password"];
     std::string email = params["email"];
 
-    AuthService::registerUser(username, password, email, [callback, email](const std::string &error) {
-        if (error.empty())
-        {
-            // Send verification email if email provided
-            if (!email.empty())
-            {
-                // Look up the newly created user to get their ID
-                auto db = drogon::app().getDbClient();
-                db->execSqlAsync(
-                  "SELECT id FROM users WHERE email = $1 ORDER BY id DESC LIMIT 1",
-                  [email](const drogon::orm::Result &r) {
-                      if (!r.empty())
-                      {
-                          int userId = r[0]["id"].as<int>();
-                          EmailVerificationController::sendVerificationEmail(userId, email);
-                      }
-                  },
-                  [](const drogon::orm::DrogonDbException &) {},
-                  email
-                );
-            }
+    AuthService::registerUser(
+      username, password, email, [callback, email](const std::string &error) {
+          if (error.empty())
+          {
+              // Send verification email if email provided
+              if (!email.empty())
+              {
+                  // Look up the newly created user to get their ID
+                  auto db = drogon::app().getDbClient();
+                  db->execSqlAsync(
+                    "SELECT id FROM users WHERE email = $1 ORDER BY id DESC LIMIT 1",
+                    [email](const drogon::orm::Result &r) {
+                        if (!r.empty())
+                        {
+                            int userId = r[0]["id"].as<int>();
+                            EmailVerificationController::sendVerificationEmail(userId, email);
+                        }
+                    },
+                    [](const drogon::orm::DrogonDbException &) {},
+                    email
+                  );
+              }
 
-            Json::Value json;
-            json["message"] = "User registered successfully";
-            if (!email.empty())
-                json["note"] = "Please check your email to verify your account";
-            auto resp = HttpResponse::newHttpJsonResponse(json);
-            callback(resp);
-        }
-        else
-        {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k500InternalServerError);
-            resp->setBody(error);
-            callback(resp);
-        }
-    });
+              Json::Value json;
+              json["message"] = "User registered successfully";
+              if (!email.empty())
+                  json["note"] = "Please check your email to verify your account";
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              callback(resp);
+          }
+          else
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k500InternalServerError);
+              resp->setBody(error);
+              callback(resp);
+          }
+      }
+    );
 }
 
 #include <oauth2/filters/OAuth2Middleware.h>
@@ -553,7 +572,8 @@ void sendBackchannelLogoutNotifications(const std::string &userPublicSub)
 
                   client->sendRequest(
                     request,
-                    [clientId, logoutUri](drogon::ReqResult result, const drogon::HttpResponsePtr &resp) {
+                    [clientId,
+                     logoutUri](drogon::ReqResult result, const drogon::HttpResponsePtr &resp) {
                         if (result == drogon::ReqResult::Ok && resp)
                         {
                             LOG_INFO << "Backchannel logout: Client " << clientId << " responded "
@@ -652,7 +672,8 @@ void OAuth2Controller::healthReady(
 )
 {
     // Readiness: check DB connectivity
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     try
     {
@@ -866,33 +887,33 @@ void OAuth2Controller::consent(
                       userId,
                       scope,
                       redirectUri,
-                      "",  // codeChallenge (empty for now)
-                      "",  // codeChallengeMethod (empty for now)
+                      "",  // codeChallenge
+                      "",  // codeChallengeMethod
+                      "",  // nonce
                       [clientId, redirectUri, state, callback = std::move(callback)](
                         bool success, std::string code, std::string error
                       ) mutable {
-                          if (!success)
-                          {
-                              LOG_ERROR << "Failed to generate "
-                                           "authorization code: "
-                                        << error;
-                              Json::Value jsonErr;
-                              jsonErr["error"] = "server_error";
-                              jsonErr["error_description"] =
-                                "Failed to generate authorization code";
-                              auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                              resp->setStatusCode(k500InternalServerError);
-                              callback(resp);
-                              return;
-                          }
+                        if (!success)
+                        {
+                            LOG_ERROR << "Failed to generate "
+                                         "authorization code: "
+                                      << error;
+                            Json::Value jsonErr;
+                            jsonErr["error"] = "server_error";
+                            jsonErr["error_description"] = "Failed to generate authorization code";
+                            auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                            resp->setStatusCode(k500InternalServerError);
+                            callback(resp);
+                            return;
+                        }
 
-                          std::string location = redirectUri + "?code=" + code;
-                          if (!state.empty())
-                              location += "&state=" + state;
-                          auto resp = HttpResponse::newRedirectionResponse(location);
-                          Metrics::incRequest("authorize", 302);
-                          callback(resp);
-                      }
+                        std::string location = redirectUri + "?code=" + code;
+                        if (!state.empty())
+                            location += "&state=" + state;
+                        auto resp = HttpResponse::newRedirectionResponse(location);
+                        Metrics::incRequest("authorize", 302);
+                        callback(resp);
+                    }
                     );
                 }
               );
@@ -906,29 +927,32 @@ void OAuth2Controller::consent(
                 scope,
                 redirectUri,
                 "",  // codeChallenge
-                "",  // codeChallengeMethod
-                [clientId, redirectUri, state, callback = std::move(callback)](
-                  bool success, std::string code, std::string error
-                ) mutable {
-                    if (!success)
-                    {
-                        LOG_ERROR << "Failed to generate authorization code: " << error;
-                        Json::Value jsonErr;
-                        jsonErr["error"] = "server_error";
-                        jsonErr["error_description"] = "Failed to generate authorization code";
-                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                        resp->setStatusCode(k500InternalServerError);
-                        callback(resp);
-                        return;
-                    }
+                "",  // codeChallengeMethod\n                "",  // nonce\n [clientId, redirectUri,
+                     // state, callback = std::move(callback)](
+                bool success,
+                std::string code,
+                std::string error
+              ) mutable
+              {
+                  if (!success)
+                  {
+                      LOG_ERROR << "Failed to generate authorization code: " << error;
+                      Json::Value jsonErr;
+                      jsonErr["error"] = "server_error";
+                      jsonErr["error_description"] = "Failed to generate authorization code";
+                      auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                      resp->setStatusCode(k500InternalServerError);
+                      callback(resp);
+                      return;
+                  }
 
-                    std::string location = redirectUri + "?code=" + code;
-                    if (!state.empty())
-                        location += "&state=" + state;
-                    auto resp = HttpResponse::newRedirectionResponse(location);
-                    Metrics::incRequest("authorize", 302);
-                    callback(resp);
-                }
+                  std::string location = redirectUri + "?code=" + code;
+                  if (!state.empty())
+                      location += "&state=" + state;
+                  auto resp = HttpResponse::newRedirectionResponse(location);
+                  Metrics::incRequest("authorize", 302);
+                  callback(resp);
+              }
               );
           }
       }

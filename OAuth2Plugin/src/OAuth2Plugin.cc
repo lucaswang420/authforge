@@ -125,11 +125,19 @@ void OAuth2Plugin::generateAuthorizationCode(
   const std::string &redirectUri,
   const std::string &codeChallenge,
   const std::string &codeChallengeMethod,
+  const std::string &nonce,
   std::function<void(bool, std::string, std::string)> &&callback
 )
 {
     tokenService_->generateAuthorizationCode(
-      clientId, subject, scope, redirectUri, codeChallenge, codeChallengeMethod, std::move(callback)
+      clientId,
+      subject,
+      scope,
+      redirectUri,
+      codeChallenge,
+      codeChallengeMethod,
+      nonce,
+      std::move(callback)
     );
 }
 

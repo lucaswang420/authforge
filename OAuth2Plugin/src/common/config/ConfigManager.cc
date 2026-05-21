@@ -160,8 +160,10 @@ bool ConfigManager::validate(const Json::Value &config, std::string &errorMessag
     {
         // Issuer must be HTTPS in production
         std::string issuer;
-        if (config.isMember("custom_config") && config["custom_config"].isMember("metadata") &&
-            config["custom_config"]["metadata"].isMember("issuer"))
+        if (
+          config.isMember("custom_config") && config["custom_config"].isMember("metadata") &&
+          config["custom_config"]["metadata"].isMember("issuer")
+        )
         {
             issuer = config["custom_config"]["metadata"]["issuer"].asString();
         }

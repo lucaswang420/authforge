@@ -87,7 +87,8 @@ void WebAuthnController::registerFinish(
 )
 {
     std::string userId = req->getAttributes()->get<std::string>("userId");
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
@@ -129,7 +130,9 @@ void WebAuthnController::registerFinish(
       "INSERT INTO webauthn_credentials (user_id, credential_id, public_key, name) "
       "VALUES ((SELECT id FROM users WHERE public_sub::text = $1::text), $2, $3, $4)",
       [sharedCb, credentialId, req, userId](const Result &) {
-          oauth2::AuditLogger::log("webauthn_registered", "success", req, userId, "credential", credentialId);
+          oauth2::AuditLogger::log(
+            "webauthn_registered", "success", req, userId, "credential", credentialId
+          );
           Json::Value json;
           json["message"] = "Passkey registered successfully";
           json["credential_id"] = credentialId;
@@ -145,7 +148,10 @@ void WebAuthnController::registerFinish(
           resp->setStatusCode(k500InternalServerError);
           (*sharedCb)(resp);
       },
-      userId, credentialId, publicKey, credName
+      userId,
+      credentialId,
+      publicKey,
+      credName
     );
 }
 
@@ -183,7 +189,8 @@ void WebAuthnController::authenticateFinish(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
@@ -238,10 +245,13 @@ void WebAuthnController::authenticateFinish(
             "WHERE credential_id = $2",
             [](const Result &) {},
             [](const DrogonDbException &) {},
-            signCount + 1, credentialId
+            signCount + 1,
+            credentialId
           );
 
-          oauth2::AuditLogger::log("webauthn_authenticated", "success", req, publicSub, "credential", credentialId);
+          oauth2::AuditLogger::log(
+            "webauthn_authenticated", "success", req, publicSub, "credential", credentialId
+          );
 
           // Return success with user info (caller can then issue tokens)
           Json::Value json;
@@ -268,7 +278,8 @@ void WebAuthnController::listCredentials(
 )
 {
     std::string userId = req->getAttributes()->get<std::string>("userId");
-    auto sharedCb = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = drogon::app().getDbClient();
     db->execSqlAsync(

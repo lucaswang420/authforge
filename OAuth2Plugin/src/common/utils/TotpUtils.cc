@@ -97,21 +97,13 @@ uint32_t TotpUtils::generateOtp(const std::vector<uint8_t> &key, uint64_t counte
     unsigned char hmacResult[20];
     unsigned int hmacLen = 0;
     HMAC(
-      EVP_sha1(),
-      key.data(),
-      static_cast<int>(key.size()),
-      counterBytes,
-      8,
-      hmacResult,
-      &hmacLen
+      EVP_sha1(), key.data(), static_cast<int>(key.size()), counterBytes, 8, hmacResult, &hmacLen
     );
 
     // Dynamic truncation (RFC 4226 Section 5.4)
     int offset = hmacResult[19] & 0x0F;
-    uint32_t code = ((hmacResult[offset] & 0x7F) << 24) |
-                    ((hmacResult[offset + 1] & 0xFF) << 16) |
-                    ((hmacResult[offset + 2] & 0xFF) << 8) |
-                    (hmacResult[offset + 3] & 0xFF);
+    uint32_t code = ((hmacResult[offset] & 0x7F) << 24) | ((hmacResult[offset + 1] & 0xFF) << 16) |
+                    ((hmacResult[offset + 2] & 0xFF) << 8) | (hmacResult[offset + 3] & 0xFF);
 
     return code % 1000000;  // 6 digits
 }
@@ -122,12 +114,11 @@ std::string TotpUtils::generateCode(const std::string &secret)
     if (key.empty())
         return "";
 
-    uint64_t timeStep = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-      )
-        .count()
-    ) / 30;
+    uint64_t timeStep = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                                std::chrono::system_clock::now().time_since_epoch()
+                        )
+                                                .count()) /
+                        30;
 
     uint32_t otp = generateOtp(key, timeStep);
 
@@ -145,12 +136,11 @@ bool TotpUtils::verifyCode(const std::string &secret, const std::string &code)
     if (key.empty())
         return false;
 
-    uint64_t timeStep = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-      )
-        .count()
-    ) / 30;
+    uint64_t timeStep = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                                std::chrono::system_clock::now().time_since_epoch()
+                        )
+                                                .count()) /
+                        30;
 
     // Allow +/- 1 time step for clock skew
     for (int i = -1; i <= 1; ++i)
@@ -171,8 +161,8 @@ std::string TotpUtils::generateOtpAuthUri(
   const std::string &issuer
 )
 {
-    return "otpauth://totp/" + issuer + ":" + accountName +
-           "?secret=" + secret + "&issuer=" + issuer + "&algorithm=SHA1&digits=6&period=30";
+    return "otpauth://totp/" + issuer + ":" + accountName + "?secret=" + secret +
+           "&issuer=" + issuer + "&algorithm=SHA1&digits=6&period=30";
 }
 
 std::vector<std::string> TotpUtils::generateBackupCodes(int count)

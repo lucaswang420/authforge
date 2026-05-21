@@ -225,8 +225,9 @@ void AdminApiController::listScopes(
                     row["mapped_role"].isNull() ? "" : row["mapped_role"].as<std::string>();
                   scope["is_default"] =
                     row["is_default"].isNull() ? false : row["is_default"].as<bool>();
-                  scope["requires_admin_role"] =
-                    row["requires_admin_role"].isNull() ? false : row["requires_admin_role"].as<bool>();
+                  scope["requires_admin_role"] = row["requires_admin_role"].isNull()
+                                                   ? false
+                                                   : row["requires_admin_role"].as<bool>();
                   scopes.append(scope);
               }
 
