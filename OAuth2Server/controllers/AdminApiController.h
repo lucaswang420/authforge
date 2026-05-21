@@ -51,6 +51,9 @@ class AdminApiController : public drogon::HttpController<AdminApiController>
 
     // Scope Management
     ADD_METHOD_TO(AdminApiController::listScopes, "/api/admin/scopes", Get, "AuthorizationFilter");
+
+    // Audit Logs
+    ADD_METHOD_TO(AdminApiController::listLogs, "/api/admin/logs", Get, "AuthorizationFilter");
     METHOD_LIST_END
 
     void listClients(
@@ -93,6 +96,11 @@ class AdminApiController : public drogon::HttpController<AdminApiController>
     );
 
     void listScopes(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+
+    void listLogs(
       const HttpRequestPtr &req,
       std::function<void(const HttpResponsePtr &)> &&callback
     );

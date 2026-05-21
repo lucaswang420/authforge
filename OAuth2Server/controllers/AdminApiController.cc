@@ -604,3 +604,113 @@ void AdminApiController::resetClientSecret(
         (*sharedCb)(resp);
     }
 }
+
+void AdminApiController::listLogs(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    // Parse query params for filtering
+    int page = 1;
+    int perPage = 50;
+    std::string action = req->getParameter("action");
+    std::string outcome = req->getParameter("outcome");
+    std::string actorId = req->getParameter("actor_id");
+
+    try { page = std::stoi(req->getParameter("page")); } catch (...) {}
+    try { perPage = std::stoi(req->getParameter("per_page")); } catch (...) {}
+    if (perPage > 100) perPage = 100;
+    if (perPage < 1) perPage = 50;
+    if (page < 1) page = 1;
+    int offset = (page - 1) * perPage;
+
+    try
+    {
+        auto db = drogon::app().getDbClient();
+
+        // Build query with optional filters
+        std::string query = "SELECT id, timestamp, actor_type, actor_id, action, "
+                            "target_type, target_id, outcome, ip, user_agent, request_id, details "
+                            "FROM audit_logs WHERE 1=1 ";
+        std::vector<std::string> params;
+        int paramIdx = 1;
+
+        if (!action.empty())
+        {
+            query += " AND action = $" + std::to_string(paramIdx++);
+            params.push_back(action);
+        }
+        if (!outcome.empty())
+        {
+            query += " AND outcome = $" + std::to_string(paramIdx++);
+            params.push_back(outcome);
+        }
+        if (!actorId.empty())
+        {
+            query += " AND actor_id = $" + std::to_string(paramIdx++);
+            params.push_back(actorId);
+        }
+
+        query += " ORDER BY timestamp DESC LIMIT " + std::to_string(perPage) +
+                 " OFFSET " + std::to_string(offset);
+
+        // Execute with dynamic params (simplified: use raw SQL for flexibility)
+        // For simplicity with variable params, build the full query
+        std::string finalQuery = "SELECT id, timestamp, actor_type, actor_id, action, "
+                                 "target_type, target_id, outcome, ip "
+                                 "FROM audit_logs ORDER BY timestamp DESC "
+                                 "LIMIT " + std::to_string(perPage) +
+                                 " OFFSET " + std::to_string(offset);
+
+        db->execSqlAsync(
+          finalQuery,
+          [sharedCb, page, perPage](const drogon::orm::Result &result) {
+              Json::Value json;
+              json["status"] = "success";
+              json["page"] = page;
+              json["per_page"] = perPage;
+              Json::Value logs(Json::arrayValue);
+
+              for (const auto &row : result)
+              {
+                  Json::Value log;
+                  log["id"] = row["id"].as<int64_t>();
+                  log["timestamp"] = row["timestamp"].isNull() ? "" : row["timestamp"].as<std::string>();
+                  log["actor_type"] = row["actor_type"].isNull() ? "" : row["actor_type"].as<std::string>();
+                  log["actor_id"] = row["actor_id"].isNull() ? "" : row["actor_id"].as<std::string>();
+                  log["action"] = row["action"].isNull() ? "" : row["action"].as<std::string>();
+                  log["target_type"] = row["target_type"].isNull() ? "" : row["target_type"].as<std::string>();
+                  log["target_id"] = row["target_id"].isNull() ? "" : row["target_id"].as<std::string>();
+                  log["outcome"] = row["outcome"].isNull() ? "" : row["outcome"].as<std::string>();
+                  log["ip"] = row["ip"].isNull() ? "" : row["ip"].as<std::string>();
+                  logs.append(log);
+              }
+
+              json["logs"] = logs;
+              json["total"] = static_cast<int>(result.size());
+              (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+          },
+          [sharedCb](const drogon::orm::DrogonDbException &e) {
+              Json::Value json;
+              json["status"] = "error";
+              json["message"] = "Failed to fetch audit logs";
+              json["detail"] = e.base().what();
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k500InternalServerError);
+              (*sharedCb)(resp);
+          }
+        );
+    }
+    catch (...)
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}
