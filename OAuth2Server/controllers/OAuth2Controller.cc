@@ -794,6 +794,9 @@ void OAuth2Controller::consent(
     std::string redirectUri = params["redirect_uri"];
     std::string state = params["state"];
     std::string action = params["action"];  // "approve" or "deny"
+    std::string codeChallenge = params["code_challenge"];
+    std::string codeChallengeMethod = params["code_challenge_method"];
+    std::string nonce = params["nonce"];
 
     if (action == "deny")
     {
@@ -821,7 +824,7 @@ void OAuth2Controller::consent(
     // Get internal user ID
     plugin->getInternalUserId(
       userId,
-      [plugin, clientId, userId, scope, redirectUri, state, callback = std::move(callback)](
+      [plugin, clientId, userId, scope, redirectUri, state, codeChallenge, codeChallengeMethod, nonce, callback = std::move(callback)](
         std::optional<int32_t> internalUserId
       ) mutable {
           if (!internalUserId)
@@ -861,6 +864,9 @@ void OAuth2Controller::consent(
                  scope,
                  redirectUri,
                  state,
+                 codeChallenge,
+                 codeChallengeMethod,
+                 nonce,
                  firstScope,
                  scopes,
                  callback = std::move(callback)](bool success) mutable {
@@ -887,9 +893,9 @@ void OAuth2Controller::consent(
                       userId,
                       scope,
                       redirectUri,
-                      "",  // codeChallenge
-                      "",  // codeChallengeMethod
-                      "",  // nonce
+                      codeChallenge,
+                      codeChallengeMethod,
+                      nonce,
                       [clientId, redirectUri, state, callback = std::move(callback)](
                         bool success, std::string code, std::string error
                       ) mutable {
@@ -926,9 +932,9 @@ void OAuth2Controller::consent(
                 userId,
                 scope,
                 redirectUri,
-                "",  // codeChallenge
-                "",  // codeChallengeMethod
-                "",  // nonce
+                codeChallenge,
+                codeChallengeMethod,
+                nonce,
                 [clientId, redirectUri, state, callback = std::move(callback)](
                 bool success,
                 std::string code,
