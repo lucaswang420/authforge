@@ -12,6 +12,7 @@
 | NF 非功能性 | 14/14 ✅ | E2E/单元测试/OpenAPI/CI/文档 |
 | 关键修复 | ✅ | MFA集成/邮箱拦截/PKCE强制/logout崩溃/UUID解析/脚本错误处理/CI崩溃 |
 | Admin Console | 4/4 ✅ | Phase 1-4 全部完成（脚手架/CRUD/审计日志/Docker部署） |
+| Admin Phase 5 | 3/4 ✅ | 5A 应用详情+Scope / 5B Token管理 / 5C OIDC密钥 / 5D E2E待补 |
 
 ## 测试状态
 
