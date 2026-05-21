@@ -47,6 +47,11 @@ const router = createRouter({
           component: () => import('../pages/logs/LogsPage.vue'),
         },
         {
+          path: 'tokens',
+          name: 'tokens',
+          component: () => import('../pages/tokens/TokensPage.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('../pages/settings/SettingsPage.vue'),

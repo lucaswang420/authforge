@@ -1218,3 +1218,595 @@ void AdminApiController::listLogs(
         (*sharedCb)(resp);
     }
 }
+
+void AdminApiController::listTokens(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    int page = 1;
+    int perPage = 50;
+    std::string clientIdFilter = req->getParameter("client_id");
+    std::string userIdFilter = req->getParameter("user_id");
+
+    try
+    {
+        page = std::stoi(req->getParameter("page"));
+    }
+    catch (...)
+    {
+    }
+    try
+    {
+        perPage = std::stoi(req->getParameter("per_page"));
+    }
+    catch (...)
+    {
+    }
+    if (perPage > 100)
+        perPage = 100;
+    if (perPage < 1)
+        perPage = 50;
+    if (page < 1)
+        page = 1;
+    int offset = (page - 1) * perPage;
+
+    try
+    {
+        auto db = drogon::app().getDbClient();
+
+        // Build count query and data query with filters
+        std::string whereClause = " WHERE expires_at > NOW()";
+        std::string filterParams;
+        int paramIdx = 1;
+
+        if (!clientIdFilter.empty())
+        {
+            whereClause += " AND client_id = $" + std::to_string(paramIdx++);
+        }
+        if (!userIdFilter.empty())
+        {
+            whereClause += " AND user_id = $" + std::to_string(paramIdx++);
+        }
+
+        std::string countQuery = "SELECT COUNT(*) as total FROM oauth2_access_tokens" + whereClause;
+        std::string dataQuery =
+          "SELECT token, client_id, user_id, scope, created_at, expires_at "
+          "FROM oauth2_access_tokens" +
+          whereClause + " ORDER BY created_at DESC LIMIT " + std::to_string(perPage) + " OFFSET " +
+          std::to_string(offset);
+
+        // Execute based on filter combination
+        if (!clientIdFilter.empty() && !userIdFilter.empty())
+        {
+            // Both filters
+            db->execSqlAsync(
+              countQuery,
+              [sharedCb, dataQuery, page, perPage, clientIdFilter, userIdFilter, db](
+                const drogon::orm::Result &countResult
+              ) {
+                  int total = 0;
+                  if (!countResult.empty())
+                  {
+                      total = countResult[0]["total"].as<int>();
+                  }
+
+                  db->execSqlAsync(
+                    dataQuery,
+                    [sharedCb, page, perPage, total](const drogon::orm::Result &result) {
+                        Json::Value json;
+                        Json::Value tokens(Json::arrayValue);
+
+                        for (const auto &row : result)
+                        {
+                            Json::Value token;
+                            std::string fullToken = row["token"].as<std::string>();
+                            token["token_prefix"] = fullToken.substr(0, 8);
+                            token["client_id"] = row["client_id"].isNull()
+                                                   ? ""
+                                                   : row["client_id"].as<std::string>();
+                            token["user_id"] =
+                              row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
+                            token["scope"] =
+                              row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+                            token["created_at"] =
+                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                            token["expires_at"] =
+                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                            tokens.append(token);
+                        }
+
+                        json["tokens"] = tokens;
+                        json["total"] = total;
+                        json["page"] = page;
+                        json["per_page"] = perPage;
+                        (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                    },
+                    [sharedCb](const drogon::orm::DrogonDbException &e) {
+                        Json::Value json;
+                        json["status"] = "error";
+                        json["message"] = "Failed to fetch tokens";
+                        json["detail"] = e.base().what();
+                        auto resp = HttpResponse::newHttpJsonResponse(json);
+                        resp->setStatusCode(k500InternalServerError);
+                        (*sharedCb)(resp);
+                    },
+                    clientIdFilter,
+                    userIdFilter
+                  );
+              },
+              [sharedCb](const drogon::orm::DrogonDbException &e) {
+                  Json::Value json;
+                  json["status"] = "error";
+                  json["message"] = "Failed to count tokens";
+                  json["detail"] = e.base().what();
+                  auto resp = HttpResponse::newHttpJsonResponse(json);
+                  resp->setStatusCode(k500InternalServerError);
+                  (*sharedCb)(resp);
+              },
+              clientIdFilter,
+              userIdFilter
+            );
+        }
+        else if (!clientIdFilter.empty())
+        {
+            // Only client_id filter
+            db->execSqlAsync(
+              countQuery,
+              [sharedCb, dataQuery, page, perPage, clientIdFilter, db](
+                const drogon::orm::Result &countResult
+              ) {
+                  int total = 0;
+                  if (!countResult.empty())
+                  {
+                      total = countResult[0]["total"].as<int>();
+                  }
+
+                  db->execSqlAsync(
+                    dataQuery,
+                    [sharedCb, page, perPage, total](const drogon::orm::Result &result) {
+                        Json::Value json;
+                        Json::Value tokens(Json::arrayValue);
+
+                        for (const auto &row : result)
+                        {
+                            Json::Value token;
+                            std::string fullToken = row["token"].as<std::string>();
+                            token["token_prefix"] = fullToken.substr(0, 8);
+                            token["client_id"] = row["client_id"].isNull()
+                                                   ? ""
+                                                   : row["client_id"].as<std::string>();
+                            token["user_id"] =
+                              row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
+                            token["scope"] =
+                              row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+                            token["created_at"] =
+                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                            token["expires_at"] =
+                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                            tokens.append(token);
+                        }
+
+                        json["tokens"] = tokens;
+                        json["total"] = total;
+                        json["page"] = page;
+                        json["per_page"] = perPage;
+                        (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                    },
+                    [sharedCb](const drogon::orm::DrogonDbException &e) {
+                        Json::Value json;
+                        json["status"] = "error";
+                        json["message"] = "Failed to fetch tokens";
+                        json["detail"] = e.base().what();
+                        auto resp = HttpResponse::newHttpJsonResponse(json);
+                        resp->setStatusCode(k500InternalServerError);
+                        (*sharedCb)(resp);
+                    },
+                    clientIdFilter
+                  );
+              },
+              [sharedCb](const drogon::orm::DrogonDbException &e) {
+                  Json::Value json;
+                  json["status"] = "error";
+                  json["message"] = "Failed to count tokens";
+                  json["detail"] = e.base().what();
+                  auto resp = HttpResponse::newHttpJsonResponse(json);
+                  resp->setStatusCode(k500InternalServerError);
+                  (*sharedCb)(resp);
+              },
+              clientIdFilter
+            );
+        }
+        else if (!userIdFilter.empty())
+        {
+            // Only user_id filter
+            db->execSqlAsync(
+              countQuery,
+              [sharedCb, dataQuery, page, perPage, userIdFilter, db](
+                const drogon::orm::Result &countResult
+              ) {
+                  int total = 0;
+                  if (!countResult.empty())
+                  {
+                      total = countResult[0]["total"].as<int>();
+                  }
+
+                  db->execSqlAsync(
+                    dataQuery,
+                    [sharedCb, page, perPage, total](const drogon::orm::Result &result) {
+                        Json::Value json;
+                        Json::Value tokens(Json::arrayValue);
+
+                        for (const auto &row : result)
+                        {
+                            Json::Value token;
+                            std::string fullToken = row["token"].as<std::string>();
+                            token["token_prefix"] = fullToken.substr(0, 8);
+                            token["client_id"] = row["client_id"].isNull()
+                                                   ? ""
+                                                   : row["client_id"].as<std::string>();
+                            token["user_id"] =
+                              row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
+                            token["scope"] =
+                              row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+                            token["created_at"] =
+                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                            token["expires_at"] =
+                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                            tokens.append(token);
+                        }
+
+                        json["tokens"] = tokens;
+                        json["total"] = total;
+                        json["page"] = page;
+                        json["per_page"] = perPage;
+                        (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                    },
+                    [sharedCb](const drogon::orm::DrogonDbException &e) {
+                        Json::Value json;
+                        json["status"] = "error";
+                        json["message"] = "Failed to fetch tokens";
+                        json["detail"] = e.base().what();
+                        auto resp = HttpResponse::newHttpJsonResponse(json);
+                        resp->setStatusCode(k500InternalServerError);
+                        (*sharedCb)(resp);
+                    },
+                    userIdFilter
+                  );
+              },
+              [sharedCb](const drogon::orm::DrogonDbException &e) {
+                  Json::Value json;
+                  json["status"] = "error";
+                  json["message"] = "Failed to count tokens";
+                  json["detail"] = e.base().what();
+                  auto resp = HttpResponse::newHttpJsonResponse(json);
+                  resp->setStatusCode(k500InternalServerError);
+                  (*sharedCb)(resp);
+              },
+              userIdFilter
+            );
+        }
+        else
+        {
+            // No filters
+            db->execSqlAsync(
+              countQuery,
+              [sharedCb, dataQuery, page, perPage, db](const drogon::orm::Result &countResult) {
+                  int total = 0;
+                  if (!countResult.empty())
+                  {
+                      total = countResult[0]["total"].as<int>();
+                  }
+
+                  db->execSqlAsync(
+                    dataQuery,
+                    [sharedCb, page, perPage, total](const drogon::orm::Result &result) {
+                        Json::Value json;
+                        Json::Value tokens(Json::arrayValue);
+
+                        for (const auto &row : result)
+                        {
+                            Json::Value token;
+                            std::string fullToken = row["token"].as<std::string>();
+                            token["token_prefix"] = fullToken.substr(0, 8);
+                            token["client_id"] = row["client_id"].isNull()
+                                                   ? ""
+                                                   : row["client_id"].as<std::string>();
+                            token["user_id"] =
+                              row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
+                            token["scope"] =
+                              row["scope"].isNull() ? "" : row["scope"].as<std::string>();
+                            token["created_at"] =
+                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                            token["expires_at"] =
+                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                            tokens.append(token);
+                        }
+
+                        json["tokens"] = tokens;
+                        json["total"] = total;
+                        json["page"] = page;
+                        json["per_page"] = perPage;
+                        (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                    },
+                    [sharedCb](const drogon::orm::DrogonDbException &e) {
+                        Json::Value json;
+                        json["status"] = "error";
+                        json["message"] = "Failed to fetch tokens";
+                        json["detail"] = e.base().what();
+                        auto resp = HttpResponse::newHttpJsonResponse(json);
+                        resp->setStatusCode(k500InternalServerError);
+                        (*sharedCb)(resp);
+                    }
+                  );
+              },
+              [sharedCb](const drogon::orm::DrogonDbException &e) {
+                  Json::Value json;
+                  json["status"] = "error";
+                  json["message"] = "Failed to count tokens";
+                  json["detail"] = e.base().what();
+                  auto resp = HttpResponse::newHttpJsonResponse(json);
+                  resp->setStatusCode(k500InternalServerError);
+                  (*sharedCb)(resp);
+              }
+            );
+        }
+    }
+    catch (...)
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}
+
+void AdminApiController::revokeToken(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback,
+  const std::string &tokenPrefix
+)
+{
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    if (tokenPrefix.empty())
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "tokenPrefix is required";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k400BadRequest);
+        (*sharedCb)(resp);
+        return;
+    }
+
+    try
+    {
+        auto db = drogon::app().getDbClient();
+        std::string likePattern = tokenPrefix + "%";
+
+        db->execSqlAsync(
+          "DELETE FROM oauth2_access_tokens WHERE token LIKE $1",
+          [sharedCb](const drogon::orm::Result &result) {
+              if (result.affectedRows() == 0)
+              {
+                  Json::Value json;
+                  json["status"] = "error";
+                  json["message"] = "Token not found";
+                  auto resp = HttpResponse::newHttpJsonResponse(json);
+                  resp->setStatusCode(k404NotFound);
+                  (*sharedCb)(resp);
+                  return;
+              }
+
+              Json::Value json;
+              json["status"] = "success";
+              json["message"] = "Token revoked";
+              (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+          },
+          [sharedCb](const drogon::orm::DrogonDbException &e) {
+              Json::Value json;
+              json["status"] = "error";
+              json["message"] = "Failed to revoke token";
+              json["detail"] = e.base().what();
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k500InternalServerError);
+              (*sharedCb)(resp);
+          },
+          likePattern
+        );
+    }
+    catch (...)
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}
+
+void AdminApiController::revokeTokensByClient(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    auto jsonBody = req->getJsonObject();
+    if (!jsonBody || !jsonBody->isMember("client_id"))
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Request body must contain 'client_id'";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k400BadRequest);
+        (*sharedCb)(resp);
+        return;
+    }
+
+    std::string clientId = (*jsonBody)["client_id"].asString();
+    if (clientId.empty())
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "client_id cannot be empty";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k400BadRequest);
+        (*sharedCb)(resp);
+        return;
+    }
+
+    try
+    {
+        auto db = drogon::app().getDbClient();
+
+        // Delete access tokens for this client
+        db->execSqlAsync(
+          "DELETE FROM oauth2_access_tokens WHERE client_id = $1",
+          [sharedCb, clientId, db](const drogon::orm::Result &accessResult) {
+              int accessCount = static_cast<int>(accessResult.affectedRows());
+
+              // Also delete refresh tokens for this client
+              db->execSqlAsync(
+                "DELETE FROM oauth2_refresh_tokens WHERE client_id = $1",
+                [sharedCb, clientId, accessCount](const drogon::orm::Result &refreshResult) {
+                    int totalCount =
+                      accessCount + static_cast<int>(refreshResult.affectedRows());
+
+                    Json::Value json;
+                    json["status"] = "success";
+                    json["message"] = "All tokens for client revoked";
+                    json["count"] = totalCount;
+                    (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                },
+                [sharedCb, accessCount](const drogon::orm::DrogonDbException &) {
+                    // Refresh token deletion failed but access tokens were deleted
+                    Json::Value json;
+                    json["status"] = "success";
+                    json["message"] = "Access tokens revoked (refresh token cleanup failed)";
+                    json["count"] = accessCount;
+                    (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                },
+                clientId
+              );
+          },
+          [sharedCb](const drogon::orm::DrogonDbException &e) {
+              Json::Value json;
+              json["status"] = "error";
+              json["message"] = "Failed to revoke tokens";
+              json["detail"] = e.base().what();
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k500InternalServerError);
+              (*sharedCb)(resp);
+          },
+          clientId
+        );
+    }
+    catch (...)
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}
+
+void AdminApiController::revokeTokensByUser(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    auto jsonBody = req->getJsonObject();
+    if (!jsonBody || !jsonBody->isMember("user_id"))
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Request body must contain 'user_id'";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k400BadRequest);
+        (*sharedCb)(resp);
+        return;
+    }
+
+    std::string userId = (*jsonBody)["user_id"].asString();
+    if (userId.empty())
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "user_id cannot be empty";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k400BadRequest);
+        (*sharedCb)(resp);
+        return;
+    }
+
+    try
+    {
+        auto db = drogon::app().getDbClient();
+
+        // Delete access tokens for this user
+        db->execSqlAsync(
+          "DELETE FROM oauth2_access_tokens WHERE user_id = $1",
+          [sharedCb, userId, db](const drogon::orm::Result &accessResult) {
+              int accessCount = static_cast<int>(accessResult.affectedRows());
+
+              // Also delete refresh tokens for this user
+              db->execSqlAsync(
+                "DELETE FROM oauth2_refresh_tokens WHERE user_id = $1",
+                [sharedCb, userId, accessCount](const drogon::orm::Result &refreshResult) {
+                    int totalCount =
+                      accessCount + static_cast<int>(refreshResult.affectedRows());
+
+                    Json::Value json;
+                    json["status"] = "success";
+                    json["message"] = "All tokens for user revoked";
+                    json["count"] = totalCount;
+                    (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                },
+                [sharedCb, accessCount](const drogon::orm::DrogonDbException &) {
+                    // Refresh token deletion failed but access tokens were deleted
+                    Json::Value json;
+                    json["status"] = "success";
+                    json["message"] = "Access tokens revoked (refresh token cleanup failed)";
+                    json["count"] = accessCount;
+                    (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+                },
+                userId
+              );
+          },
+          [sharedCb](const drogon::orm::DrogonDbException &e) {
+              Json::Value json;
+              json["status"] = "error";
+              json["message"] = "Failed to revoke tokens";
+              json["detail"] = e.base().what();
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              resp->setStatusCode(k500InternalServerError);
+              (*sharedCb)(resp);
+          },
+          userId
+        );
+    }
+    catch (...)
+    {
+        Json::Value json;
+        json["status"] = "error";
+        json["message"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}

@@ -78,6 +78,27 @@ class AdminApiController : public drogon::HttpController<AdminApiController>
 
     // Audit Logs
     ADD_METHOD_TO(AdminApiController::listLogs, "/api/admin/logs", Get, "AuthorizationFilter");
+
+    // Token Management
+    ADD_METHOD_TO(AdminApiController::listTokens, "/api/admin/tokens", Get, "AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminApiController::revokeTokensByClient,
+      "/api/admin/tokens/revoke-by-client",
+      Post,
+      "AuthorizationFilter"
+    );
+    ADD_METHOD_TO(
+      AdminApiController::revokeTokensByUser,
+      "/api/admin/tokens/revoke-by-user",
+      Post,
+      "AuthorizationFilter"
+    );
+    ADD_METHOD_TO(
+      AdminApiController::revokeToken,
+      "/api/admin/tokens/{tokenPrefix}",
+      Delete,
+      "AuthorizationFilter"
+    );
     METHOD_LIST_END
 
     void listClients(
@@ -149,6 +170,27 @@ class AdminApiController : public drogon::HttpController<AdminApiController>
     );
 
     void listLogs(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+
+    void listTokens(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+
+    void revokeToken(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback,
+      const std::string &tokenPrefix
+    );
+
+    void revokeTokensByClient(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+
+    void revokeTokensByUser(
       const HttpRequestPtr &req,
       std::function<void(const HttpResponsePtr &)> &&callback
     );

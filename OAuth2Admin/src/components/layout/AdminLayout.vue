@@ -10,6 +10,7 @@ const navigation = [
   { name: 'Applications', path: '/applications', icon: '📱' },
   { name: 'Users', path: '/users', icon: '👥' },
   { name: 'Audit Logs', path: '/logs', icon: '📋' },
+  { name: 'Tokens', path: '/tokens', icon: '🔑' },
   { name: 'Settings', path: '/settings', icon: '⚙️' },
 ]
 
