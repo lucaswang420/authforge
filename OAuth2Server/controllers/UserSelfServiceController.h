@@ -36,6 +36,13 @@ class UserSelfServiceController : public drogon::HttpController<UserSelfServiceC
       Delete,
       "oauth2::filters::OAuth2Middleware"
     );
+    // Delete account (soft-delete)
+    ADD_METHOD_TO(
+      UserSelfServiceController::deleteAccount,
+      "/api/me",
+      Delete,
+      "oauth2::filters::OAuth2Middleware"
+    );
     METHOD_LIST_END
 
     void getProfile(
@@ -54,5 +61,9 @@ class UserSelfServiceController : public drogon::HttpController<UserSelfServiceC
       const HttpRequestPtr &req,
       std::function<void(const HttpResponsePtr &)> &&callback,
       const std::string &clientId
+    );
+    void deleteAccount(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
     );
 };

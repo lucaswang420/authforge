@@ -2,6 +2,7 @@
 #include <oauth2/TotpUtils.h>
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/OAuth2Plugin.h>
+#include <oauth2/AuditLogger.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -83,7 +84,7 @@ void MfaController::verifySetup(
     auto db = app().getDbClient();
     db->execSqlAsync(
       "SELECT mfa_secret FROM users WHERE public_sub::text = $1::text",
-      [sharedCb, code, userId, db](const Result &r) {
+      [sharedCb, code, userId, db, req](const Result &r) {
           if (r.empty() || r[0]["mfa_secret"].isNull())
           {
               Json::Value error;
@@ -127,7 +128,8 @@ void MfaController::verifySetup(
           db->execSqlAsync(
             "UPDATE users SET mfa_enabled = true, mfa_backup_codes = $1 "
             "WHERE public_sub::text = $2::text",
-            [sharedCb, codesJson](const Result &) {
+            [sharedCb, codesJson, userId, req](const Result &) {
+                oauth2::AuditLogger::log("mfa_enabled", "success", req, userId, "user", userId);
                 Json::Value json;
                 json["message"] = "MFA enabled successfully";
                 json["backup_codes"] = codesJson;

@@ -6,6 +6,7 @@
 #include <oauth2/OAuth2ErrorHandler.h>
 #include <oauth2/OpenApiGenerator.h>
 #include <oauth2/CryptoUtils.h>
+#include <oauth2/AuditLogger.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
@@ -409,7 +410,8 @@ void OAuth2StandardController::revoke(
 
                 // Has permission, execute revocation
                 plugin->revokeAccessToken(
-                  token, clientId, [clientId, callback = std::move(callback)]() mutable {
+                  token, clientId, [clientId, callback = std::move(callback), token]() mutable {
+                      oauth2::AuditLogger::log("token_revoked", "success", nullptr, clientId, "token", token);
                       oauth2::Metrics::incrementRevocationRequests(clientId);
                       callback(createSuccessResponse());
                   }

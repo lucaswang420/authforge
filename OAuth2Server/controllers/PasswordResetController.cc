@@ -3,6 +3,7 @@
 #include <oauth2/PasswordHasher.h>
 #include <oauth2/EmailService.h>
 #include <oauth2/OAuth2Plugin.h>
+#include <oauth2/AuditLogger.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -175,7 +176,7 @@ void PasswordResetController::confirm(
       "UPDATE password_reset_tokens SET used = true "
       "WHERE token_hash = $1 AND used = false AND expires_at > $2 "
       "RETURNING user_id",
-      [sharedCb, newPassword, db](const Result &r) {
+      [sharedCb, newPassword, db, req](const Result &r) {
           if (r.empty())
           {
               Json::Value error;
@@ -209,22 +210,24 @@ void PasswordResetController::confirm(
           // Update password
           db->execSqlAsync(
             "UPDATE users SET password_hash = $1, salt = '' WHERE id = $2",
-            [sharedCb, userId, db](const Result &) {
+            [sharedCb, userId, db, req](const Result &) {
                 // Revoke all tokens for this user
                 std::string userIdStr = std::to_string(userId);
                 db->execSqlAsync(
                   "UPDATE oauth2_access_tokens SET revoked = true WHERE user_id = $1",
-                  [sharedCb, userId, db, userIdStr](const Result &) {
+                  [sharedCb, userId, db, userIdStr, req](const Result &) {
                       db->execSqlAsync(
                         "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
-                        [sharedCb](const Result &) {
+                        [sharedCb, userId, req](const Result &) {
+                            oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
                             Json::Value json;
                             json["message"] = "Password reset successful";
                             json["note"] = "All existing sessions have been revoked";
                             auto resp = HttpResponse::newHttpJsonResponse(json);
                             (*sharedCb)(resp);
                         },
-                        [sharedCb](const DrogonDbException &) {
+                        [sharedCb, userId, req](const DrogonDbException &) {
+                            oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
                             Json::Value json;
                             json["message"] = "Password reset successful";
                             auto resp = HttpResponse::newHttpJsonResponse(json);
@@ -233,7 +236,8 @@ void PasswordResetController::confirm(
                         userIdStr
                       );
                   },
-                  [sharedCb](const DrogonDbException &) {
+                  [sharedCb, userId, req](const DrogonDbException &) {
+                      oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
                       Json::Value json;
                       json["message"] = "Password reset successful";
                       auto resp = HttpResponse::newHttpJsonResponse(json);

@@ -1,12 +1,19 @@
 #include <oauth2/AuditLogger.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
+#include <oauth2/OAuth2Plugin.h>
 
 namespace oauth2
 {
 
 void AuditLogger::log(const AuditEvent &event)
 {
+    // Skip if storage type is memory
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (plugin && plugin->getStorageType() == "memory")
+    {
+        return;
+    }
     // Async write to database - fire and forget (don't block main flow)
     try
     {

@@ -3,6 +3,7 @@
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/AuditLogger.h>
 #include <drogon/drogon.h>
+#include <chrono>
 
 using namespace drogon;
 using namespace drogon::orm;
@@ -423,6 +424,159 @@ void UserSelfServiceController::revokeAuthorizedApp(
               auto resp = HttpResponse::newHttpJsonResponse(error);
               resp->setStatusCode(k500InternalServerError);
               (*sharedCb)(resp);
+          },
+          userId
+        );
+    }
+    catch (...)
+    {
+        Json::Value error;
+        error["error"] = "server_error";
+        error["error_description"] = "Database unavailable";
+        auto resp = HttpResponse::newHttpJsonResponse(error);
+        resp->setStatusCode(k500InternalServerError);
+        (*sharedCb)(resp);
+    }
+}
+
+void UserSelfServiceController::deleteAccount(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    std::string userId = req->getAttributes()->get<std::string>("userId");
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    try
+    {
+        auto db = app().getDbClient();
+
+        // Step 1: Revoke all access tokens
+        db->execSqlAsync(
+          "UPDATE oauth2_access_tokens SET revoked = true WHERE user_id = $1",
+          [sharedCb, userId, req, db](const Result &) {
+              // Step 2: Revoke all refresh tokens
+              db->execSqlAsync(
+                "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
+                [sharedCb, userId, req, db](const Result &) {
+                    // Step 3: Soft-delete user (anonymize)
+                    auto timestamp = std::to_string(
+                      std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::system_clock::now().time_since_epoch()
+                      )
+                        .count()
+                    );
+                    std::string anonUsername = "deleted_" + timestamp;
+
+                    db->execSqlAsync(
+                      "UPDATE users SET username = $1, email = NULL, password_hash = 'DELETED' "
+                      "WHERE public_sub::text = $2::text",
+                      [sharedCb, userId, req](const Result &result) {
+                          if (result.affectedRows() == 0)
+                          {
+                              Json::Value error;
+                              error["error"] = "not_found";
+                              error["error_description"] = "User not found";
+                              auto resp = HttpResponse::newHttpJsonResponse(error);
+                              resp->setStatusCode(k404NotFound);
+                              (*sharedCb)(resp);
+                              return;
+                          }
+
+                          oauth2::AuditLogger::log(
+                            "account_deleted", "success", req, userId, "user", userId
+                          );
+                          Json::Value json;
+                          json["message"] = "Account deleted successfully";
+                          auto resp = HttpResponse::newHttpJsonResponse(json);
+                          (*sharedCb)(resp);
+                      },
+                      [sharedCb](const DrogonDbException &e) {
+                          LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
+                          Json::Value error;
+                          error["error"] = "server_error";
+                          error["error_description"] = "Failed to delete account";
+                          auto resp = HttpResponse::newHttpJsonResponse(error);
+                          resp->setStatusCode(k500InternalServerError);
+                          (*sharedCb)(resp);
+                      },
+                      anonUsername,
+                      userId
+                    );
+                },
+                [sharedCb, userId, req, db](const DrogonDbException &) {
+                    // Refresh token revocation failed, still proceed with soft-delete
+                    auto timestamp = std::to_string(
+                      std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::system_clock::now().time_since_epoch()
+                      )
+                        .count()
+                    );
+                    std::string anonUsername = "deleted_" + timestamp;
+
+                    db->execSqlAsync(
+                      "UPDATE users SET username = $1, email = NULL, password_hash = 'DELETED' "
+                      "WHERE public_sub::text = $2::text",
+                      [sharedCb, userId, req](const Result &) {
+                          oauth2::AuditLogger::log(
+                            "account_deleted", "success", req, userId, "user", userId
+                          );
+                          Json::Value json;
+                          json["message"] = "Account deleted successfully";
+                          auto resp = HttpResponse::newHttpJsonResponse(json);
+                          (*sharedCb)(resp);
+                      },
+                      [sharedCb](const DrogonDbException &e) {
+                          LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
+                          Json::Value error;
+                          error["error"] = "server_error";
+                          error["error_description"] = "Failed to delete account";
+                          auto resp = HttpResponse::newHttpJsonResponse(error);
+                          resp->setStatusCode(k500InternalServerError);
+                          (*sharedCb)(resp);
+                      },
+                      anonUsername,
+                      userId
+                    );
+                },
+                userId
+              );
+          },
+          [sharedCb, userId, req, db](const DrogonDbException &) {
+              // Access token revocation failed, still proceed
+              auto timestamp = std::to_string(
+                std::chrono::duration_cast<std::chrono::seconds>(
+                  std::chrono::system_clock::now().time_since_epoch()
+                )
+                  .count()
+              );
+              std::string anonUsername = "deleted_" + timestamp;
+
+              db->execSqlAsync(
+                "UPDATE users SET username = $1, email = NULL, password_hash = 'DELETED' "
+                "WHERE public_sub::text = $2::text",
+                [sharedCb, userId, req](const Result &) {
+                    oauth2::AuditLogger::log(
+                      "account_deleted", "success", req, userId, "user", userId
+                    );
+                    Json::Value json;
+                    json["message"] = "Account deleted successfully";
+                    auto resp = HttpResponse::newHttpJsonResponse(json);
+                    (*sharedCb)(resp);
+                },
+                [sharedCb](const DrogonDbException &e) {
+                    LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
+                    Json::Value error;
+                    error["error"] = "server_error";
+                    error["error_description"] = "Failed to delete account";
+                    auto resp = HttpResponse::newHttpJsonResponse(error);
+                    resp->setStatusCode(k500InternalServerError);
+                    (*sharedCb)(resp);
+                },
+                anonUsername,
+                userId
+              );
           },
           userId
         );

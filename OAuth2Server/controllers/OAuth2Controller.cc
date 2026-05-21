@@ -927,8 +927,9 @@ void OAuth2Controller::consent(
                 scope,
                 redirectUri,
                 "",  // codeChallenge
-                "",  // codeChallengeMethod\n                "",  // nonce\n [clientId, redirectUri,
-                     // state, callback = std::move(callback)](
+                "",  // codeChallengeMethod
+                "",  // nonce
+                [clientId, redirectUri, state, callback = std::move(callback)](
                 bool success,
                 std::string code,
                 std::string error
