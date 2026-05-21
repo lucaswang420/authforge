@@ -3,20 +3,17 @@
     "postgres": {
       "command": "npx",
       "args": [
-        "@anthropic-ai/postgres-mcp-server"
-      ],
-      "env": {
-        "POSTGRES_CONNECTION_STRING": "postgresql://test:123456@127.0.0.1:5432/oauth_test"
-      }
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://test:123456@127.0.0.1:5432/oauth_test"
+      ]
     },
     "github": {
       "command": "npx",
       "args": [
-        "@anthropic-ai/github-mcp-server"
-      ],
-      "env": {
-        "GITHUB_TOKEN": ""
-      }
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
     }
   }
 }
