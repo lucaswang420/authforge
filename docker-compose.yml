@@ -1,5 +1,18 @@
 
 services:
+  oauth2-admin:
+    build:
+      context: ./OAuth2Admin
+      dockerfile: Dockerfile
+    container_name: oauth2-admin
+    restart: always
+    ports:
+      - "8081:80"
+    depends_on:
+      - oauth2-backend
+    networks:
+      - oauth2-net
+
   oauth2-frontend:
     build:
       context: .
