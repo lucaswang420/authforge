@@ -427,29 +427,33 @@ OAuth2Admin/
 
 ## 十二、实施计划
 
-```
-Phase 1 (1 周): 项目脚手架 + 登录 + 布局
+```text
+Phase 1 (1 周): 项目脚手架 + 登录 + 布局 ✅
   ├── Vite + Vue 3 + TailwindCSS 初始化
   ├── OAuth2 登录流程（PKCE）
   ├── 侧边栏 + TopBar + 路由守卫
   └── Dashboard 页面（调用 /health/ready）
 
-Phase 2 (1 周): 应用管理 + 用户管理
-  ├── 应用列表/详情/创建/删除
-  ├── 用户列表/详情/角色分配
+Phase 2 (1 周): 应用管理 + 用户管理 ✅
+  ├── 应用列表/创建/删除
+  ├── 用户列表/角色分配
   └── DataTable 组件
 
-Phase 3 (1 周): 角色/Scope/审计
-  ├── 角色 CRUD + 权限分配
+Phase 3 (1 周): Scope/审计 ✅
   ├── Scope 管理
   ├── 审计日志（筛选 + 分页）
   └── 系统设置页面
 
-Phase 4 (3 天): 优化 + 测试 + 部署
-  ├── 响应式适配
-  ├── E2E 测试
+Phase 4 (3 天): 优化 + 测试 + 部署 ✅
+  ├── E2E 测试（Playwright 53 tests）
   ├── Docker 部署配置
   └── 文档
+
+Phase 5 (1 周): 功能补全 — 详见 admin_console_phase5_design.md
+  ├── 5A: 应用详情页 + Scope 分配
+  ├── 5B: Token 管理（列表/撤销/筛选）
+  ├── 5C: OIDC 签名密钥查看
+  └── 5D: E2E 测试补充
 ```
 
 ---
