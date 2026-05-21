@@ -455,10 +455,8 @@ void AdminApiController::assignUserRoles(
               }
 
               // Step 2: Insert new roles
-              auto remaining =
-                std::make_shared<std::atomic<int>>(static_cast<int>(roles.size()));
-              auto assignedRoles =
-                std::make_shared<std::vector<std::string>>();
+              auto remaining = std::make_shared<std::atomic<int>>(static_cast<int>(roles.size()));
+              auto assignedRoles = std::make_shared<std::vector<std::string>>();
               auto mu = std::make_shared<std::mutex>();
 
               for (const auto &roleName : roles)

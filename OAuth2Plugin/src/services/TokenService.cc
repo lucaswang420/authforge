@@ -226,7 +226,9 @@ void TokenService::exchangeCodeForToken(
                                 }
                             }
 
-                            oauth2::AuditLogger::log("token_issued", "success", nullptr, authCode->userId, "token", "");
+                            oauth2::AuditLogger::log(
+                              "token_issued", "success", nullptr, authCode->userId, "token", ""
+                            );
                             callback(json);
                         }
                       );
@@ -272,7 +274,14 @@ void TokenService::refreshAccessToken(
                         // REUSE DETECTED! Cascade revoke the entire family
                         LOG_WARN << "[SECURITY] Refresh token reuse detected! "
                                  << "Revoking token family: " << maybeRevoked->familyId;
-                        oauth2::AuditLogger::log("refresh_token_reuse_detected", "failure", nullptr, maybeRevoked->userId, "token_family", maybeRevoked->familyId);
+                        oauth2::AuditLogger::log(
+                          "refresh_token_reuse_detected",
+                          "failure",
+                          nullptr,
+                          maybeRevoked->userId,
+                          "token_family",
+                          maybeRevoked->familyId
+                        );
                         storage_->revokeTokenFamily(maybeRevoked->familyId, [callback]() {
                             callback(makeError("invalid_grant", "Token reuse detected"));
                         });
@@ -323,15 +332,18 @@ void TokenService::refreshAccessToken(
           newRt.expiresAt = now + refreshTokenTtl_;
           newRt.familyId = storedRt->familyId;  // Inherit family
 
-          storage_->saveTokenPair(token, newRt, [callback, newTokenStr, newRefreshTokenStr, storedRt]() {
-              oauth2::AuditLogger::log("token_refreshed", "success", nullptr, storedRt->userId, "token", "");
-              Json::Value json;
-              json["access_token"] = newTokenStr;
-              json["token_type"] = "Bearer";
-              json["expires_in"] = (Json::Int64)3600;
-              json["refresh_token"] = newRefreshTokenStr;
-              callback(json);
-          });
+          storage_
+            ->saveTokenPair(token, newRt, [callback, newTokenStr, newRefreshTokenStr, storedRt]() {
+                oauth2::AuditLogger::log(
+                  "token_refreshed", "success", nullptr, storedRt->userId, "token", ""
+                );
+                Json::Value json;
+                json["access_token"] = newTokenStr;
+                json["token_type"] = "Bearer";
+                json["expires_in"] = (Json::Int64)3600;
+                json["refresh_token"] = newRefreshTokenStr;
+                callback(json);
+            });
       }
     );
 }

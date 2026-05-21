@@ -219,7 +219,14 @@ void PasswordResetController::confirm(
                       db->execSqlAsync(
                         "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
                         [sharedCb, userId, req](const Result &) {
-                            oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
+                            oauth2::AuditLogger::log(
+                              "password_reset",
+                              "success",
+                              req,
+                              std::to_string(userId),
+                              "user",
+                              std::to_string(userId)
+                            );
                             Json::Value json;
                             json["message"] = "Password reset successful";
                             json["note"] = "All existing sessions have been revoked";
@@ -227,7 +234,14 @@ void PasswordResetController::confirm(
                             (*sharedCb)(resp);
                         },
                         [sharedCb, userId, req](const DrogonDbException &) {
-                            oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
+                            oauth2::AuditLogger::log(
+                              "password_reset",
+                              "success",
+                              req,
+                              std::to_string(userId),
+                              "user",
+                              std::to_string(userId)
+                            );
                             Json::Value json;
                             json["message"] = "Password reset successful";
                             auto resp = HttpResponse::newHttpJsonResponse(json);
@@ -237,7 +251,14 @@ void PasswordResetController::confirm(
                       );
                   },
                   [sharedCb, userId, req](const DrogonDbException &) {
-                      oauth2::AuditLogger::log("password_reset", "success", req, std::to_string(userId), "user", std::to_string(userId));
+                      oauth2::AuditLogger::log(
+                        "password_reset",
+                        "success",
+                        req,
+                        std::to_string(userId),
+                        "user",
+                        std::to_string(userId)
+                      );
                       Json::Value json;
                       json["message"] = "Password reset successful";
                       auto resp = HttpResponse::newHttpJsonResponse(json);

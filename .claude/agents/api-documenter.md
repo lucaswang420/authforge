@@ -10,9 +10,9 @@ Claude自动调用：当检测到控制器代码变更时
 
 ### 1. 检测变更
 - 监控以下文件的变化：
-  - `OAuth2Backend/controllers/OAuth2Controller.cc`
-  - `OAuth2Backend/controllers/WeChatController.cc`
-  - `OAuth2Backend/controllers/*.cc` (任何控制器文件)
+  - `OAuth2Server/controllers/OAuth2Controller.cc`
+  - `OAuth2Server/controllers/WeChatController.cc`
+  - `OAuth2Server/controllers/*.cc` (任何控制器文件)
 
 ### 2. 分析路由
 - 解析Drogon路由映射
@@ -23,7 +23,7 @@ Claude自动调用：当检测到控制器代码变更时
 - 确定响应格式
 
 ### 3. 同步OpenAPI规范
-- 更新`OAuth2Backend/openapi.yaml`
+- 更新`OAuth2Server/openapi.yaml`
 - 添加新端点
 - 修改现有端点
 - 删除废弃端点

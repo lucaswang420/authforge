@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "@anthropic-ai/postgres-mcp-server"
+      ],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "postgresql://oauth2:oauth2@localhost:5432/oauth2"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "@anthropic-ai/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_TOKEN": ""
+      }
+    }
+  }
+}

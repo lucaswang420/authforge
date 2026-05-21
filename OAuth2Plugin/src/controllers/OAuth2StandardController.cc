@@ -411,7 +411,9 @@ void OAuth2StandardController::revoke(
                 // Has permission, execute revocation
                 plugin->revokeAccessToken(
                   token, clientId, [clientId, callback = std::move(callback), token]() mutable {
-                      oauth2::AuditLogger::log("token_revoked", "success", nullptr, clientId, "token", token);
+                      oauth2::AuditLogger::log(
+                        "token_revoked", "success", nullptr, clientId, "token", token
+                      );
                       oauth2::Metrics::incrementRevocationRequests(clientId);
                       callback(createSuccessResponse());
                   }

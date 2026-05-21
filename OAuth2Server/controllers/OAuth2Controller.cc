@@ -361,32 +361,32 @@ void OAuth2Controller::login(
                  codeChallengeMethod,
                  callback =
                    std::move(callback)](bool success, std::string code, std::string error) mutable {
-                if (!success)
-                {
-                    LOG_ERROR << "Failed to generate authorization code: " << error;
-                    Json::Value jsonErr;
-                    jsonErr["error"] = "server_error";
-                    jsonErr["error_description"] = "Failed to generate authorization code";
-                    auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                    resp->setStatusCode(k500InternalServerError);
-                    callback(resp);
-                    return;
-                }
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                        return;
+                    }
 
-                std::string location = redirectUri + "?code=" + code;
-                if (!state.empty())
-                    location += "&state=" + state;
-                if (req->getParameter("json") == "true")
-                {
-                    Json::Value ret;
-                    ret["code"] = code;
-                    ret["location"] = location;
-                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    if (req->getParameter("json") == "true")
+                    {
+                        Json::Value ret;
+                        ret["code"] = code;
+                        ret["location"] = location;
+                        auto resp = HttpResponse::newHttpJsonResponse(ret);
+                        callback(resp);
+                        return;
+                    }
+                    auto resp = HttpResponse::newRedirectionResponse(location);
                     callback(resp);
-                    return;
-                }
-                auto resp = HttpResponse::newRedirectionResponse(location);
-                callback(resp);
                 }
               );
           }
@@ -824,9 +824,16 @@ void OAuth2Controller::consent(
     // Get internal user ID
     plugin->getInternalUserId(
       userId,
-      [plugin, clientId, userId, scope, redirectUri, state, codeChallenge, codeChallengeMethod, nonce, callback = std::move(callback)](
-        std::optional<int32_t> internalUserId
-      ) mutable {
+      [plugin,
+       clientId,
+       userId,
+       scope,
+       redirectUri,
+       state,
+       codeChallenge,
+       codeChallengeMethod,
+       nonce,
+       callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
           if (!internalUserId)
           {
               auto resp = HttpResponse::newHttpResponse();
@@ -899,27 +906,28 @@ void OAuth2Controller::consent(
                       [clientId, redirectUri, state, callback = std::move(callback)](
                         bool success, std::string code, std::string error
                       ) mutable {
-                        if (!success)
-                        {
-                            LOG_ERROR << "Failed to generate "
-                                         "authorization code: "
-                                      << error;
-                            Json::Value jsonErr;
-                            jsonErr["error"] = "server_error";
-                            jsonErr["error_description"] = "Failed to generate authorization code";
-                            auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                            resp->setStatusCode(k500InternalServerError);
-                            callback(resp);
-                            return;
-                        }
+                          if (!success)
+                          {
+                              LOG_ERROR << "Failed to generate "
+                                           "authorization code: "
+                                        << error;
+                              Json::Value jsonErr;
+                              jsonErr["error"] = "server_error";
+                              jsonErr["error_description"] =
+                                "Failed to generate authorization code";
+                              auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                              resp->setStatusCode(k500InternalServerError);
+                              callback(resp);
+                              return;
+                          }
 
-                        std::string location = redirectUri + "?code=" + code;
-                        if (!state.empty())
-                            location += "&state=" + state;
-                        auto resp = HttpResponse::newRedirectionResponse(location);
-                        Metrics::incRequest("authorize", 302);
-                        callback(resp);
-                    }
+                          std::string location = redirectUri + "?code=" + code;
+                          if (!state.empty())
+                              location += "&state=" + state;
+                          auto resp = HttpResponse::newRedirectionResponse(location);
+                          Metrics::incRequest("authorize", 302);
+                          callback(resp);
+                      }
                     );
                 }
               );
@@ -936,30 +944,27 @@ void OAuth2Controller::consent(
                 codeChallengeMethod,
                 nonce,
                 [clientId, redirectUri, state, callback = std::move(callback)](
-                bool success,
-                std::string code,
-                std::string error
-              ) mutable
-              {
-                  if (!success)
-                  {
-                      LOG_ERROR << "Failed to generate authorization code: " << error;
-                      Json::Value jsonErr;
-                      jsonErr["error"] = "server_error";
-                      jsonErr["error_description"] = "Failed to generate authorization code";
-                      auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                      resp->setStatusCode(k500InternalServerError);
-                      callback(resp);
-                      return;
-                  }
+                  bool success, std::string code, std::string error
+                ) mutable {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                        return;
+                    }
 
-                  std::string location = redirectUri + "?code=" + code;
-                  if (!state.empty())
-                      location += "&state=" + state;
-                  auto resp = HttpResponse::newRedirectionResponse(location);
-                  Metrics::incRequest("authorize", 302);
-                  callback(resp);
-              }
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    auto resp = HttpResponse::newRedirectionResponse(location);
+                    Metrics::incRequest("authorize", 302);
+                    callback(resp);
+                }
               );
           }
       }
