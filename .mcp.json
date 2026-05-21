@@ -8,6 +8,14 @@
         "postgresql://test:123456@127.0.0.1:5432/oauth_test"
       ]
     },
+    "redis": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-redis",
+        "redis://:123456@127.0.0.1:6379/0"
+      ]
+    },
     "github": {
       "command": "npx",
       "args": [
