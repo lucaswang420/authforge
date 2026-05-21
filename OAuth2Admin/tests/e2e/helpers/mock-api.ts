@@ -59,6 +59,35 @@ export const MOCK_LOGS = [
   { id: 3, action: 'login_failure', actor_type: 'user', actor_id: '660e8400-e29b-41d4-a716-446655440001', outcome: 'failure', ip: '192.168.1.100', timestamp: '2026-05-21T09:55:00Z' },
 ]
 
+export const MOCK_CLIENT_DETAIL = {
+  status: 'success',
+  client_id: 'vue-client',
+  name: 'Vue Frontend',
+  client_type: 'PUBLIC',
+  redirect_uris: 'http://localhost:8080/callback',
+  allowed_grant_types: 'authorization_code,refresh_token',
+  created_at: '2026-05-20T10:00:00Z',
+  scopes: ['openid', 'profile'],
+}
+
+export const MOCK_TOKENS = [
+  { token_prefix: 'a1b2c3d4', client_id: 'vue-client', user_id: 'admin', scope: 'openid profile', created_at: '2026-05-21T10:00:00Z', expires_at: '2026-05-21T11:00:00Z' },
+  { token_prefix: 'e5f6g7h8', client_id: 'api-service', user_id: '', scope: 'admin', created_at: '2026-05-21T09:30:00Z', expires_at: '2026-05-21T10:30:00Z' },
+  { token_prefix: 'i9j0k1l2', client_id: 'vue-client', user_id: 'testuser', scope: 'openid', created_at: '2026-05-21T09:00:00Z', expires_at: '2026-05-21T10:00:00Z' },
+]
+
+export const MOCK_OIDC_KEYS = {
+  status: 'success',
+  kid: 'default-key-1',
+  kty: 'RSA',
+  alg: 'RS256',
+  use: 'sig',
+  jwks_uri: '/.well-known/jwks.json',
+  discovery_uri: '/.well-known/openid-configuration',
+  key_status: 'active',
+  note: 'Key rotation is not yet implemented. Single signing key in use.',
+}
+
 /**
  * Set up all API mocks for an authenticated admin session.
  */
@@ -128,10 +157,28 @@ export async function setupAuthenticatedMocks(page: Page) {
     }
   })
 
-  // Delete client
+  // Delete client / Get client detail / Update client
   await page.route('**/api/admin/clients/*', async (route) => {
+    const url = route.request().url()
+    // Skip if it's a sub-resource like /scopes or /reset-secret
+    if (url.includes('/scopes') || url.includes('/reset-secret')) {
+      await route.continue()
+      return
+    }
     if (route.request().method() === 'DELETE') {
       await route.fulfill({ status: 204 })
+    } else if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_CLIENT_DETAIL),
+      })
+    } else if (route.request().method() === 'PUT') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', message: 'Client updated successfully', client_id: 'vue-client' }),
+      })
     } else {
       await route.continue()
     }
@@ -179,6 +226,76 @@ export async function setupAuthenticatedMocks(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ logs: MOCK_LOGS }),
+    })
+  })
+
+  // Client detail (GET /api/admin/clients/:id)
+  await page.route('**/api/admin/clients/*/scopes', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', scopes: ['openid', 'profile'] }),
+      })
+    } else if (route.request().method() === 'PUT') {
+      const body = JSON.parse(route.request().postData() || '{}')
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', message: 'Scopes updated', scopes: body.scopes || [] }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+
+  // Tokens list
+  await page.route('**/api/admin/tokens/revoke-by-client', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'success', message: 'All tokens for client revoked', count: 3 }),
+    })
+  })
+
+  await page.route('**/api/admin/tokens/revoke-by-user', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'success', message: 'All tokens for user revoked', count: 2 }),
+    })
+  })
+
+  await page.route('**/api/admin/tokens/**', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', message: 'Token revoked' }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+
+  await page.route('**/api/admin/tokens**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ tokens: MOCK_TOKENS, total: 3, page: 1, per_page: 50 }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+
+  // OIDC keys
+  await page.route('**/api/admin/oidc/keys', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(MOCK_OIDC_KEYS),
     })
   })
 }

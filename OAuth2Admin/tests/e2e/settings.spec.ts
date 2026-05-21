@@ -38,24 +38,53 @@ test.describe('Settings & Scopes', () => {
   })
 
   test('shows default scope indicators', async ({ page }) => {
-    // openid and profile rows should have a checkmark in the Default column (4th)
-    // The openid row's 4th td should not contain "—"
     const openidRow = page.locator('tbody tr').first()
     const defaultCell = openidRow.locator('td').nth(3)
     await expect(defaultCell).not.toContainText('—')
   })
 
   test('shows admin-only scope indicators', async ({ page }) => {
-    // admin scope row (3rd row) should have a checkmark in Admin Only column (5th)
     const adminRow = page.locator('tbody tr').nth(2)
     const adminOnlyCell = adminRow.locator('td').nth(4)
     await expect(adminOnlyCell).not.toContainText('—')
   })
 
   test('shows mapped role for admin scope', async ({ page }) => {
-    // The admin scope row has mapped_role: 'admin' in the third column
     const adminRow = page.locator('tr:has-text("Admin access")')
-    // The mapped role cell contains "admin" text
     await expect(adminRow.locator('td').nth(2)).toContainText('admin')
+  })
+
+  // OIDC Signing Keys section
+  test('shows OIDC Signing Keys section', async ({ page }) => {
+    await expect(page.locator('h3:has-text("OIDC Signing Keys")')).toBeVisible()
+  })
+
+  test('displays key metadata', async ({ page }) => {
+    await expect(page.locator('text=Key ID (kid)')).toBeVisible()
+    await expect(page.locator('text=default-key-1')).toBeVisible()
+    await expect(page.locator('text=Key Type (kty)')).toBeVisible()
+    await expect(page.locator('text=RSA')).toBeVisible()
+    await expect(page.locator('text=Algorithm (alg)')).toBeVisible()
+    await expect(page.locator('text=RS256')).toBeVisible()
+  })
+
+  test('displays JWKS and Discovery URLs', async ({ page }) => {
+    await expect(page.locator('text=JWKS Endpoint')).toBeVisible()
+    await expect(page.getByText('.well-known/jwks.json')).toBeVisible()
+    await expect(page.locator('text=Discovery Endpoint')).toBeVisible()
+    await expect(page.getByText('.well-known/openid-configuration')).toBeVisible()
+  })
+
+  test('shows key status badge', async ({ page }) => {
+    await expect(page.locator('text=active')).toBeVisible()
+  })
+
+  test('shows key rotation note', async ({ page }) => {
+    await expect(page.locator('text=Key rotation is not yet implemented')).toBeVisible()
+  })
+
+  test('has copy buttons for URLs', async ({ page }) => {
+    // The OIDC section has buttons for copying URLs
+    await expect(page.locator('button:has-text("Copy")').first()).toBeVisible()
   })
 })

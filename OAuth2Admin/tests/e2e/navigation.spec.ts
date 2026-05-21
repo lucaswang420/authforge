@@ -12,6 +12,7 @@ test.describe('Navigation & Layout', () => {
     await expect(page.locator('nav a:has-text("Applications")')).toBeVisible()
     await expect(page.locator('nav a:has-text("Users")')).toBeVisible()
     await expect(page.locator('nav a:has-text("Audit Logs")')).toBeVisible()
+    await expect(page.locator('nav a:has-text("Tokens")')).toBeVisible()
     await expect(page.locator('nav a:has-text("Settings")')).toBeVisible()
   })
 
