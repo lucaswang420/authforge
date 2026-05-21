@@ -47,7 +47,7 @@ REM --- Run 1: Standard config.json ---
 echo.
 echo [1/2] Running tests with standard config.json...
 ctest -V -C %BUILD_TYPE% %VERBOSE%
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo [FAIL] Tests failed with standard config.json
     exit /b 1
 )
@@ -56,35 +56,37 @@ echo [PASS] Standard config tests successful.
 REM --- Run 2: config.ci.json ---
 echo.
 echo [2/2] Running tests with config.ci.json...
-if exist "%PROJECT_DIR%\OAuth2Server\config.ci.json" (
-    if not exist "%TEST_WORK_DIR%" (
-        echo [Error] Test work dir not found: %TEST_WORK_DIR%
-        exit /b 1
-    )
-
-    REM Backup original and use CI config in the directory where test runs
-    copy /Y "%TEST_WORK_DIR%\config.json" "%TEST_WORK_DIR%\config.json.bak" >nul
-    copy /Y "%PROJECT_DIR%\OAuth2Server\config.ci.json" "%TEST_WORK_DIR%\config.json" >nul
-    
-    ctest -V -C %BUILD_TYPE% %VERBOSE%
-    set CI_RESULT=%errorlevel%
-    
-    REM Restore original config
-    copy /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul
-    del "%TEST_WORK_DIR%\config.json.bak"
-    
-    if !CI_RESULT! neq 0 (
-        echo [FAIL] Tests failed with config.ci.json
-        exit /b 1
-    )
-    echo [PASS] CI config tests successful.
-) else (
-    echo [SKIP] config.ci.json not found in %PROJECT_DIR%\OAuth2Server, skipping second run.
+if not exist "%PROJECT_DIR%\OAuth2Server\config.ci.json" (
+    echo [SKIP] config.ci.json not found, skipping second run.
+    goto done
 )
 
+if not exist "%TEST_WORK_DIR%" (
+    echo [Error] Test work dir not found: %TEST_WORK_DIR%
+    exit /b 1
+)
+
+REM Backup original and use CI config
+copy /Y "%TEST_WORK_DIR%\config.json" "%TEST_WORK_DIR%\config.json.bak" >nul
+copy /Y "%PROJECT_DIR%\OAuth2Server\config.ci.json" "%TEST_WORK_DIR%\config.json" >nul
+
+ctest -V -C %BUILD_TYPE% %VERBOSE%
+set "CI_EXIT=!errorlevel!"
+
+REM Restore original config immediately
+copy /Y "%TEST_WORK_DIR%\config.json.bak" "%TEST_WORK_DIR%\config.json" >nul
+del "%TEST_WORK_DIR%\config.json.bak" >nul 2>&1
+
+if !CI_EXIT! neq 0 (
+    echo [FAIL] Tests failed with config.ci.json
+    exit /b 1
+)
+echo [PASS] CI config tests successful.
+
+:done
 echo.
 echo ========================================
-echo All test runs completed successfully!
+echo All test runs completed successfully
 echo ========================================
 
 endlocal
