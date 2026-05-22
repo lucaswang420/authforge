@@ -163,7 +163,7 @@ void AdminApiController::getClient(
     {
         auto db = drogon::app().getDbClient();
         db->execSqlAsync(
-          "SELECT client_id, client_type, name, redirect_uris, allowed_grant_types, created_at "
+          "SELECT client_id, client_type, name, redirect_uris, allowed_grant_types "
           "FROM oauth2_clients WHERE client_id = $1",
           [sharedCb, clientId, db](const drogon::orm::Result &result) {
               if (result.empty())
@@ -188,8 +188,7 @@ void AdminApiController::getClient(
               json["allowed_grant_types"] = row["allowed_grant_types"].isNull()
                                               ? ""
                                               : row["allowed_grant_types"].as<std::string>();
-              json["created_at"] =
-                row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+              // Note: oauth2_clients has no created_at column
 
               // Also fetch scopes for this client
               db->execSqlAsync(
@@ -1259,7 +1258,10 @@ void AdminApiController::listTokens(
         auto db = drogon::app().getDbClient();
 
         // Build count query and data query with filters
-        std::string whereClause = " WHERE expires_at > NOW()";
+        // expires_at is stored as BIGINT (Unix epoch seconds)
+        std::string whereClause =
+          " WHERE expires_at > EXTRACT(EPOCH FROM NOW())::BIGINT AND (revoked IS NULL OR revoked = "
+          "FALSE)";
         std::string filterParams;
         int paramIdx = 1;
 
@@ -1274,9 +1276,9 @@ void AdminApiController::listTokens(
 
         std::string countQuery = "SELECT COUNT(*) as total FROM oauth2_access_tokens" + whereClause;
         std::string dataQuery =
-          "SELECT token, client_id, user_id, scope, created_at, expires_at "
+          "SELECT token, client_id, user_id, scope, issued_at, expires_at "
           "FROM oauth2_access_tokens" +
-          whereClause + " ORDER BY created_at DESC LIMIT " + std::to_string(perPage) + " OFFSET " +
+          whereClause + " ORDER BY issued_at DESC LIMIT " + std::to_string(perPage) + " OFFSET " +
           std::to_string(offset);
 
         // Execute based on filter combination
@@ -1305,17 +1307,20 @@ void AdminApiController::listTokens(
                             Json::Value token;
                             std::string fullToken = row["token"].as<std::string>();
                             token["token_prefix"] = fullToken.substr(0, 8);
-                            token["client_id"] = row["client_id"].isNull()
-                                                   ? ""
-                                                   : row["client_id"].as<std::string>();
+                            token["client_id"] =
+                              row["client_id"].isNull() ? "" : row["client_id"].as<std::string>();
                             token["user_id"] =
                               row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
                             token["scope"] =
                               row["scope"].isNull() ? "" : row["scope"].as<std::string>();
                             token["created_at"] =
-                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                              row["issued_at"].isNull()
+                                ? ""
+                                : std::to_string(row["issued_at"].as<int64_t>());
                             token["expires_at"] =
-                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                              row["expires_at"].isNull()
+                                ? ""
+                                : std::to_string(row["expires_at"].as<int64_t>());
                             tokens.append(token);
                         }
 
@@ -1376,17 +1381,20 @@ void AdminApiController::listTokens(
                             Json::Value token;
                             std::string fullToken = row["token"].as<std::string>();
                             token["token_prefix"] = fullToken.substr(0, 8);
-                            token["client_id"] = row["client_id"].isNull()
-                                                   ? ""
-                                                   : row["client_id"].as<std::string>();
+                            token["client_id"] =
+                              row["client_id"].isNull() ? "" : row["client_id"].as<std::string>();
                             token["user_id"] =
                               row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
                             token["scope"] =
                               row["scope"].isNull() ? "" : row["scope"].as<std::string>();
                             token["created_at"] =
-                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                              row["issued_at"].isNull()
+                                ? ""
+                                : std::to_string(row["issued_at"].as<int64_t>());
                             token["expires_at"] =
-                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                              row["expires_at"].isNull()
+                                ? ""
+                                : std::to_string(row["expires_at"].as<int64_t>());
                             tokens.append(token);
                         }
 
@@ -1445,17 +1453,20 @@ void AdminApiController::listTokens(
                             Json::Value token;
                             std::string fullToken = row["token"].as<std::string>();
                             token["token_prefix"] = fullToken.substr(0, 8);
-                            token["client_id"] = row["client_id"].isNull()
-                                                   ? ""
-                                                   : row["client_id"].as<std::string>();
+                            token["client_id"] =
+                              row["client_id"].isNull() ? "" : row["client_id"].as<std::string>();
                             token["user_id"] =
                               row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
                             token["scope"] =
                               row["scope"].isNull() ? "" : row["scope"].as<std::string>();
                             token["created_at"] =
-                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                              row["issued_at"].isNull()
+                                ? ""
+                                : std::to_string(row["issued_at"].as<int64_t>());
                             token["expires_at"] =
-                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                              row["expires_at"].isNull()
+                                ? ""
+                                : std::to_string(row["expires_at"].as<int64_t>());
                             tokens.append(token);
                         }
 
@@ -1512,17 +1523,20 @@ void AdminApiController::listTokens(
                             Json::Value token;
                             std::string fullToken = row["token"].as<std::string>();
                             token["token_prefix"] = fullToken.substr(0, 8);
-                            token["client_id"] = row["client_id"].isNull()
-                                                   ? ""
-                                                   : row["client_id"].as<std::string>();
+                            token["client_id"] =
+                              row["client_id"].isNull() ? "" : row["client_id"].as<std::string>();
                             token["user_id"] =
                               row["user_id"].isNull() ? "" : row["user_id"].as<std::string>();
                             token["scope"] =
                               row["scope"].isNull() ? "" : row["scope"].as<std::string>();
                             token["created_at"] =
-                              row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
+                              row["issued_at"].isNull()
+                                ? ""
+                                : std::to_string(row["issued_at"].as<int64_t>());
                             token["expires_at"] =
-                              row["expires_at"].isNull() ? "" : row["expires_at"].as<std::string>();
+                              row["expires_at"].isNull()
+                                ? ""
+                                : std::to_string(row["expires_at"].as<int64_t>());
                             tokens.append(token);
                         }
 
@@ -1679,8 +1693,7 @@ void AdminApiController::revokeTokensByClient(
               db->execSqlAsync(
                 "DELETE FROM oauth2_refresh_tokens WHERE client_id = $1",
                 [sharedCb, clientId, accessCount](const drogon::orm::Result &refreshResult) {
-                    int totalCount =
-                      accessCount + static_cast<int>(refreshResult.affectedRows());
+                    int totalCount = accessCount + static_cast<int>(refreshResult.affectedRows());
 
                     Json::Value json;
                     json["status"] = "success";
@@ -1768,8 +1781,7 @@ void AdminApiController::revokeTokensByUser(
               db->execSqlAsync(
                 "DELETE FROM oauth2_refresh_tokens WHERE user_id = $1",
                 [sharedCb, userId, accessCount](const drogon::orm::Result &refreshResult) {
-                    int totalCount =
-                      accessCount + static_cast<int>(refreshResult.affectedRows());
+                    int totalCount = accessCount + static_cast<int>(refreshResult.affectedRows());
 
                     Json::Value json;
                     json["status"] = "success";

@@ -227,10 +227,6 @@ onMounted(() => {
             {{ client.client_type }}
           </span>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Created At</label>
-          <p class="text-sm text-gray-600">{{ client.created_at || 'N/A' }}</p>
-        </div>
       </div>
 
       <!-- Auth Config Tab -->
