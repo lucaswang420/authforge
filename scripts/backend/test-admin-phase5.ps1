@@ -363,7 +363,7 @@ try {
         Write-Host "Admin account lockout reset successfully (Docker)" -ForegroundColor Green
     } else {
         # Try local PostgreSQL
-        $env:PGPASSWORD = "your_password"  # 修改为你的数据库密码
+        $env:PGPASSWORD = "123456"  # 数据库密码
         psql -U oauth2_user -d oauth2_db -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';" 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Admin account lockout reset successfully (Local PostgreSQL)" -ForegroundColor Green
