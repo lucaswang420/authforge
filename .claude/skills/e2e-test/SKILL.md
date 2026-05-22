@@ -82,12 +82,12 @@ scripts/backend/full_test_docker.bat
 # 重置数据库
 cd /path/to/project
 $env:PGPASSWORD='123456'
-psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
-psql -U test -d oauth_test -f "OAuth2Server/sql/001_oauth2_core.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/002_users_table.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/003_rbac_schema.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/004_oauth2_scopes.sql"
+psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/001_oauth2_core.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/002_users_table.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/003_rbac_schema.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/004_oauth2_scopes.sql"
 
 # 编译服务（如果需要）
 .\manage.ps1 build-backend -release
@@ -228,19 +228,19 @@ cd build/OAuth2Server/Release
 #### 数据库连接失败
 ```bash
 # 验证数据库连接
-psql -U test -d oauth_test -c "SELECT 1;"
+psql -U oauth2_user -d oauth2_db -c "SELECT 1;"
 
 # 检查客户端数据
-psql -U test -d oauth_test -c "SELECT * FROM oauth2_clients;"
+psql -U oauth2_user -d oauth2_db -c "SELECT * FROM oauth2_clients;"
 ```
 
 #### 登录失败
 ```bash
 # 验证用户存在
-psql -U test -d oauth_test -c "SELECT * FROM users WHERE username='admin';"
+psql -U oauth2_user -d oauth2_db -c "SELECT * FROM users WHERE username='admin';"
 
 # 验证客户端配置
-psql -U test -d oauth_test -c "SELECT * FROM oauth2_clients WHERE client_id='vue-client';"
+psql -U oauth2_user -d oauth2_db -c "SELECT * FROM oauth2_clients WHERE client_id='vue-client';"
 ```
 
 ## 性能指标

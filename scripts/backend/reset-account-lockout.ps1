@@ -6,14 +6,14 @@
 #   $env:PGPASSWORD = "your_password"
 #   .\reset-account-lockout.ps1
 # Or pass connection string:
-#   .\reset-account-lockout.ps1 -Username admin -DbHost localhost -DbUser oauth_user -DbPassword your_password
+#   .\reset-account-lockout.ps1 -Username admin -DbHost localhost -DbUser oauth2_user -DbPassword your_password
 
 param(
     [string]$Username = "",
     [string]$DbHost = "localhost",
-    [string]$DbUser = "oauth_user",
-    [string]$DbName = "oauth_test",
-    [string]$DbPassword = ""
+    [string]$DbUser = "oauth2_user",
+    [string]$DbName = "oauth2_db",
+    [string]$DbPassword = "123456"
 )
 
 $ErrorActionPreference = "Stop"

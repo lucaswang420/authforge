@@ -199,7 +199,7 @@ docker-compose ps
 curl http://localhost:5555/metrics
 
 # 查看数据库是否已初始化
-docker exec -it oauth2-postgres psql -U test -d oauth2_db -c "\dt"
+docker exec -it oauth2-postgres psql -U oauth2_user -d oauth2_db -c "\dt"
 
 # 查看 Redis 连接
 docker exec -it oauth2-redis redis-cli -a redis_secret_pass ping

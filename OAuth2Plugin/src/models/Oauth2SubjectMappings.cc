@@ -12,7 +12,7 @@
 
 using namespace drogon;
 using namespace drogon::orm;
-using namespace drogon_model::oauth_test;
+using namespace drogon_model::oauth2_db;
 
 const std::string Oauth2SubjectMappings::Cols::_id = "\"id\"";
 const std::string Oauth2SubjectMappings::Cols::_subject = "\"subject\"";

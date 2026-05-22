@@ -4,15 +4,15 @@ services:
     image: postgres:15-alpine
     container_name: oauth2-postgres-debug
     environment:
-      POSTGRES_USER: test
+      POSTGRES_USER: oauth2_user
       POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: oauth_test
+      POSTGRES_DB: oauth2_db
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test"]
+      test: ["CMD-SHELL", "pg_isready -U oauth2_user"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -61,9 +61,9 @@ services:
       # PostgreSQL connection info
       - OAUTH2_DB_HOST=oauth2-postgres-debug
       - OAUTH2_DB_PORT=5432
-      - OAUTH2_DB_USER=test
+      - OAUTH2_DB_USER=oauth2_user
       - OAUTH2_DB_PASSWORD=123456
-      - OAUTH2_DB_NAME=oauth_test
+      - OAUTH2_DB_NAME=oauth2_db
       # Redis connection info
       - OAUTH2_REDIS_HOST=oauth2-redis-debug
       - OAUTH2_REDIS_PORT=6379

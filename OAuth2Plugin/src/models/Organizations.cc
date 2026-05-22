@@ -11,7 +11,7 @@
 
 using namespace drogon;
 using namespace drogon::orm;
-using namespace drogon_model::oauth_test;
+using namespace drogon_model::oauth2_db;
 
 const std::string Organizations::Cols::_id = "\"id\"";
 const std::string Organizations::Cols::_slug = "\"slug\"";

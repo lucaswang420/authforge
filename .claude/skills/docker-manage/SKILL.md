@@ -64,7 +64,7 @@ docker volume prune
 ### 进入容器
 ```bash
 # 进入 PostgreSQL 容器
-docker-compose exec oauth2-postgres psql -U test oauth_test
+docker-compose exec oauth2-postgres psql -U oauth2_user oauth2_db
 
 # 进入 Redis 容器
 docker-compose exec oauth2-redis redis-cli -a 123456
@@ -88,7 +88,7 @@ docker-compose exec oauth2-server bash
 docker-compose ps
 
 # 检查 PostgreSQL 连接
-docker-compose exec oauth2-postgres pg_isready -U test
+docker-compose exec oauth2-postgres pg_isready -U oauth2_user
 
 # 检查 Redis 连接
 docker-compose exec oauth2-redis redis-cli ping

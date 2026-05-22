@@ -67,19 +67,19 @@
 cd OAuth2Backend/sql
 
 # 1. OAuth2核心表 (包含PKCE)
-psql -U postgres -d oauth_test -f 001_oauth2_core.sql
+psql -U postgres -d oauth2_db -f 001_oauth2_core.sql
 
 # 2. Users表
-psql -U postgres -d oauth_test -f 002_users_table.sql
+psql -U postgres -d oauth2_db -f 002_users_table.sql
 
 # 3. RBAC系统
-psql -U postgres -d oauth_test -f 003_rbac_schema.sql
+psql -U postgres -d oauth2_db -f 003_rbac_schema.sql
 
 # 4. OAuth2 Scopes (包含subject映射 + consent)
-psql -U postgres -d oauth_test -f 004_oauth2_scopes.sql
+psql -U postgres -d oauth2_db -f 004_oauth2_scopes.sql
 
 # ✅ 为测试环境授予admin scope给vue-client
-psql -U postgres -d oauth_test -c "INSERT INTO oauth2_client_scopes (client_id, scope_name) VALUES ('vue-client', 'admin') ON CONFLICT DO NOTHING;"
+psql -U postgres -d oauth2_db -c "INSERT INTO oauth2_client_scopes (client_id, scope_name) VALUES ('vue-client', 'admin') ON CONFLICT DO NOTHING;"
 
 # ✅ 完成！
 ```
@@ -89,32 +89,32 @@ psql -U postgres -d oauth_test -c "INSERT INTO oauth2_client_scopes (client_id, 
 
 ```bash
 # 验证表结构
-psql -U postgres -d oauth_test -c "\dt oauth2_*"
+psql -U postgres -d oauth2_db -c "\dt oauth2_*"
 
 # 验证PKCE字段
-psql -U postgres -d oauth_test -c "\d oauth2_codes"
+psql -U postgres -d oauth2_db -c "\d oauth2_codes"
 # 应该看到: code_challenge, code_challenge_method
 
 # 验证 subject 映射表
-psql -U postgres -d oauth_test -c "\d oauth2_subject_mappings"
+psql -U postgres -d oauth2_db -c "\d oauth2_subject_mappings"
 # 应该看到: subject, internal_user_id, provider
 # 应该看到: UNIQUE(provider, subject)
 
 # 验证 internal_user_id 类型一致性
-psql -U postgres -d oauth_test -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_name LIKE 'oauth2_%' AND column_name IN ('user_id', 'internal_user_id');"
+psql -U postgres -d oauth2_db -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_name LIKE 'oauth2_%' AND column_name IN ('user_id', 'internal_user_id');"
 # user_id: character varying(50)
 # internal_user_id: integer
 
 # 验证requires_admin_role字段
-psql -U postgres -d oauth_test -c "SELECT name, requires_admin_role FROM oauth2_scopes;"
+psql -U postgres -d oauth2_db -c "SELECT name, requires_admin_role FROM oauth2_scopes;"
 # admin scope应该为true
 
 # 验证复合唯一约束
-psql -U postgres -d oauth_test -c "SELECT constraint_name, constraint_type FROM information_schema.table_constraints WHERE table_name = 'oauth2_subject_mappings';"
+psql -U postgres -d oauth2_db -c "SELECT constraint_name, constraint_type FROM information_schema.table_constraints WHERE table_name = 'oauth2_subject_mappings';"
 # 应该看到: oauth2_subject_mappings_provider_subject_key unique
 
 # ✅ 验证admin scope已授予vue-client (用于测试)
-psql -U postgres -d oauth_test -c "SELECT client_id, scope_name FROM oauth2_client_scopes WHERE scope_name = 'admin';"
+psql -U postgres -d oauth2_db -c "SELECT client_id, scope_name FROM oauth2_client_scopes WHERE scope_name = 'admin';"
 # 应该看到: vue-client | admin
 ```
 

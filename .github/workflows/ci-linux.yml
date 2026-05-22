@@ -19,9 +19,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: test
+          POSTGRES_USER: oauth2_user
           POSTGRES_PASSWORD: 123456
-          POSTGRES_DB: oauth_test
+          POSTGRES_DB: oauth2_db
         ports:
           - 5432:5432
         options: >-
@@ -101,7 +101,7 @@ jobs:
         run: |
           echo "Waiting for Postgres..."
           for i in $(seq 1 15); do
-            pg_isready -h localhost -U test && break
+            pg_isready -h localhost -U oauth2_user && break
             echo "  Postgres not ready yet (attempt $i/15)..."
             sleep 2
           done
@@ -120,12 +120,12 @@ jobs:
           # Apply migrations in order
           for f in sql/migrations/V*.sql; do
             echo "Applying $f..."
-            psql -h localhost -U test -d oauth_test -f "$f"
+            psql -h localhost -U oauth2_user -d oauth2_db -f "$f"
           done
           # Apply seed data
           for f in sql/seed/*.sql; do
             echo "Applying seed $f..."
-            psql -h localhost -U test -d oauth_test -f "$f"
+            psql -h localhost -U oauth2_user -d oauth2_db -f "$f"
           done
 
       - name: Check Test Naming Conventions

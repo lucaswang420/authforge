@@ -20,7 +20,7 @@ pg_isready -h localhost -p 5432 || echo "❌ PostgreSQL not running"
 
 # 2. 检查数据库连接
 export PGPASSWORD='123456'
-psql -h localhost -U test -d postgres -c "SELECT 1;" || echo "❌ Cannot connect to database"
+psql -h localhost -U oauth2_user -d postgres -c "SELECT 1;" || echo "❌ Cannot connect to database"
 
 # 3. 验证 SQL 初始化脚本存在
 ls OAuth2Server/sql/001_oauth2_core.sql || echo "❌ SQL scripts not found"
@@ -87,16 +87,16 @@ export PGPASSWORD='123456'
 
 ```powershell
 # Windows PowerShell
-psql -h localhost -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-psql -h localhost -U test -d postgres -c "CREATE DATABASE oauth_test;"
-Write-Host "✅ Database oauth_test recreated"
+psql -h localhost -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+psql -h localhost -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+Write-Host "✅ Database oauth2_db recreated"
 ```
 
 ```bash
 # Linux/macOS
-psql -h localhost -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-psql -h localhost -U test -d postgres -c "CREATE DATABASE oauth_test;"
-echo "✅ Database oauth_test recreated"
+psql -h localhost -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+psql -h localhost -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+echo "✅ Database oauth2_db recreated"
 ```
 
 ### 4. 执行 SQL 初始化脚本
@@ -106,7 +106,7 @@ echo "✅ Database oauth_test recreated"
 cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
 
 # 按顺序执行 SQL 脚本
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\001_oauth2_core.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\001_oauth2_core.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 001_oauth2_core.sql executed"
 } else {
@@ -114,7 +114,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\002_users_table.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\002_users_table.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 002_users_table.sql executed"
 } else {
@@ -122,7 +122,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\003_rbac_schema.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\003_rbac_schema.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 003_rbac_schema.sql executed"
 } else {
@@ -130,7 +130,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\004_oauth2_scopes.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\004_oauth2_scopes.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 004_oauth2_scopes.sql executed"
 } else {
@@ -164,12 +164,12 @@ scripts/backend/docker_postgres_start.bat
 timeout /t 5 /nobreak
 
 # 在容器中执行 SQL 脚本
-docker exec oauth2-postgres psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-docker exec oauth2-postgres psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/001_oauth2_core.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/002_users_table.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/003_rbac_schema.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/004_oauth2_scopes.sql
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/001_oauth2_core.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/002_users_table.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/003_rbac_schema.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/004_oauth2_scopes.sql
 ```
 
 ```bash
@@ -177,10 +177,10 @@ docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/004
 cd /path/to/OAuth2-plugin-example
 
 # 按顺序执行 SQL 脚本
-psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/001_oauth2_core.sql" && echo "✅ 001_oauth2_core.sql executed" || { echo "❌ Failed to execute 001_oauth2_core.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/002_users_table.sql" && echo "✅ 002_users_table.sql executed" || { echo "❌ Failed to execute 002_users_table.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/003_rbac_schema.sql" && echo "✅ 003_rbac_schema.sql executed" || { echo "❌ Failed to execute 003_rbac_schema.sql"; exit 1; }
-psql -h localhost -U test -d oauth_test -f "OAuth2Server/sql/004_oauth2_scopes.sql" && echo "✅ 004_oauth2_scopes.sql executed" || { echo "❌ Failed to execute 004_oauth2_scopes.sql"; exit 1; }
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/001_oauth2_core.sql" && echo "✅ 001_oauth2_core.sql executed" || { echo "❌ Failed to execute 001_oauth2_core.sql"; exit 1; }
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/002_users_table.sql" && echo "✅ 002_users_table.sql executed" || { echo "❌ Failed to execute 002_users_table.sql"; exit 1; }
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/003_rbac_schema.sql" && echo "✅ 003_rbac_schema.sql executed" || { echo "❌ Failed to execute 003_rbac_schema.sql"; exit 1; }
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/004_oauth2_scopes.sql" && echo "✅ 004_oauth2_scopes.sql executed" || { echo "❌ Failed to execute 004_oauth2_scopes.sql"; exit 1; }
 
 echo "`n🎉 Database reset completed!"
 ```
@@ -190,7 +190,7 @@ echo "`n🎉 Database reset completed!"
 ```bash
 # 验证表是否创建成功
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "\dt" | grep -E "(oauth2_|users|roles)"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\dt" | grep -E "(oauth2_|users|roles)"
 
 # 预期输出应包含以下表：
 # - oauth2_clients
@@ -209,8 +209,8 @@ psql -h localhost -U test -d oauth_test -c "\dt" | grep -E "(oauth2_|users|roles
 ```bash
 # 验证默认角色和权限
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "SELECT * FROM roles;"
-psql -h localhost -U test -d oauth_test -c "SELECT * FROM permissions LIMIT 5;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT * FROM roles;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT * FROM permissions LIMIT 5;"
 ```
 
 ## 数据库凭据
@@ -219,9 +219,9 @@ psql -h localhost -U test -d oauth_test -c "SELECT * FROM permissions LIMIT 5;"
 |-------|-----|------|
 | 主机 | localhost | 本地连接 |
 | 端口 | 5432 | PostgreSQL 默认端口 |
-| 用户名 | test | 测试用户 |
+| 用户名 | oauth2_user | 测试用户 |
 | 密码 | 123456 | 测试密码 |
-| 数据库 | oauth_test | OAuth2 测试数据库 |
+| 数据库 | oauth2_db | OAuth2 测试数据库 |
 
 ## SQL 脚本说明
 
@@ -260,11 +260,11 @@ brew services start postgresql
 -- 强制断开所有连接
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
-WHERE pg_stat_activity.datname = 'oauth_test'
+WHERE pg_stat_activity.datname = 'oauth2_db'
   AND pid <> pg_backend_pid();
 
 -- 然后删除数据库
-DROP DATABASE IF EXISTS oauth_test;
+DROP DATABASE IF EXISTS oauth2_db;
 ```
 
 ### 问题 3: SQL 脚本执行失败
@@ -277,10 +277,10 @@ pwd
 ls -la OAuth2Server/sql/
 
 # 确保数据库已清空
-psql -h localhost -U test -d oauth_test -c "\dt"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\dt"
 
 # 如果有残留表，手动删除
-psql -h localhost -U test -d oauth_test -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 ```
 
 ### 问题 4: 权限不足
@@ -289,9 +289,9 @@ psql -h localhost -U test -d oauth_test -c "DROP SCHEMA public CASCADE; CREATE S
 **解决方案**:
 ```sql
 -- 授予测试用户完整权限
-GRANT ALL PRIVILEGES ON DATABASE oauth_test TO test;
-GRANT ALL PRIVILEGES ON SCHEMA public TO test;
-ALTER DATABASE oauth_test OWNER TO test;
+GRANT ALL PRIVILEGES ON DATABASE oauth2_db TO oauth2_user;
+GRANT ALL PRIVILEGES ON SCHEMA public TO oauth2_user;
+ALTER DATABASE oauth2_db OWNER TO oauth2_user;
 ```
 
 ## 最佳实践
@@ -317,7 +317,7 @@ tail -f /var/log/postgresql/postgresql-14-main.log  # Linux
 tail -f /usr/local/var/log/postgres.log  # macOS
 
 # 查看当前连接
-psql -h localhost -U test -d postgres -c "SELECT * FROM pg_stat_activity WHERE datname = 'oauth_test';"
+psql -h localhost -U oauth2_user -d postgres -c "SELECT * FROM pg_stat_activity WHERE datname = 'oauth2_db';"
 ```
 
 ## 安全注意事项
@@ -345,7 +345,7 @@ psql -h localhost -U test -d postgres -c "SELECT * FROM pg_stat_activity WHERE d
 
 ✅ 成功执行后应看到：
 ```
-✅ Database oauth_test recreated
+✅ Database oauth2_db recreated
 ✅ 001_oauth2_core.sql executed
 ✅ 002_users_table.sql executed
 ✅ 003_rbac_schema.sql executed

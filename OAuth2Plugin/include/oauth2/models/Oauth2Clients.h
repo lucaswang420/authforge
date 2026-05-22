@@ -36,7 +36,7 @@ using DbClientPtr = std::shared_ptr<DbClient>;
 }
 namespace drogon_model
 {
-namespace oauth_test
+namespace oauth2_db
 {
 class Oauth2AccessTokens;
 class Oauth2ClientScopes;
@@ -424,5 +424,5 @@ class Oauth2Clients
         return sql;
     }
 };
-} // namespace oauth_test
+} // namespace oauth2_db
 } // namespace drogon_model

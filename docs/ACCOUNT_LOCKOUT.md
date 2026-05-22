@@ -66,19 +66,19 @@ $env:PGPASSWORD = $null
 ```powershell
 # Windows PowerShell
 $env:PGPASSWORD = "your_password"
-psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
+psql -U oauth2_user -d oauth2_db -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
 $env:PGPASSWORD = $null
 ```
 
 ```bash
 # Linux/Mac
-PGPASSWORD=your_password psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
+PGPASSWORD=your_password psql -U oauth2_user -d oauth2_db -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
 ```
 
 #### Docker数据库
 
 ```bash
-docker exec <container_name> psql -U oauth_user -d oauth_test -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
+docker exec <container_name> psql -U oauth2_user -d oauth2_db -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
 ```
 
 ### 方法3：查看锁定状态
@@ -143,7 +143,7 @@ WHERE u.username = 'test_admin' AND r.name = 'admin';
 # Cleanup
 try {
     # 重置测试账号
-    psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='test_admin';"
+    psql -U oauth2_user -d oauth2_db -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='test_admin';"
 } catch {
     Write-Host "Warning: Failed to reset test account" -ForegroundColor Yellow
 }
@@ -155,7 +155,7 @@ try {
 
 ```powershell
 # 检查数据库中的用户
-psql -U oauth_user -d oauth_test -h localhost -c "SELECT username FROM users;"
+psql -U oauth2_user -d oauth2_db -h localhost -c "SELECT username FROM users;"
 
 # 如果需要重置密码（使用PBKDF2）
 # 需要通过应用程序的注册接口或直接调用PasswordHasher

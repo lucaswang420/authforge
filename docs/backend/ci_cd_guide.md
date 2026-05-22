@@ -114,15 +114,15 @@ ctest -V -C Release --output-on-failure --timeout 120
 
 ```powershell
 # 1. 启动基础设施（CI 中使用 Service Container，本地用 Docker）
-docker run -d -p 5432:5432 -e POSTGRES_USER=test -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=oauth_test postgres:15-alpine
+docker run -d -p 5432:5432 -e POSTGRES_USER=test -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=oauth2_db postgres:15-alpine
 docker run -d -p 6379:6379 redis:alpine
 
 # 2. 初始化数据库
 $env:PGPASSWORD = "123456"
-psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/001_oauth2_core.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/002_users_table.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/003_rbac_schema.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Server/sql/004_oauth2_scopes.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Server/sql/001_oauth2_core.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Server/sql/002_users_table.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Server/sql/003_rbac_schema.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Server/sql/004_oauth2_scopes.sql
 
 # 3. 构建并运行测试
 .\scripts\backend\build.bat -release

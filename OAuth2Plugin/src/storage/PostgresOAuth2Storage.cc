@@ -41,7 +41,7 @@ namespace oauth2
 {
 
 using namespace drogon::orm;
-using namespace drogon_model::oauth_test;
+using namespace drogon_model::oauth2_db;
 
 void PostgresOAuth2Storage::initFromConfig(const Json::Value &config)
 {

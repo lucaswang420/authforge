@@ -204,7 +204,7 @@ pg_isready -h localhost -p 5432 || echo "❌ PostgreSQL not running"
 
 # 2. 检查数据库连接
 export PGPASSWORD='123456'
-psql -h localhost -U test -d postgres -c "SELECT 1;" || echo "❌ Cannot connect to database"
+psql -h localhost -U oauth2_user -d postgres -c "SELECT 1;" || echo "❌ Cannot connect to database"
 
 # 3. 验证 SQL 初始化脚本存在
 ls OAuth2Server/sql/001_oauth2_core.sql || echo "❌ SQL scripts not found"
@@ -253,7 +253,7 @@ if ($env:OAUTH2_ENV_MODE -eq "docker") {
 cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
 
 # 按顺序执行 SQL 脚本
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\001_oauth2_core.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\001_oauth2_core.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 001_oauth2_core.sql executed"
 } else {
@@ -261,7 +261,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\002_users_table.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\002_users_table.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 002_users_table.sql executed"
 } else {
@@ -269,7 +269,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\003_rbac_schema.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\003_rbac_schema.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 003_rbac_schema.sql executed"
 } else {
@@ -277,7 +277,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-psql -h localhost -U test -d oauth_test -f "OAuth2Server\sql\004_oauth2_scopes.sql"
+psql -h localhost -U oauth2_user -d oauth2_db -f "OAuth2Server\sql\004_oauth2_scopes.sql"
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ 004_oauth2_scopes.sql executed"
 } else {
@@ -317,12 +317,12 @@ scripts/backend/docker_postgres_start.bat
 timeout /t 5 /nobreak
 
 # 在容器中执行 SQL 脚本
-docker exec oauth2-postgres psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-docker exec oauth2-postgres psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/001_oauth2_core.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/002_users_table.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/003_rbac_schema.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/004_oauth2_scopes.sql
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/001_oauth2_core.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/002_users_table.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/003_rbac_schema.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/004_oauth2_scopes.sql
 ```
 ```
 
@@ -339,10 +339,10 @@ pwd
 ls -la OAuth2Server/sql/
 
 # 确保数据库已清空
-psql -h localhost -U test -d oauth_test -c "\dt"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\dt"
 
 # 如果有残留表，手动删除
-psql -h localhost -U test -d oauth_test -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 ```
 ```
 
@@ -415,7 +415,7 @@ pg_isready -h localhost -p 5432 || echo "❌ PostgreSQL not running"
 
 # 2. 检查数据库是否存在
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "SELECT 1;" || echo "❌ Database oauth_test not found"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT 1;" || echo "❌ Database oauth2_db not found"
 
 # 3. 检查 drogon_ctl 工具是否安装
 which drogon_ctl || echo "❌ drogon_ctl not found"
@@ -442,8 +442,8 @@ cat OAuth2Server/model.json
     "rdbms": "postgresql",
     "host": "127.0.0.1",
     "port": 5432,
-    "dbname": "oauth_test",
-    "user": "test",
+    "dbname": "oauth2_db",
+    "user": "oauth2_user",
     "passwd": "123456",
     "tables": [
         "users",
@@ -957,12 +957,12 @@ scripts/backend/full_test_docker.bat
 # 重置数据库
 cd /path/to/project
 $env:PGPASSWORD='123456'
-psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
-psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
-psql -U test -d oauth_test -f "OAuth2Server/sql/001_oauth2_core.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/002_users_table.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/003_rbac_schema.sql"
-psql -U test -d oauth_test -f "OAuth2Server/sql/004_oauth2_scopes.sql"
+psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
+psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/001_oauth2_core.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/002_users_table.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/003_rbac_schema.sql"
+psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/004_oauth2_scopes.sql"
 ```
 ```
 
@@ -1061,7 +1061,7 @@ cd build/OAuth2Server/Release
 ```bash
 # 验证数据库连接
 export PGPASSWORD='123456'
-psql -U test -d oauth_test -c "SELECT 1;"
+psql -U oauth2_user -d oauth2_db -c "SELECT 1;"
 
 # 检查数据库初始化脚本
 ls -la OAuth2Server/sql/
@@ -1231,7 +1231,7 @@ curl -f http://localhost:5555/health || exit 1
 curl -f http://localhost:8080 || exit 1
 
 # 检查 PostgreSQL 就绪状态
-docker exec oauth2-postgres pg_isready -U test -d oauth_test
+docker exec oauth2-postgres pg_isready -U oauth2_user -d oauth2_db
 
 # 检查 Redis 连接
 docker exec oauth2-redis redis-cli -a redis_secret_pass ping
@@ -1245,16 +1245,16 @@ docker exec oauth2-redis redis-cli -a redis_secret_pass ping
 
 ```bash
 # 连接 PostgreSQL 验证 schema
-docker exec oauth2-postgres psql -U test -d oauth_test -c "\dt"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "\dt"
 
 # 验证初始化脚本执行（路径更新）
-docker exec oauth2-postgres psql -U test -d oauth_test -c "SELECT COUNT(*) FROM oauth2_clients;"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "SELECT COUNT(*) FROM oauth2_clients;"
 
 # 手动重新初始化（如果需要）
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/001_oauth2_core.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/002_users_table.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/003_rbac_schema.sql
-docker exec -i oauth2-postgres psql -U test -d oauth_test < OAuth2Server/sql/004_oauth2_scopes.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/001_oauth2_core.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/002_users_table.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/003_rbac_schema.sql
+docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/004_oauth2_scopes.sql
 ```
 ```
 
@@ -1396,7 +1396,7 @@ docker exec oauth2-backend cat config.json
 **诊断**:
 ```bash
 # 验证数据库容器状态
-docker exec oauth2-postgres psql -U test -d oauth_test -c "SELECT 1;"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "SELECT 1;"
 
 # 检查网络连接
 docker network inspect oauth2-net

@@ -43,7 +43,7 @@ services:
         condition: service_started
     environment:
       - OAUTH2_DB_HOST=oauth2-postgres
-      - OAUTH2_DB_NAME=oauth_test
+      - OAUTH2_DB_NAME=oauth2_db
       - OAUTH2_DB_PASSWORD=123456
       - OAUTH2_REDIS_HOST=oauth2-redis
       - OAUTH2_REDIS_PASSWORD=redis_secret_pass
@@ -56,9 +56,9 @@ services:
     container_name: oauth2-postgres
     restart: always
     environment:
-      - POSTGRES_USER=test
+      - POSTGRES_USER=oauth2_user
       - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=oauth_test
+      - POSTGRES_DB=oauth2_db
     ports:
       - "5433:5432"
     volumes:
@@ -67,7 +67,7 @@ services:
     networks:
       - oauth2-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test -d oauth_test"]
+      test: ["CMD-SHELL", "pg_isready -U oauth2_user -d oauth2_db"]
       interval: 5s
       timeout: 5s
       retries: 5

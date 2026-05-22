@@ -1,10 +1,10 @@
 ---
-description: 重置测试数据库 (oauth_test)
+description: 重置测试数据库 (oauth2_db)
 ---
 
 # 数据库重置
 
-> ⚠️ **警告**：此操作会清空 `oauth_test` 数据库中的所有数据并重新应用 Schema！
+> ⚠️ **警告**：此操作会清空 `oauth2_db` 数据库中的所有数据并重新应用 Schema！
 
 ## 1. 停止后端服务
 
@@ -14,7 +14,7 @@ taskkill /F /IM OAuth2Server.exe 2>$null
 
 ## 2. 运行重置脚本 (Windows)
 
-项目提供了 `scripts/backend/setup_database.bat` 脚本，它会自动删除并重建 `oauth_test` 数据库，并按顺序应用 `OAuth2Server/sql` 目录下的所有脚本。
+项目提供了 `scripts/backend/setup_database.bat` 脚本，它会自动删除并重建 `oauth2_db` 数据库，并按顺序应用 `OAuth2Server/sql` 目录下的所有脚本。
 
 ```powershell
 .\scripts\backend\setup_database.bat
@@ -28,9 +28,9 @@ taskkill /F /IM OAuth2Server.exe 2>$null
 
 | 配置项 | 值 |
 |-------|-----|
-| 用户名 | test |
+| 用户名 | oauth2_user |
 | 密码 | 123456 |
-| 数据库 | oauth_test |
+| 数据库 | oauth2_db |
 | 端口 | 5432 (或 5433 映射) |
 
 ## SQL 文件应用顺序

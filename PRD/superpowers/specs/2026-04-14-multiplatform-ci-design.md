@@ -164,9 +164,9 @@ From `qt-network-request-master` commit history:
 postgres:
   image: postgres:15-alpine
   env:
-    POSTGRES_USER: test
+    POSTGRES_USER: oauth2_user
     POSTGRES_PASSWORD: 123456
-    POSTGRES_DB: oauth_test
+    POSTGRES_DB: oauth2_db
   ports:
     - 5432:5432
   options: >-
@@ -204,14 +204,14 @@ redis:
 ```bash
 # Linux/macOS
 for i in $(seq 1 15); do
-  pg_isready -h localhost -U test && break
+  pg_isready -h localhost -U oauth2_user && break
   echo "Postgres not ready yet (attempt $i/15)..."
   sleep 2
 done
 
 # Windows (PowerShell)
 for ($i = 1; $i -le 15; $i++) {
-  psql -h localhost -U test -c "SELECT 1" -o $null 2>&1
+  psql -h localhost -U oauth2_user -c "SELECT 1" -o $null 2>&1
   if ($LASTEXITCODE -eq 0) { break }
   Start-Sleep -Seconds 2
 }
@@ -220,9 +220,9 @@ for ($i = 1; $i -le 15; $i++) {
 **Schema Initialization:**
 ```bash
 export PGPASSWORD=123456
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/001_oauth2_core.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/002_users_table.sql
-psql -h localhost -U test -d oauth_test -f OAuth2Backend/sql/003_rbac_schema.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Backend/sql/001_oauth2_core.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Backend/sql/002_users_table.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f OAuth2Backend/sql/003_rbac_schema.sql
 ```
 
 ### 5.2 Test Execution

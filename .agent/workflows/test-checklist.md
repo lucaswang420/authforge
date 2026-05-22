@@ -19,7 +19,7 @@ if (Test-Path "build/OAuth2Server/Release/config.json") { Write-Host "✅ 构建
 # 检查 Docker 容器是否运行
 docker ps | Select-String "oauth2-postgres"
 # 验证连接
-psql -h localhost -U test -d oauth_test -c "SELECT 1;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT 1;"
 ```
 
 ### 3. Redis 服务检查

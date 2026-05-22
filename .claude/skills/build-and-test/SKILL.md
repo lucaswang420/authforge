@@ -98,15 +98,15 @@ cp ../config.json test/Release/
 ```bash
 # 如果需要运行完整测试套件
 # 检查PostgreSQL和Redis服务
-pg_isready -h localhost -U test || echo "PostgreSQL not ready"
+pg_isready -h localhost -U oauth2_user || echo "PostgreSQL not ready"
 redis-cli -h localhost ping || echo "Redis not ready"
 
 # 初始化测试数据库（如果需要）
 export PGPASSWORD="123456"
-psql -h localhost -U test -d oauth_test -f ../sql/001_oauth2_core.sql
-psql -h localhost -U test -d oauth_test -f ../sql/002_users_table.sql
-psql -h localhost -U test -d oauth_test -f ../sql/003_rbac_schema.sql
-psql -h localhost -U test -d oauth_test -f ../sql/004_oauth2_scopes.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/001_oauth2_core.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/002_users_table.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/003_rbac_schema.sql
+psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/004_oauth2_scopes.sql
 ```
 
 ### 8. 运行测试

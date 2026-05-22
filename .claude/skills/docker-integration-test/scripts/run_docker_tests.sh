@@ -112,10 +112,10 @@ echo -e "\n${BLUE}💾 步骤3: 数据库初始化验证${NC}"
 echo "-------------------------------------------"
 
 echo "验证PostgreSQL schema..."
-docker exec oauth2-postgres psql -U test -d oauth2_db -c "\dt" > "${RESULTS_DIR}/db_schema.txt" 2>&1
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "\dt" > "${RESULTS_DIR}/db_schema.txt" 2>&1
 
 echo "验证数据表..."
-docker exec oauth2-postgres psql -U test -d oauth2_db -c "SELECT COUNT(*) FROM oauth2_clients;" > "${RESULTS_DIR}/db_data.txt" 2>&1
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "SELECT COUNT(*) FROM oauth2_clients;" > "${RESULTS_DIR}/db_data.txt" 2>&1
 
 # 步骤4: 后端集成测试
 echo -e "\n${BLUE}🔧 步骤4: 后端集成测试${NC}"

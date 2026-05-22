@@ -28,7 +28,7 @@ set MAX_WAIT=30
 set WAIT_COUNT=0
 
 :wait_loop
-docker exec oauth2-postgres pg_isready -U test -d oauth_test >nul 2>&1
+docker exec oauth2-postgres pg_isready -U oauth2_user -d oauth2_db >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     echo.
     echo [SUCCESS] PostgreSQL is ready!
@@ -36,8 +36,8 @@ if %ERRORLEVEL% equ 0 (
     echo Connection info:
     echo   Host: 127.0.0.1
     echo   Port: 5432
-    echo   Database: oauth_test
-    echo   User: test
+    echo   Database: oauth2_db
+    echo   User: oauth2_user
     echo   Password: 123456
     echo.
     goto :done

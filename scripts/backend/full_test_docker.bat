@@ -85,7 +85,7 @@ set MAX_WAIT=30
 set WAIT_COUNT=0
 
 :wait_postgres
-docker exec oauth2-postgres pg_isready -U test -d oauth_test >nul 2>&1
+docker exec oauth2-postgres pg_isready -U oauth2_user -d oauth2_db >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     echo [SUCCESS] PostgreSQL is ready
     goto postgres_ready
@@ -108,19 +108,19 @@ REM ========================================
 REM Step 2: Reinitialize Database
 REM ========================================
 echo ========================================
-echo Step 2: Reinitializing oauth_test database
+echo Step 2: Reinitializing oauth2_db database
 echo ========================================
 
 REM Drop and recreate database using docker exec
 echo Dropping existing database...
-docker exec oauth2-postgres psql -U test -d postgres -c "DROP DATABASE IF EXISTS oauth_test;"
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
 if %ERRORLEVEL% neq 0 (
     echo [FAILED] Failed to drop database
     goto cleanup_and_exit
 )
 
 echo Creating new database...
-docker exec oauth2-postgres psql -U test -d postgres -c "CREATE DATABASE oauth_test;"
+docker exec oauth2-postgres psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
 if %ERRORLEVEL% neq 0 (
     echo [FAILED] Failed to create database
     goto cleanup_and_exit
@@ -129,7 +129,7 @@ if %ERRORLEVEL% neq 0 (
 echo Applying migrations...
 for %%f in ("%PROJECT_DIR%\OAuth2Server\sql\migrations\V*.sql") do (
     echo   Applying %%~nxf...
-    docker exec -i oauth2-postgres psql -U test -d oauth_test < "%%f"
+    docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < "%%f"
     if %ERRORLEVEL% neq 0 (
         echo [FAILED] Failed to apply %%~nxf
         goto cleanup_and_exit
@@ -139,7 +139,7 @@ for %%f in ("%PROJECT_DIR%\OAuth2Server\sql\migrations\V*.sql") do (
 echo Applying seed data...
 for %%f in ("%PROJECT_DIR%\OAuth2Server\sql\seed\*.sql") do (
     echo   Applying %%~nxf...
-    docker exec -i oauth2-postgres psql -U test -d oauth_test < "%%f"
+    docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < "%%f"
     if %ERRORLEVEL% neq 0 (
         echo [FAILED] Failed to apply seed %%~nxf
         goto cleanup_and_exit

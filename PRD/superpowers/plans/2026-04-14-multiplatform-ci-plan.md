@@ -123,9 +123,9 @@ Add this section after `strategy:` block, before `steps:`:
       postgres:
         image: postgres:${{ env.POSTGRES_VERSION }}-alpine
         env:
-          POSTGRES_USER: test
+          POSTGRES_USER: oauth2_user
           POSTGRES_PASSWORD: 123456
-          POSTGRES_DB: oauth_test
+          POSTGRES_DB: oauth2_db
         ports:
           - 5432:5432
         options: >-
@@ -475,7 +475,7 @@ Add these steps after building:
         run: |
           echo "Waiting for Postgres..."
           for i in $(seq 1 15); do
-            pg_isready -h localhost -U test && break
+            pg_isready -h localhost -U oauth2_user && break
             echo "  Postgres not ready yet (attempt $i/15)..."
             sleep 2
           done
@@ -490,7 +490,7 @@ Add these steps after building:
         if: matrix.platform == 'windows'
         run: |
           for ($i = 1; $i -le 15; $i++) {
-            psql -h localhost -U test -c "SELECT 1" -o $null 2>&1
+            psql -h localhost -U oauth2_user -c "SELECT 1" -o $null 2>&1
             if ($LASTEXITCODE -eq 0) { break }
             Write-Host "Postgres not ready yet (attempt $i/15)..."
             Start-Sleep -Seconds 2
@@ -528,13 +528,13 @@ Add this step after service readiness:
           PGPASSWORD: 123456
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            psql -h localhost -U test -d oauth_test -f sql/001_oauth2_core.sql
-            psql -h localhost -U test -d oauth_test -f sql/002_users_table.sql
-            psql -h localhost -U test -d oauth_test -f sql/003_rbac_schema.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/001_oauth2_core.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/002_users_table.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/003_rbac_schema.sql
           else
-            psql -h localhost -U test -d oauth_test -f sql/001_oauth2_core.sql
-            psql -h localhost -U test -d oauth_test -f sql/002_users_table.sql
-            psql -h localhost -U test -d oauth_test -f sql/003_rbac_schema.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/001_oauth2_core.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/002_users_table.sql
+            psql -h localhost -U oauth2_user -d oauth2_db -f sql/003_rbac_schema.sql
           fi
         shell: bash
 ```
@@ -574,7 +574,7 @@ Add this step after database initialization:
           echo "=== CMake Version ==="
           cmake --version
           echo "=== Database Connection ==="
-          pg_isready -h localhost -U test || echo "pg_isready not available"
+          pg_isready -h localhost -U oauth2_user || echo "pg_isready not available"
           redis-cli -h localhost ping || echo "redis-cli not available"
           echo "=== Environment Variables ==="
           env | grep OAUTH2 || echo "No OAUTH2 variables set"

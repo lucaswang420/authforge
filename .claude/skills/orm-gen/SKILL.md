@@ -20,7 +20,7 @@ pg_isready -h localhost -p 5432 || echo "❌ PostgreSQL not running"
 
 # 2. 检查数据库是否存在
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "SELECT 1;" || echo "❌ Database oauth_test not found"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT 1;" || echo "❌ Database oauth2_db not found"
 
 # 3. 检查 drogon_ctl 工具是否安装
 which drogon_ctl || echo "❌ drogon_ctl not found"
@@ -37,7 +37,7 @@ ls OAuth2Server/model.json || echo "❌ model.json not found"
 ```bash
 # 查看当前数据库中的所有表
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "\dt"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\dt"
 
 # 预期输出应包含：
 # - oauth2_clients
@@ -64,7 +64,7 @@ cat OAuth2Server/model.json
     "rdbms": "postgresql",
     "host": "127.0.0.1",
     "port": 5432,
-    "dbname": "oauth_test",
+    "dbname": "oauth2_db",
     "user": "test",
     "passwd": "123456",
     "tables": [
@@ -319,7 +319,7 @@ ctest --output-on-failure -C Release
 |-------|-----|------|
 | 主机 | 127.0.0.1 / localhost | 本地连接 |
 | 端口 | 5432 | PostgreSQL 默认端口 |
-| 数据库 | oauth_test | OAuth2 测试数据库 |
+| 数据库 | oauth2_db | OAuth2 测试数据库 |
 | 用户名 | test | 测试用户 |
 | 密码 | 123456 | 测试密码 |
 
@@ -379,7 +379,7 @@ brew services start postgresql
 
 # 验证数据库凭据
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "SELECT 1;"
+psql -h localhost -U oauth2_user -d oauth2_db -c "SELECT 1;"
 ```
 
 ### 问题 3: 表不存在
@@ -392,7 +392,7 @@ psql -h localhost -U test -d oauth_test -c "SELECT 1;"
 
 # 然后验证表是否存在
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "\dt"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\dt"
 ```
 
 ### 问题 4: 模型文件生成不完整
@@ -436,7 +436,7 @@ head -50 Oauth2Clients.h
 ```bash
 # 查看数据库表结构
 export PGPASSWORD='123456'
-psql -h localhost -U test -d oauth_test -c "\d oauth2_clients"
+psql -h localhost -U oauth2_user -d oauth2_db -c "\d oauth2_clients"
 
 # 如果表结构已更改，先删除旧表
 # 然后重新执行 SQL 脚本
@@ -572,7 +572,7 @@ Models generated successfully!
 #include "models/Oauth2Clients.h"
 
 using namespace drogon::orm;
-using namespace drogon_model::oauth_test;
+using namespace drogon_model::oauth2_db;
 
 // 查询客户端
 Mapper<Oauth2Clients> mapper(dbClient);

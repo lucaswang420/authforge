@@ -887,7 +887,7 @@ $env:PGPASSWORD = "your_password"
 $env:PGPASSWORD = $null
 
 # 或直接使用SQL
-psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
+psql -U oauth2_user -d oauth2_db -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
 ```
 
 #### 方案3：等待锁定自动解除

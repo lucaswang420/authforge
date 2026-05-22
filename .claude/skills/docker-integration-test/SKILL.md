@@ -106,10 +106,10 @@ curl -f http://localhost:8080 || exit 1
 ### 步骤3: 数据库初始化验证
 ```bash
 # 连接PostgreSQL验证schema
-docker exec oauth2-postgres psql -U test -d oauth2_db -c "\dt"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "\dt"
 
 # 验证初始化脚本执行
-docker exec oauth2-postgres psql -U test -d oauth2_db -c "SELECT COUNT(*) FROM oauth2_clients;"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "SELECT COUNT(*) FROM oauth2_clients;"
 ```
 
 ### 步骤4: 后端集成测试
@@ -188,7 +188,7 @@ docker inspect oauth2-backend
 **症状**: 后端无法连接PostgreSQL
 **诊断**:
 ```bash
-docker exec oauth2-postgres psql -U test -d oauth2_db -c "SELECT 1;"
+docker exec oauth2-postgres psql -U oauth2_user -d oauth2_db -c "SELECT 1;"
 docker network inspect oauth2-net
 ```
 **解决方案**:

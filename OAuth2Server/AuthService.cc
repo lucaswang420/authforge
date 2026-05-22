@@ -22,12 +22,12 @@ void AuthService::validateUser(
       std::make_shared<std::function<void(std::optional<AuthResult>)>>(std::move(callback));
     try
     {
-        auto mapper = Mapper<drogon_model::oauth_test::Users>(app().getDbClient());
+        auto mapper = Mapper<drogon_model::oauth2_db::Users>(app().getDbClient());
 
         // Find user by username
         mapper.findOne(
-          {drogon_model::oauth_test::Users::Cols::_username, CompareOperator::EQ, username},
-          [sharedCb, password, username](const drogon_model::oauth_test::Users &user) {
+          {drogon_model::oauth2_db::Users::Cols::_username, CompareOperator::EQ, username},
+          [sharedCb, password, username](const drogon_model::oauth2_db::Users &user) {
               // Account lockout check
               auto now = std::chrono::duration_cast<std::chrono::seconds>(
                            std::chrono::system_clock::now().time_since_epoch()
@@ -189,7 +189,7 @@ void AuthService::registerUser(
         return;
     }
 
-    drogon_model::oauth_test::Users newUser;
+    drogon_model::oauth2_db::Users newUser;
     newUser.setUsername(username);
     newUser.setPasswordHash(passwordHash);
     newUser.setSalt(salt);
@@ -201,33 +201,33 @@ void AuthService::registerUser(
         auto db = app().getDbClient();
         // Start Transaction? For now, just chain.
 
-        auto mapper = Mapper<drogon_model::oauth_test::Users>(db);
+        auto mapper = Mapper<drogon_model::oauth2_db::Users>(db);
 
         // Async Insert
         mapper.insert(
           newUser,
-          [sharedCb, db](const drogon_model::oauth_test::Users &u) {
+          [sharedCb, db](const drogon_model::oauth2_db::Users &u) {
               // Assign Default Role "user"
               try
               {
-                  auto roleMapper = Mapper<drogon_model::oauth_test::Roles>(db);
+                  auto roleMapper = Mapper<drogon_model::oauth2_db::Roles>(db);
                   roleMapper.findOne(
                     Criteria(
-                      drogon_model::oauth_test::Roles::Cols::_name, CompareOperator::EQ, "user"
+                      drogon_model::oauth2_db::Roles::Cols::_name, CompareOperator::EQ, "user"
                     ),
                     [sharedCb,
                      db,
-                     userId = u.getValueOfId()](const drogon_model::oauth_test::Roles &role) {
+                     userId = u.getValueOfId()](const drogon_model::oauth2_db::Roles &role) {
                         try
                         {
-                            auto urMapper = Mapper<drogon_model::oauth_test::UserRoles>(db);
-                            drogon_model::oauth_test::UserRoles ur;
+                            auto urMapper = Mapper<drogon_model::oauth2_db::UserRoles>(db);
+                            drogon_model::oauth2_db::UserRoles ur;
                             ur.setUserId(userId);
                             ur.setRoleId(role.getValueOfId());
 
                             urMapper.insert(
                               ur,
-                              [sharedCb](const drogon_model::oauth_test::UserRoles &) {
+                              [sharedCb](const drogon_model::oauth2_db::UserRoles &) {
                                   (*sharedCb)("");  // Success
                               },
                               [sharedCb](const DrogonDbException &e) {
@@ -281,11 +281,11 @@ void AuthService::getUserInfo(
     try
     {
         auto db = app().getDbClient();
-        auto userMapper = Mapper<drogon_model::oauth_test::Users>(db);
+        auto userMapper = Mapper<drogon_model::oauth2_db::Users>(db);
 
         userMapper.findByPrimaryKey(
           userId,
-          [sharedCb, db, userId](const drogon_model::oauth_test::Users &user) {
+          [sharedCb, db, userId](const drogon_model::oauth2_db::Users &user) {
               // Fetch roles
               db->execSqlAsync(
                 "SELECT r.name FROM roles r JOIN user_roles ur ON r.id = "

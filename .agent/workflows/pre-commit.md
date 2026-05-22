@@ -16,7 +16,7 @@ description: 提交前完整质量检查（DB + ORM + Build + Unit Test + E2E Te
 ```
 
 **该脚本包含以下步骤：**
-1. **数据库重置**: 删除并重建 `oauth_test`。
+1. **数据库重置**: 删除并重建 `oauth2_db`。
 2. **模型生成**: 重新生成 ORM 模型。
 3. **项目构建**: 执行 Release 构建。
 4. **单元测试**: 运行 CTest 单元和集成测试。

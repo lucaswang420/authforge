@@ -36,8 +36,8 @@ Get-ChildItem OAuth2Plugin/src/models/*.cc, OAuth2Plugin/include/oauth2/models/*
     "rdbms": "postgresql",
     "host": "127.0.0.1",
     "port": 5432,
-    "dbname": "oauth_test",
-    "user": "test",
+    "dbname": "oauth2_db",
+    "user": "oauth2_user",
     "tables": [
         "users",
         "oauth2_clients",

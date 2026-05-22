@@ -210,12 +210,12 @@ Docker 模式:
   scripts/backend/docker_postgres_start.bat  # 自动重建数据库
 
 本地模式:
-  psql -c "DROP DATABASE IF EXISTS oauth_test;"
-  psql -c "CREATE DATABASE oauth_test;"
-  psql -d oauth_test -f OAuth2Server/sql/001_oauth2_core.sql
-  psql -d oauth_test -f OAuth2Server/sql/002_users_table.sql
-  psql -d oauth_test -f OAuth2Server/sql/003_rbac_schema.sql
-  psql -d oauth_test -f OAuth2Server/sql/004_oauth2_scopes.sql
+  psql -c "DROP DATABASE IF EXISTS oauth2_db;"
+  psql -c "CREATE DATABASE oauth2_db;"
+  psql -d oauth2_db -f OAuth2Server/sql/001_oauth2_core.sql
+  psql -d oauth2_db -f OAuth2Server/sql/002_users_table.sql
+  psql -d oauth2_db -f OAuth2Server/sql/003_rbac_schema.sql
+  psql -d oauth2_db -f OAuth2Server/sql/004_oauth2_scopes.sql
 ```
 
 **路径修复清单**:
