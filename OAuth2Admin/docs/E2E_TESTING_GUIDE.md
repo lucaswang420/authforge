@@ -843,6 +843,67 @@ tests/
 
 ---
 
+## 9. 后端集成测试故障排查
+
+### 问题：测试脚本第二次运行时全部失败
+
+**症状**：
+```
+POST http://localhost:5174/oauth2/login 401 (Unauthorized)
+```
+
+后端日志：
+```
+WARN  Account locked for user: admin until 1779441748
+INFO  [METRIC] oauth2_login_failures_total reason=bad_credentials
+```
+
+**原因**：
+OAuth2 系统实现了账号锁定机制。当登录失败次数达到阈值时，账号会被临时锁定：
+- 5次失败 → 锁定1分钟
+- 10次失败 → 锁定5分钟
+- 15次失败 → 锁定30分钟
+- 20次以上 → 锁定1小时
+
+**解决方案**：
+
+#### 方案1：使用自动清理的测试脚本
+
+后端测试脚本（如 `test-admin-phase5.ps1`）已经在结束时自动重置账号锁定状态。
+
+对于本地PostgreSQL数据库，需要配置数据库密码：
+
+```powershell
+# 编辑测试脚本，找到清理部分，设置密码
+$env:PGPASSWORD = "your_password"  # 修改为实际密码
+```
+
+#### 方案2：手动重置账号锁定
+
+```powershell
+# 使用重置脚本
+$env:PGPASSWORD = "your_password"
+.\scripts\backend\reset-account-lockout.ps1
+$env:PGPASSWORD = $null
+
+# 或直接使用SQL
+psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';"
+```
+
+#### 方案3：等待锁定自动解除
+
+根据失败次数，等待相应的时间后账号会自动解锁。
+
+**预防措施**：
+
+1. **使用专用测试账号**：不要在测试中使用生产admin账号
+2. **确保凭证正确**：检查测试脚本中的用户名和密码
+3. **测试后自动清理**：在测试脚本末尾添加清理代码
+
+详细说明请参考：`docs/ACCOUNT_LOCKOUT.md`
+
+---
+
 ## 附录 A: 从零接入检查清单
 
 将此清单用于新项目的 E2E 测试接入：

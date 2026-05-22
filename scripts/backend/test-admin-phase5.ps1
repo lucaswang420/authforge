@@ -351,8 +351,38 @@ Test-Endpoint "Test 12: Unauthorized Access - All Phase 5 endpoints require auth
 }
 
 # ========================================
+# Cleanup: Reset admin account lockout
+# ========================================
+Write-Host ""
+Write-Host "Cleaning up: Resetting admin account lockout..." -ForegroundColor Cyan
+try {
+    # Try Docker first
+    $containerName = docker ps --format "{{.Names}}" 2>$null | Select-String -Pattern "postgres"
+    if ($containerName) {
+        docker exec $containerName psql -U oauth_user -d oauth_test -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';" 2>$null | Out-Null
+        Write-Host "Admin account lockout reset successfully (Docker)" -ForegroundColor Green
+    } else {
+        # Try local PostgreSQL
+        $env:PGPASSWORD = "your_password"  # 修改为你的数据库密码
+        psql -U oauth_user -d oauth_test -h localhost -c "UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Admin account lockout reset successfully (Local PostgreSQL)" -ForegroundColor Green
+        } else {
+            Write-Host "Warning: Could not reset admin account. Please run manually:" -ForegroundColor Yellow
+            Write-Host "  psql -U oauth_user -d oauth_test -c `"UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';`"" -ForegroundColor Yellow
+        }
+        $env:PGPASSWORD = $null
+    }
+} catch {
+    Write-Host "Warning: Failed to reset admin account: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Please run manually:" -ForegroundColor Yellow
+    Write-Host "  psql -U oauth_user -d oauth_test -c `"UPDATE users SET failed_login_count = 0, locked_until = 0 WHERE username='admin';`"" -ForegroundColor Yellow
+}
+
+# ========================================
 # Summary
 # ========================================
+Write-Host ""
 Write-Host "========================================"
 Write-Host "Admin Phase 5 API Tests: $passed/$total passed, $failed failed"
 Write-Host "========================================"
