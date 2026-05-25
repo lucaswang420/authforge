@@ -2,8 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM ========================================
-REM OAuth2 Endpoints Testing Script
-REM Covers all core P0+P1 endpoints (17 tests)
+REM Admin Endpoints Testing Script
 REM ========================================
 
 set BASE_URL=http://127.0.0.1:5555
@@ -21,7 +20,7 @@ if not "%CI%"=="" set SHOULD_PAUSE=0
 if not "%GITHUB_ACTIONS%"=="" set SHOULD_PAUSE=0
 
 echo ========================================
-echo OAuth2 Endpoints Testing (17 tests)
+echo Admin Endpoints Testing
 echo ========================================
 echo Base URL: %BASE_URL%
 echo.
@@ -30,7 +29,7 @@ set PASSED=0
 set FAILED=0
 
 REM Run all tests via a single PowerShell script for reliability
-set "PS_SCRIPT=%~dp0test-oauth2-endpoints.ps1"
+set "PS_SCRIPT=%~dp0test-admin-endpoints.ps1"
 if not exist "%PS_SCRIPT%" (
     echo ERROR: PowerShell script not found at %PS_SCRIPT%
     exit /b 1

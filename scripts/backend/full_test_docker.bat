@@ -12,8 +12,9 @@ REM 4. Regenerate ORM models
 REM 5. Rebuild project
 REM 6. Run tests
 REM 7. Start server
-REM 8. Test OAuth2 endpoints
+REM 8. Test Admin endpoints
 REM 9. Stop server and cleanup
+REM 10. Stop Docker containers
 REM ========================================
 
 echo.
@@ -71,11 +72,11 @@ REM Stop any existing containers
 echo Stopping existing containers...
 docker-compose -f "%PROJECT_DIR%\docker-compose.yml" down >nul 2>&1
 
-REM Start PostgreSQL container
-echo Starting PostgreSQL container...
-docker-compose -f "%PROJECT_DIR%\docker-compose.yml" up -d oauth2-postgres
+REM Start PostgreSQL and Redis containers
+echo Starting PostgreSQL and Redis containers...
+docker-compose -f "%PROJECT_DIR%\docker-compose.yml" up -d oauth2-postgres oauth2-redis
 if %ERRORLEVEL% neq 0 (
-    echo [FAILED] Failed to start PostgreSQL container
+    echo [FAILED] Failed to start containers
     goto cleanup_and_exit
 )
 
@@ -217,6 +218,11 @@ if exist "%PROJECT_DIR%\build\OAuth2Server\Release\OAuth2Server.exe" (
 
 echo Starting server: %SERVER_EXE%
 pushd "%EXE_DIR%"
+set OAUTH2_DB_HOST=127.0.0.1
+set OAUTH2_DB_PORT=5433
+set OAUTH2_REDIS_HOST=127.0.0.1
+set OAUTH2_REDIS_PORT=6380
+set OAUTH2_REDIS_PASSWORD=redis_secret_pass
 start "" "%SERVER_EXE%" -c "%PROJECT_DIR%\config.json"
 popd
 
@@ -240,7 +246,7 @@ REM ========================================
 echo ========================================
 echo Step 7: Testing OAuth2 endpoints
 echo ========================================
-call "%SCRIPT_DIR%test-oauth2-endpoints.bat" -NoPause
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%test-oauth2-endpoints.ps1" -BaseUrl "http://127.0.0.1:5555"
 if %ERRORLEVEL% neq 0 (
     echo [FAILED] OAuth2 endpoint tests failed
     goto cleanup_and_exit
@@ -249,10 +255,24 @@ echo [SUCCESS] OAuth2 endpoint tests passed
 echo.
 
 REM ========================================
-REM Step 8: Stop Server and Cleanup
+REM Step 8: Test Admin Endpoints
 REM ========================================
 echo ========================================
-echo Step 8: Stopping OAuth2 server
+echo Step 8: Testing Admin endpoints
+echo ========================================
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%test-admin-endpoints.ps1" -BaseUrl "http://127.0.0.1:5555"
+if %ERRORLEVEL% neq 0 (
+    echo [FAILED] Admin endpoint tests failed
+    goto cleanup_and_exit
+)
+echo [SUCCESS] Admin endpoint tests passed
+echo.
+
+REM ========================================
+REM Step 9: Stop Server and Cleanup
+REM ========================================
+echo ========================================
+echo Step 9: Stopping OAuth2 server
 echo ========================================
 
 REM Try to stop OAuth2Server.exe
@@ -273,10 +293,10 @@ echo [SUCCESS] Server stopped
 echo.
 
 REM ========================================
-REM Step 9: Stop Docker Containers
+REM Step 10: Stop Docker Containers
 REM ========================================
 echo ========================================
-echo Step 9: Stopping Docker containers
+echo Step 10: Stopping Docker containers
 echo ========================================
 docker-compose -f "%PROJECT_DIR%\docker-compose.yml" down
 echo [SUCCESS] Docker containers stopped
@@ -290,15 +310,16 @@ echo ALL STEPS COMPLETED SUCCESSFULLY!
 echo ========================================
 echo.
 echo Summary:
-echo   [1/9] PostgreSQL container startup - PASS
-echo   [2/9] Database initialization       - PASS
-echo   [3/9] ORM model generation          - PASS
-echo   [4/9] Project build                 - PASS
-echo   [5/9] Unit tests                    - PASS
-echo   [6/9] Server startup                - PASS
-echo   [7/9] OAuth2 endpoint tests         - PASS
-echo   [8/9] Server shutdown               - PASS
-echo   [9/9] Docker containers cleanup     - PASS
+echo   [1/10] PostgreSQL container startup - PASS
+echo   [2/10] Database initialization       - PASS
+echo   [3/10] ORM model generation          - PASS
+echo   [4/10] Project build                 - PASS
+echo   [5/10] Unit tests                    - PASS
+echo   [6/10] Server startup                - PASS
+echo   [7/10] OAuth2 endpoint tests         - PASS
+echo   [8/10] Admin endpoint tests          - PASS
+echo   [9/10] Server shutdown               - PASS
+echo   [10/10] Docker containers cleanup    - PASS
 echo.
 echo ========================================
 echo Docker Build and Test Cycle Complete

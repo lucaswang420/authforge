@@ -141,7 +141,7 @@ REM ========================================
 echo ========================================
 echo Step 6: Testing OAuth2 endpoints
 echo ========================================
-call "%SCRIPT_DIR%test-oauth2-endpoints.bat" -NoPause
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%test-oauth2-endpoints.ps1" -BaseUrl "http://127.0.0.1:5555"
 if !errorlevel! neq 0 (
     echo.
     echo [FAILED] OAuth2 endpoint tests failed
@@ -152,10 +152,26 @@ echo [SUCCESS] OAuth2 endpoint tests passed
 echo.
 
 REM ========================================
-REM Step 7: Stop Server
+REM Step 7: Test Admin Endpoints
 REM ========================================
 echo ========================================
-echo Step 7: Stopping OAuth2 server
+echo Step 7: Testing Admin endpoints
+echo ========================================
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%test-admin-endpoints.ps1" -BaseUrl "http://127.0.0.1:5555"
+if !errorlevel! neq 0 (
+    echo.
+    echo [FAILED] Admin endpoint tests failed
+    set "FINAL_RESULT=1"
+    goto cleanup_and_exit
+)
+echo [SUCCESS] Admin endpoint tests passed
+echo.
+
+REM ========================================
+REM Step 8: Stop Server
+REM ========================================
+echo ========================================
+echo Step 8: Stopping OAuth2 server
 echo ========================================
 taskkill /F /IM OAuth2Server.exe >nul 2>&1
 echo [SUCCESS] Server stopped
@@ -169,13 +185,14 @@ echo ALL STEPS COMPLETED SUCCESSFULLY!
 echo ========================================
 echo.
 echo Summary:
-echo   [1/7] Database initialization    - PASS
-echo   [2/7] ORM model generation       - PASS
-echo   [3/7] Project build              - PASS
-echo   [4/7] Unit tests                 - PASS
-echo   [5/7] Server startup             - PASS
-echo   [6/7] OAuth2 endpoint tests      - PASS
-echo   [7/7] Server shutdown            - PASS
+echo   [1/8] Database initialization    - PASS
+echo   [2/8] ORM model generation       - PASS
+echo   [3/8] Project build              - PASS
+echo   [4/8] Unit tests                 - PASS
+echo   [5/8] Server startup             - PASS
+echo   [6/8] OAuth2 endpoint tests      - PASS
+echo   [7/8] Admin endpoint tests       - PASS
+echo   [8/8] Server shutdown            - PASS
 echo.
 
 :cleanup_and_exit
