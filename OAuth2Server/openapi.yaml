@@ -334,6 +334,38 @@ paths:
       summary: Change Password
       tags:
       - User Profile
+  /api/orgs:
+    get:
+      description: List all organizations.
+      operationId: get_api_orgs
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Organizations
+      tags:
+      - Organization
+    post:
+      description: Create a new organization.
+      operationId: post_api_orgs
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Create Organization
+      tags:
+      - Organization
+  /api/orgs/{orgId}/users:
+    post:
+      description: Add a user to an organization.
+      operationId: post_api_orgs_{orgId}_users
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Add User to Organization
+      tags:
+      - Organization
   /api/password-reset/confirm:
     post:
       description: Confirm a password reset using the token sent via email.
@@ -502,6 +534,35 @@ paths:
       tags:
       - OAuth2
       - Consent
+  /oauth2/device/verify:
+    get:
+      description: Display device verification page.
+      operationId: get_oauth2_device_verify
+      responses: null
+      summary: Verify Device (GET)
+      tags:
+      - OAuth2
+      - Device Flow
+    post:
+      description: Submit device verification code.
+      operationId: post_oauth2_device_verify
+      responses: null
+      summary: Verify Device (POST)
+      tags:
+      - OAuth2
+      - Device Flow
+  /oauth2/device_authorization:
+    post:
+      description: Request device authorization.
+      operationId: post_oauth2_device_authorization
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Device Authorization
+      tags:
+      - OAuth2
+      - Device Flow
   /oauth2/login:
     post:
       description: Authenticates user credentials and generates an authorization code.
@@ -564,6 +625,108 @@ paths:
       tags:
       - OAuth2
       - Authentication
+  /oauth2/mfa/disable:
+    post:
+      description: Disable MFA for the authenticated user.
+      operationId: post_oauth2_mfa_disable
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Disable MFA
+      tags:
+      - MFA
+  /oauth2/mfa/setup:
+    post:
+      description: Initiate MFA setup by generating a TOTP secret.
+      operationId: post_oauth2_mfa_setup
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Setup MFA
+      tags:
+      - MFA
+  /oauth2/mfa/setup/verify:
+    post:
+      description: Verify a TOTP code to finalize MFA setup.
+      operationId: post_oauth2_mfa_setup_verify
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Verify MFA Setup
+      tags:
+      - MFA
+  /oauth2/mfa/verify:
+    post:
+      description: Verify MFA code during login.
+      operationId: post_oauth2_mfa_verify
+      responses: null
+      summary: Verify MFA Code (Login)
+      tags:
+      - MFA
+  /oauth2/register:
+    post:
+      description: Dynamic client registration.
+      operationId: post_oauth2_register
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Register Client
+      tags:
+      - OAuth2
+      - Dynamic Registration
+  /oauth2/webauthn/credentials:
+    get:
+      description: List registered WebAuthn credentials.
+      operationId: get_oauth2_webauthn_credentials
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List WebAuthn Credentials
+      tags:
+      - WebAuthn
+  /oauth2/webauthn/login/begin:
+    post:
+      description: Start WebAuthn login.
+      operationId: post_oauth2_webauthn_login_begin
+      responses: null
+      summary: WebAuthn Login Begin
+      tags:
+      - WebAuthn
+  /oauth2/webauthn/login/finish:
+    post:
+      description: Finish WebAuthn login.
+      operationId: post_oauth2_webauthn_login_finish
+      responses: null
+      summary: WebAuthn Login Finish
+      tags:
+      - WebAuthn
+  /oauth2/webauthn/register/begin:
+    post:
+      description: Start WebAuthn registration.
+      operationId: post_oauth2_webauthn_register_begin
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: WebAuthn Register Begin
+      tags:
+      - WebAuthn
+  /oauth2/webauthn/register/finish:
+    post:
+      description: Finish WebAuthn registration.
+      operationId: post_oauth2_webauthn_register_finish
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: WebAuthn Register Finish
+      tags:
+      - WebAuthn
 servers:
 - description: Default server (relative path)
   url: /
