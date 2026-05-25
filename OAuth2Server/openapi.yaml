@@ -280,6 +280,76 @@ paths:
       tags:
       - External Auth
       - Google
+  /api/me:
+    delete:
+      description: Soft-delete the current user's account.
+      operationId: delete_api_me
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Delete Account
+      tags:
+      - User Profile
+    get:
+      description: Get current user's profile information.
+      operationId: get_api_me
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Get User Profile
+      tags:
+      - User Profile
+  /api/me/authorized-apps:
+    get:
+      description: List OAuth2 clients authorized by the current user.
+      operationId: get_api_me_authorized-apps
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Authorized Apps
+      tags:
+      - User Profile
+  /api/me/authorized-apps/{clientId}:
+    delete:
+      description: Revoke the current user's authorization for a specific OAuth2 client.
+      operationId: delete_api_me_authorized-apps_{clientId}
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Revoke App Authorization
+      tags:
+      - User Profile
+  /api/me/password:
+    put:
+      description: Change the current user's password.
+      operationId: put_api_me_password
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Change Password
+      tags:
+      - User Profile
+  /api/password-reset/confirm:
+    post:
+      description: Confirm a password reset using the token sent via email.
+      operationId: post_api_password-reset_confirm
+      responses: null
+      summary: Confirm Password Reset
+      tags:
+      - User Verification
+  /api/password-reset/request:
+    post:
+      description: Request a password reset link to be sent via email.
+      operationId: post_api_password-reset_request
+      responses: null
+      summary: Request Password Reset
+      tags:
+      - User Verification
   /api/register:
     post:
       description: Registers a new user account into the system.
@@ -317,6 +387,22 @@ paths:
       tags:
       - User
       - Registration
+  /api/verify-email:
+    get:
+      description: Verify an email address using a token.
+      operationId: get_api_verify-email
+      responses: null
+      summary: Verify Email
+      tags:
+      - User Verification
+  /api/verify-email/resend:
+    post:
+      description: Resend the email verification link.
+      operationId: post_api_verify-email_resend
+      responses: null
+      summary: Resend Verification Email
+      tags:
+      - User Verification
   /api/wechat/login:
     post:
       description: Exchange WeChat authorization code for user information. This endpoint
