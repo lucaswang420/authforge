@@ -2,8 +2,178 @@
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <oauth2/CryptoUtils.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <atomic>
 #include <mutex>
+
+namespace {
+struct AdminApiControllerDocs {
+    AdminApiControllerDocs() {
+        common::documentation::EndpointInfo listClients;
+        listClients.path = "/api/admin/clients";
+        listClients.method = "GET";
+        listClients.summary = "List OAuth2 Clients";
+        listClients.description = "Get a paginated list of registered OAuth2 clients.";
+        listClients.tags = {"Admin", "Clients"};
+        listClients.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listClients);
+
+        common::documentation::EndpointInfo createClient;
+        createClient.path = "/api/admin/clients";
+        createClient.method = "POST";
+        createClient.summary = "Create OAuth2 Client";
+        createClient.description = "Register a new OAuth2 client.";
+        createClient.tags = {"Admin", "Clients"};
+        createClient.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(createClient);
+
+        common::documentation::EndpointInfo getClient;
+        getClient.path = "/api/admin/clients/{clientId}";
+        getClient.method = "GET";
+        getClient.summary = "Get Client Details";
+        getClient.description = "Get details of a specific OAuth2 client by ID.";
+        getClient.tags = {"Admin", "Clients"};
+        getClient.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getClient);
+
+        common::documentation::EndpointInfo updateClient;
+        updateClient.path = "/api/admin/clients/{clientId}";
+        updateClient.method = "PUT";
+        updateClient.summary = "Update OAuth2 Client";
+        updateClient.description = "Update details of a specific OAuth2 client.";
+        updateClient.tags = {"Admin", "Clients"};
+        updateClient.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(updateClient);
+
+        common::documentation::EndpointInfo deleteClient;
+        deleteClient.path = "/api/admin/clients/{clientId}";
+        deleteClient.method = "DELETE";
+        deleteClient.summary = "Delete OAuth2 Client";
+        deleteClient.description = "Delete a specific OAuth2 client.";
+        deleteClient.tags = {"Admin", "Clients"};
+        deleteClient.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(deleteClient);
+
+        common::documentation::EndpointInfo resetClientSecret;
+        resetClientSecret.path = "/api/admin/clients/{clientId}/reset-secret";
+        resetClientSecret.method = "POST";
+        resetClientSecret.summary = "Reset Client Secret";
+        resetClientSecret.description = "Reset the secret of a specific OAuth2 client.";
+        resetClientSecret.tags = {"Admin", "Clients"};
+        resetClientSecret.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(resetClientSecret);
+
+        common::documentation::EndpointInfo getClientScopes;
+        getClientScopes.path = "/api/admin/clients/{clientId}/scopes";
+        getClientScopes.method = "GET";
+        getClientScopes.summary = "Get Client Scopes";
+        getClientScopes.description = "Get the assigned scopes for an OAuth2 client.";
+        getClientScopes.tags = {"Admin", "Clients"};
+        getClientScopes.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getClientScopes);
+
+        common::documentation::EndpointInfo updateClientScopes;
+        updateClientScopes.path = "/api/admin/clients/{clientId}/scopes";
+        updateClientScopes.method = "PUT";
+        updateClientScopes.summary = "Update Client Scopes";
+        updateClientScopes.description = "Update the assigned scopes for an OAuth2 client.";
+        updateClientScopes.tags = {"Admin", "Clients"};
+        updateClientScopes.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(updateClientScopes);
+
+        common::documentation::EndpointInfo listUsers;
+        listUsers.path = "/api/admin/users";
+        listUsers.method = "GET";
+        listUsers.summary = "List Users";
+        listUsers.description = "Get a paginated list of users.";
+        listUsers.tags = {"Admin", "Users"};
+        listUsers.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listUsers);
+
+        common::documentation::EndpointInfo disableUser;
+        disableUser.path = "/api/admin/users/{userId}/disable";
+        disableUser.method = "PUT";
+        disableUser.summary = "Disable User";
+        disableUser.description = "Disable a specific user account.";
+        disableUser.tags = {"Admin", "Users"};
+        disableUser.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(disableUser);
+
+        common::documentation::EndpointInfo assignUserRoles;
+        assignUserRoles.path = "/api/admin/users/{userId}/roles";
+        assignUserRoles.method = "PUT";
+        assignUserRoles.summary = "Assign User Roles";
+        assignUserRoles.description = "Assign roles to a specific user.";
+        assignUserRoles.tags = {"Admin", "Users"};
+        assignUserRoles.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(assignUserRoles);
+
+        common::documentation::EndpointInfo listScopes;
+        listScopes.path = "/api/admin/scopes";
+        listScopes.method = "GET";
+        listScopes.summary = "List Scopes";
+        listScopes.description = "Get a list of all available scopes.";
+        listScopes.tags = {"Admin", "Scopes"};
+        listScopes.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listScopes);
+
+        common::documentation::EndpointInfo listLogs;
+        listLogs.path = "/api/admin/logs";
+        listLogs.method = "GET";
+        listLogs.summary = "List Audit Logs";
+        listLogs.description = "Get a paginated list of system audit logs.";
+        listLogs.tags = {"Admin", "Logs"};
+        listLogs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listLogs);
+
+        common::documentation::EndpointInfo listTokens;
+        listTokens.path = "/api/admin/tokens";
+        listTokens.method = "GET";
+        listTokens.summary = "List Tokens";
+        listTokens.description = "Get a list of active OAuth2 tokens.";
+        listTokens.tags = {"Admin", "Tokens"};
+        listTokens.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listTokens);
+
+        common::documentation::EndpointInfo revokeTokensByClient;
+        revokeTokensByClient.path = "/api/admin/tokens/revoke-by-client";
+        revokeTokensByClient.method = "POST";
+        revokeTokensByClient.summary = "Revoke Tokens By Client";
+        revokeTokensByClient.description = "Revoke all tokens issued to a specific client.";
+        revokeTokensByClient.tags = {"Admin", "Tokens"};
+        revokeTokensByClient.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(revokeTokensByClient);
+
+        common::documentation::EndpointInfo revokeTokensByUser;
+        revokeTokensByUser.path = "/api/admin/tokens/revoke-by-user";
+        revokeTokensByUser.method = "POST";
+        revokeTokensByUser.summary = "Revoke Tokens By User";
+        revokeTokensByUser.description = "Revoke all tokens issued for a specific user.";
+        revokeTokensByUser.tags = {"Admin", "Tokens"};
+        revokeTokensByUser.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(revokeTokensByUser);
+
+        common::documentation::EndpointInfo revokeToken;
+        revokeToken.path = "/api/admin/tokens/{tokenPrefix}";
+        revokeToken.method = "DELETE";
+        revokeToken.summary = "Revoke Token";
+        revokeToken.description = "Revoke a specific token by its prefix.";
+        revokeToken.tags = {"Admin", "Tokens"};
+        revokeToken.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(revokeToken);
+
+        common::documentation::EndpointInfo getOidcKeys;
+        getOidcKeys.path = "/api/admin/oidc/keys";
+        getOidcKeys.method = "GET";
+        getOidcKeys.summary = "Get OIDC Keys Info";
+        getOidcKeys.description = "Get information about OIDC signing keys.";
+        getOidcKeys.tags = {"Admin", "OIDC"};
+        getOidcKeys.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getOidcKeys);
+    }
+};
+AdminApiControllerDocs docs_;
+} // namespace
 
 void AdminApiController::listClients(
   const HttpRequestPtr &req,

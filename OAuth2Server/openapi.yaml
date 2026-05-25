@@ -34,6 +34,218 @@ info:
   version: 1.0.0
 openapi: 3.0.0
 paths:
+  /api/admin/clients:
+    get:
+      description: Get a paginated list of registered OAuth2 clients.
+      operationId: get_api_admin_clients
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List OAuth2 Clients
+      tags:
+      - Admin
+      - Clients
+    post:
+      description: Register a new OAuth2 client.
+      operationId: post_api_admin_clients
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Create OAuth2 Client
+      tags:
+      - Admin
+      - Clients
+  /api/admin/clients/{clientId}:
+    delete:
+      description: Delete a specific OAuth2 client.
+      operationId: delete_api_admin_clients_{clientId}
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Delete OAuth2 Client
+      tags:
+      - Admin
+      - Clients
+    get:
+      description: Get details of a specific OAuth2 client by ID.
+      operationId: get_api_admin_clients_{clientId}
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Get Client Details
+      tags:
+      - Admin
+      - Clients
+    put:
+      description: Update details of a specific OAuth2 client.
+      operationId: put_api_admin_clients_{clientId}
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Update OAuth2 Client
+      tags:
+      - Admin
+      - Clients
+  /api/admin/clients/{clientId}/reset-secret:
+    post:
+      description: Reset the secret of a specific OAuth2 client.
+      operationId: post_api_admin_clients_{clientId}_reset-secret
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Reset Client Secret
+      tags:
+      - Admin
+      - Clients
+  /api/admin/clients/{clientId}/scopes:
+    get:
+      description: Get the assigned scopes for an OAuth2 client.
+      operationId: get_api_admin_clients_{clientId}_scopes
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Get Client Scopes
+      tags:
+      - Admin
+      - Clients
+    put:
+      description: Update the assigned scopes for an OAuth2 client.
+      operationId: put_api_admin_clients_{clientId}_scopes
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Update Client Scopes
+      tags:
+      - Admin
+      - Clients
+  /api/admin/logs:
+    get:
+      description: Get a paginated list of system audit logs.
+      operationId: get_api_admin_logs
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Audit Logs
+      tags:
+      - Admin
+      - Logs
+  /api/admin/oidc/keys:
+    get:
+      description: Get information about OIDC signing keys.
+      operationId: get_api_admin_oidc_keys
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Get OIDC Keys Info
+      tags:
+      - Admin
+      - OIDC
+  /api/admin/scopes:
+    get:
+      description: Get a list of all available scopes.
+      operationId: get_api_admin_scopes
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Scopes
+      tags:
+      - Admin
+      - Scopes
+  /api/admin/tokens:
+    get:
+      description: Get a list of active OAuth2 tokens.
+      operationId: get_api_admin_tokens
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Tokens
+      tags:
+      - Admin
+      - Tokens
+  /api/admin/tokens/revoke-by-client:
+    post:
+      description: Revoke all tokens issued to a specific client.
+      operationId: post_api_admin_tokens_revoke-by-client
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Revoke Tokens By Client
+      tags:
+      - Admin
+      - Tokens
+  /api/admin/tokens/revoke-by-user:
+    post:
+      description: Revoke all tokens issued for a specific user.
+      operationId: post_api_admin_tokens_revoke-by-user
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Revoke Tokens By User
+      tags:
+      - Admin
+      - Tokens
+  /api/admin/tokens/{tokenPrefix}:
+    delete:
+      description: Revoke a specific token by its prefix.
+      operationId: delete_api_admin_tokens_{tokenPrefix}
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Revoke Token
+      tags:
+      - Admin
+      - Tokens
+  /api/admin/users:
+    get:
+      description: Get a paginated list of users.
+      operationId: get_api_admin_users
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: List Users
+      tags:
+      - Admin
+      - Users
+  /api/admin/users/{userId}/disable:
+    put:
+      description: Disable a specific user account.
+      operationId: put_api_admin_users_{userId}_disable
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Disable User
+      tags:
+      - Admin
+      - Users
+  /api/admin/users/{userId}/roles:
+    put:
+      description: Assign roles to a specific user.
+      operationId: put_api_admin_users_{userId}_roles
+      responses: null
+      security:
+        bearerAuth:
+        - bearerAuth
+      summary: Assign User Roles
+      tags:
+      - Admin
+      - Users
   /api/google/login:
     post:
       description: Exchange Google authorization code for user information. This endpoint
