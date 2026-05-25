@@ -44,93 +44,131 @@ struct OAuth2ControllerDocs
     {
         // Health endpoint
         {
+            Json::Value successExample;
+            successExample["status"] = "ok";
+            successExample["version"] = "1.0.0";
+            
             common::documentation::EndpointInfo healthEndpoint;
             healthEndpoint.path = "/health";
             healthEndpoint.method = "GET";
             healthEndpoint.summary = "Health check";
-            healthEndpoint.description = "Returns the health status of the service";
+            healthEndpoint.description = "Returns the health status of the service.";
             healthEndpoint.tags = {"System"};
             healthEndpoint.parameters = {};
             healthEndpoint.responses = {{200, "Service is healthy"}};
+            healthEndpoint.responseExamples = {{200, successExample}};
             healthEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(healthEndpoint);
         }
 
         // Login endpoint
         {
+            Json::Value successExample;
+            successExample["status"] = "success";
+            successExample["redirect_uri"] = "http://127.0.0.1:5173/callback?code=xyz123";
+            
+            Json::Value errorExample;
+            errorExample["error"] = "invalid_client";
+            
             common::documentation::EndpointInfo loginEndpoint;
             loginEndpoint.path = "/oauth2/login";
             loginEndpoint.method = "POST";
             loginEndpoint.summary = "Authenticate user";
             loginEndpoint.description =
-              "Authenticates user credentials and generates "
-              "authorization code";
+              "Authenticates user credentials and generates an authorization code. "
+              "Usually called by the frontend login page during the authorization code flow.";
             loginEndpoint.tags = {"OAuth2", "Authentication"};
-            loginEndpoint.parameters =
-              {{"username",
-                "Username (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"password",
-                "Password (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"client_id",
-                "Client identifier (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"redirect_uri",
-                "Redirect URI (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"scope",
-                "Requested scope (optional)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                false},
-               {"state",
-                "Opaque value to maintain state (recommended)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                false}};
+            
+            common::documentation::ParameterInfo usernameParam;
+            usernameParam.name = "username";
+            usernameParam.description = "User's account username (required)";
+            usernameParam.type = common::documentation::ParameterType::STRING;
+            usernameParam.location = common::documentation::ParameterLocation::QUERY;
+            usernameParam.required = true;
+
+            common::documentation::ParameterInfo passwordParam;
+            passwordParam.name = "password";
+            passwordParam.description = "User's password (required)";
+            passwordParam.type = common::documentation::ParameterType::STRING;
+            passwordParam.location = common::documentation::ParameterLocation::QUERY;
+            passwordParam.required = true;
+
+            common::documentation::ParameterInfo clientIdParam;
+            clientIdParam.name = "client_id";
+            clientIdParam.description = "Client identifier matches the requesting app (required)";
+            clientIdParam.type = common::documentation::ParameterType::STRING;
+            clientIdParam.location = common::documentation::ParameterLocation::QUERY;
+            clientIdParam.required = true;
+
+            common::documentation::ParameterInfo redirectUriParam;
+            redirectUriParam.name = "redirect_uri";
+            redirectUriParam.description = "Redirect URI matching the registered client (required)";
+            redirectUriParam.type = common::documentation::ParameterType::STRING;
+            redirectUriParam.location = common::documentation::ParameterLocation::QUERY;
+            redirectUriParam.required = true;
+
+            common::documentation::ParameterInfo scopeParam;
+            scopeParam.name = "scope";
+            scopeParam.description = "Requested scope, space-separated (optional)";
+            scopeParam.type = common::documentation::ParameterType::STRING;
+            scopeParam.location = common::documentation::ParameterLocation::QUERY;
+            scopeParam.required = false;
+
+            common::documentation::ParameterInfo stateParam;
+            stateParam.name = "state";
+            stateParam.description = "Opaque value to maintain state (recommended)";
+            stateParam.type = common::documentation::ParameterType::STRING;
+            stateParam.location = common::documentation::ParameterLocation::QUERY;
+            stateParam.required = false;
+
+            loginEndpoint.parameters = {usernameParam, passwordParam, clientIdParam, redirectUriParam, scopeParam, stateParam};
             loginEndpoint.responses =
-              {{200, "Authentication successful"},
-               {302, "Redirect with authorization code"},
+              {{200, "Authentication successful (JSON with redirect_uri)"},
+               {302, "Redirect with authorization code (if requested via browser)"},
                {401, "Authentication failed"}};
+            loginEndpoint.responseExamples = {{200, successExample}, {401, errorExample}};
             loginEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(loginEndpoint);
         }
 
         // Register endpoint
         {
+            Json::Value successExample;
+            successExample["status"] = "success";
+            successExample["message"] = "User registered successfully";
+            
             common::documentation::EndpointInfo registerEndpoint;
             registerEndpoint.path = "/api/register";
             registerEndpoint.method = "POST";
             registerEndpoint.summary = "Register new user";
-            registerEndpoint.description = "Registers a new user account (for testing purposes)";
+            registerEndpoint.description = "Registers a new user account into the system.";
             registerEndpoint.tags = {"User", "Registration"};
-            registerEndpoint.parameters =
-              {{"username",
-                "Username (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"password",
-                "Password (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"email",
-                "Email address (optional)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                false}};
+            
+            common::documentation::ParameterInfo usernameParam;
+            usernameParam.name = "username";
+            usernameParam.description = "Desired username (required)";
+            usernameParam.type = common::documentation::ParameterType::STRING;
+            usernameParam.location = common::documentation::ParameterLocation::QUERY;
+            usernameParam.required = true;
+
+            common::documentation::ParameterInfo passwordParam;
+            passwordParam.name = "password";
+            passwordParam.description = "Strong password (required)";
+            passwordParam.type = common::documentation::ParameterType::STRING;
+            passwordParam.location = common::documentation::ParameterLocation::QUERY;
+            passwordParam.required = true;
+
+            common::documentation::ParameterInfo emailParam;
+            emailParam.name = "email";
+            emailParam.description = "Email address (optional)";
+            emailParam.type = common::documentation::ParameterType::STRING;
+            emailParam.location = common::documentation::ParameterLocation::QUERY;
+            emailParam.required = false;
+
+            registerEndpoint.parameters = {usernameParam, passwordParam, emailParam};
             registerEndpoint.responses =
               {{200, "User registered successfully"}, {400, "Invalid registration data"}};
+            registerEndpoint.responseExamples = {{200, successExample}};
             registerEndpoint.requiresAuth = false;
             OpenApiGenerator::addEndpoint(registerEndpoint);
         }
@@ -141,39 +179,53 @@ struct OAuth2ControllerDocs
             consentEndpoint.path = "/oauth2/consent";
             consentEndpoint.method = "POST";
             consentEndpoint.summary = "Submit user consent";
-            consentEndpoint.description = "Submit user consent for requested scopes";
+            consentEndpoint.description = "Submit user consent for requested scopes. Redirects back to client.";
             consentEndpoint.tags = {"OAuth2", "Consent"};
-            consentEndpoint.parameters =
-              {{"client_id",
-                "Client identifier (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"user_id",
-                "User identifier (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"scope",
-                "Requested scope (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"redirect_uri",
-                "Redirect URI (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true},
-               {"state",
-                "Opaque value to maintain state",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                false},
-               {"action",
-                "Action to perform: 'approve' or 'deny' (required)",
-                common::documentation::ParameterType::STRING,
-                common::documentation::ParameterLocation::QUERY,
-                true}};
+            
+            common::documentation::ParameterInfo clientIdParam;
+            clientIdParam.name = "client_id";
+            clientIdParam.description = "Client identifier (required)";
+            clientIdParam.type = common::documentation::ParameterType::STRING;
+            clientIdParam.location = common::documentation::ParameterLocation::QUERY;
+            clientIdParam.required = true;
+
+            common::documentation::ParameterInfo userIdParam;
+            userIdParam.name = "user_id";
+            userIdParam.description = "User identifier (required)";
+            userIdParam.type = common::documentation::ParameterType::STRING;
+            userIdParam.location = common::documentation::ParameterLocation::QUERY;
+            userIdParam.required = true;
+
+            common::documentation::ParameterInfo scopeParam;
+            scopeParam.name = "scope";
+            scopeParam.description = "Requested scope to consent (required)";
+            scopeParam.type = common::documentation::ParameterType::STRING;
+            scopeParam.location = common::documentation::ParameterLocation::QUERY;
+            scopeParam.required = true;
+
+            common::documentation::ParameterInfo redirectUriParam;
+            redirectUriParam.name = "redirect_uri";
+            redirectUriParam.description = "Redirect URI (required)";
+            redirectUriParam.type = common::documentation::ParameterType::STRING;
+            redirectUriParam.location = common::documentation::ParameterLocation::QUERY;
+            redirectUriParam.required = true;
+
+            common::documentation::ParameterInfo stateParam;
+            stateParam.name = "state";
+            stateParam.description = "Opaque value to maintain state";
+            stateParam.type = common::documentation::ParameterType::STRING;
+            stateParam.location = common::documentation::ParameterLocation::QUERY;
+            stateParam.required = false;
+
+            common::documentation::ParameterInfo actionParam;
+            actionParam.name = "action";
+            actionParam.description = "Action to perform: 'approve' or 'deny' (required)";
+            actionParam.type = common::documentation::ParameterType::STRING;
+            actionParam.location = common::documentation::ParameterLocation::QUERY;
+            actionParam.required = true;
+            actionParam.enumValues = "approve,deny";
+
+            consentEndpoint.parameters = {clientIdParam, userIdParam, scopeParam, redirectUriParam, stateParam, actionParam};
             consentEndpoint.responses = {
               {302, "Redirect to client with authorization code or error"}
             };

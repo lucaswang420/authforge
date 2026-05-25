@@ -38,51 +38,79 @@ namespace oauth2::controllers
 void OAuth2StandardController::initApiDocs()
 {
     // Token endpoint
-    common::documentation::EndpointInfo tokenEndpoint;
-    tokenEndpoint.path = "/oauth2/token";
-    tokenEndpoint.method = "POST";
-    tokenEndpoint.summary = "Exchange authorization code for access token";
-    tokenEndpoint.description =
-      "OAuth2 token endpoint - exchanges authorization "
-      "code or refresh token for access token";
-    tokenEndpoint.tags = {"OAuth2", "Token"};
-    tokenEndpoint.parameters =
-      {{"grant_type",
-        "Authorization code or refresh token (required)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        true},
-       {"code",
-        "Authorization code (required for grant_type=authorization_code)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        false},
-       {"refresh_token",
-        "Refresh token (required for grant_type=refresh_token)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        false},
-       {"client_id",
-        "Client identifier (required)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        true},
-       {"client_secret",
-        "Client secret (required for confidential clients)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        true},
-       {"redirect_uri",
-        "Redirect URI (required for authorization_code grant)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
-        true}};
-    tokenEndpoint.responses =
-      {{200, "Token response with access_token and refresh_token"},
-       {400, "Invalid request"},
-       {401, "Authentication failed"}};
-    tokenEndpoint.requiresAuth = false;
-    OpenApiGenerator::addEndpoint(tokenEndpoint);
+    {
+        Json::Value successExample;
+        successExample["access_token"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+        successExample["token_type"] = "Bearer";
+        successExample["expires_in"] = 3600;
+        successExample["refresh_token"] = "ref_123456789";
+        successExample["scope"] = "openid profile";
+        
+        Json::Value errorExample;
+        errorExample["error"] = "invalid_grant";
+        errorExample["error_description"] = "Invalid authorization code";
+
+        common::documentation::EndpointInfo tokenEndpoint;
+        tokenEndpoint.path = "/oauth2/token";
+        tokenEndpoint.method = "POST";
+        tokenEndpoint.summary = "Exchange authorization code for access token";
+        tokenEndpoint.description =
+          "OAuth2 token endpoint - exchanges authorization "
+          "code or refresh token for access token.";
+        tokenEndpoint.tags = {"OAuth2", "Token"};
+        
+        common::documentation::ParameterInfo grantTypeParam;
+        grantTypeParam.name = "grant_type";
+        grantTypeParam.description = "Type of grant being requested";
+        grantTypeParam.type = common::documentation::ParameterType::STRING;
+        grantTypeParam.location = common::documentation::ParameterLocation::QUERY;
+        grantTypeParam.required = true;
+        grantTypeParam.enumValues = "authorization_code,refresh_token,client_credentials";
+        
+        common::documentation::ParameterInfo codeParam;
+        codeParam.name = "code";
+        codeParam.description = "Authorization code (required for grant_type=authorization_code)";
+        codeParam.type = common::documentation::ParameterType::STRING;
+        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.required = false;
+
+        common::documentation::ParameterInfo refreshParam;
+        refreshParam.name = "refresh_token";
+        refreshParam.description = "Refresh token (required for grant_type=refresh_token)";
+        refreshParam.type = common::documentation::ParameterType::STRING;
+        refreshParam.location = common::documentation::ParameterLocation::QUERY;
+        refreshParam.required = false;
+
+        common::documentation::ParameterInfo clientIdParam;
+        clientIdParam.name = "client_id";
+        clientIdParam.description = "Client identifier (required)";
+        clientIdParam.type = common::documentation::ParameterType::STRING;
+        clientIdParam.location = common::documentation::ParameterLocation::QUERY;
+        clientIdParam.required = true;
+
+        common::documentation::ParameterInfo clientSecretParam;
+        clientSecretParam.name = "client_secret";
+        clientSecretParam.description = "Client secret (required for confidential clients)";
+        clientSecretParam.type = common::documentation::ParameterType::STRING;
+        clientSecretParam.location = common::documentation::ParameterLocation::QUERY;
+        clientSecretParam.required = true;
+
+        common::documentation::ParameterInfo redirectUriParam;
+        redirectUriParam.name = "redirect_uri";
+        redirectUriParam.description = "Redirect URI (required for authorization_code grant)";
+        redirectUriParam.type = common::documentation::ParameterType::STRING;
+        redirectUriParam.location = common::documentation::ParameterLocation::QUERY;
+        redirectUriParam.required = false;
+
+        tokenEndpoint.parameters = {grantTypeParam, codeParam, refreshParam, clientIdParam, clientSecretParam, redirectUriParam};
+        tokenEndpoint.responses =
+          {{200, "Token response with access_token and refresh_token"},
+           {400, "Invalid request"},
+           {401, "Authentication failed"}};
+        tokenEndpoint.responseExamples = {{200, successExample}, {400, errorExample}};
+        tokenEndpoint.requiresAuth = false;
+        OpenApiGenerator::addEndpoint(tokenEndpoint);
+    }
 
     // Authorize endpoint
     common::documentation::EndpointInfo authorizeEndpoint;
@@ -155,6 +183,87 @@ void OAuth2StandardController::initApiDocs()
         userInfoEndpoint.responseExamples = {{200, successExample}, {404, errorExample}};
         userInfoEndpoint.requiresAuth = true;
         OpenApiGenerator::addEndpoint(userInfoEndpoint);
+    }
+
+    // Introspect endpoint
+    {
+        Json::Value successExample;
+        successExample["active"] = true;
+        successExample["client_id"] = "client_123";
+        successExample["token_type"] = "Bearer";
+        successExample["exp"] = 1680000000;
+        successExample["sub"] = "user_456";
+        successExample["scope"] = "read write";
+
+        common::documentation::EndpointInfo introspectEndpoint;
+        introspectEndpoint.path = "/oauth2/introspect";
+        introspectEndpoint.method = "POST";
+        introspectEndpoint.summary = "Introspect token";
+        introspectEndpoint.description = "RFC 7662 OAuth 2.0 Token Introspection. Returns information about a token.";
+        introspectEndpoint.tags = {"OAuth2", "Token"};
+        
+        common::documentation::ParameterInfo tokenParam;
+        tokenParam.name = "token";
+        tokenParam.description = "The string value of the token (required)";
+        tokenParam.type = common::documentation::ParameterType::STRING;
+        tokenParam.location = common::documentation::ParameterLocation::QUERY;
+        tokenParam.required = true;
+
+        introspectEndpoint.parameters = {tokenParam};
+        introspectEndpoint.responses = {{200, "Token status and metadata"}, {400, "Invalid request"}, {401, "Authentication failed"}};
+        introspectEndpoint.responseExamples = {{200, successExample}};
+        introspectEndpoint.requiresAuth = true; // Requires client credentials
+        OpenApiGenerator::addEndpoint(introspectEndpoint);
+    }
+
+    // Revoke endpoint
+    {
+        common::documentation::EndpointInfo revokeEndpoint;
+        revokeEndpoint.path = "/oauth2/revoke";
+        revokeEndpoint.method = "POST";
+        revokeEndpoint.summary = "Revoke token";
+        revokeEndpoint.description = "RFC 7009 OAuth 2.0 Token Revocation. Revokes an access or refresh token.";
+        revokeEndpoint.tags = {"OAuth2", "Token"};
+        
+        common::documentation::ParameterInfo tokenParam;
+        tokenParam.name = "token";
+        tokenParam.description = "The token that the client wants to get revoked (required)";
+        tokenParam.type = common::documentation::ParameterType::STRING;
+        tokenParam.location = common::documentation::ParameterLocation::QUERY;
+        tokenParam.required = true;
+
+        revokeEndpoint.parameters = {tokenParam};
+        revokeEndpoint.responses = {{200, "Token revoked successfully or token did not exist"}, {400, "Invalid request"}, {401, "Authentication failed"}};
+        revokeEndpoint.requiresAuth = true; // Requires client credentials
+        OpenApiGenerator::addEndpoint(revokeEndpoint);
+    }
+
+    // OIDC Discovery endpoint
+    {
+        common::documentation::EndpointInfo discoveryEndpoint;
+        discoveryEndpoint.path = "/.well-known/openid-configuration";
+        discoveryEndpoint.method = "GET";
+        discoveryEndpoint.summary = "OpenID Connect Discovery";
+        discoveryEndpoint.description = "Returns OIDC discovery metadata including endpoints and supported scopes.";
+        discoveryEndpoint.tags = {"OpenID Connect"};
+        discoveryEndpoint.parameters = {};
+        discoveryEndpoint.responses = {{200, "OIDC Provider Metadata"}};
+        discoveryEndpoint.requiresAuth = false;
+        OpenApiGenerator::addEndpoint(discoveryEndpoint);
+    }
+
+    // JWKS endpoint
+    {
+        common::documentation::EndpointInfo jwksEndpoint;
+        jwksEndpoint.path = "/.well-known/jwks.json";
+        jwksEndpoint.method = "GET";
+        jwksEndpoint.summary = "JSON Web Key Set";
+        jwksEndpoint.description = "Returns the public keys used by this server to sign JWTs.";
+        jwksEndpoint.tags = {"OpenID Connect", "Security"};
+        jwksEndpoint.parameters = {};
+        jwksEndpoint.responses = {{200, "JSON Web Key Set"}};
+        jwksEndpoint.requiresAuth = false;
+        OpenApiGenerator::addEndpoint(jwksEndpoint);
     }
 }
 

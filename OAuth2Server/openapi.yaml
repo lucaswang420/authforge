@@ -70,16 +70,16 @@ paths:
       - Google
   /api/register:
     post:
-      description: Registers a new user account (for testing purposes)
+      description: Registers a new user account into the system.
       operationId: post_api_register
       parameters:
-      - description: Username (required)
+      - description: Desired username (required)
         in: query
         name: username
         required: true
         schema:
           type: string
-      - description: Password (required)
+      - description: Strong password (required)
         in: query
         name: password
         required: true
@@ -95,8 +95,9 @@ paths:
         '200':
           content:
             application/json:
-              schema:
-                type: object
+              example:
+                message: User registered successfully
+                status: success
           description: User registered successfully
         '400':
           description: Invalid registration data
@@ -139,21 +140,22 @@ paths:
       - WeChat
   /health:
     get:
-      description: Returns the health status of the service
+      description: Returns the health status of the service.
       operationId: get_health
       responses:
         '200':
           content:
             application/json:
-              schema:
-                type: object
+              example:
+                status: ok
+                version: 1.0.0
           description: Service is healthy
       summary: Health check
       tags:
       - System
   /oauth2/consent:
     post:
-      description: Submit user consent for requested scopes
+      description: Submit user consent for requested scopes. Redirects back to client.
       operationId: post_oauth2_consent
       parameters:
       - description: Client identifier (required)
@@ -168,7 +170,7 @@ paths:
         required: true
         schema:
           type: string
-      - description: Requested scope (required)
+      - description: Requested scope to consent (required)
         in: query
         name: scope
         required: true
@@ -191,6 +193,9 @@ paths:
         name: action
         required: true
         schema:
+          enum:
+          - approve
+          - deny
           type: string
       responses:
         '302':
@@ -201,34 +206,35 @@ paths:
       - Consent
   /oauth2/login:
     post:
-      description: Authenticates user credentials and generates authorization code
+      description: Authenticates user credentials and generates an authorization code.
+        Usually called by the frontend login page during the authorization code flow.
       operationId: post_oauth2_login
       parameters:
-      - description: Username (required)
+      - description: User's account username (required)
         in: query
         name: username
         required: true
         schema:
           type: string
-      - description: Password (required)
+      - description: User's password (required)
         in: query
         name: password
         required: true
         schema:
           type: string
-      - description: Client identifier (required)
+      - description: Client identifier matches the requesting app (required)
         in: query
         name: client_id
         required: true
         schema:
           type: string
-      - description: Redirect URI (required)
+      - description: Redirect URI matching the registered client (required)
         in: query
         name: redirect_uri
         required: true
         schema:
           type: string
-      - description: Requested scope (optional)
+      - description: Requested scope, space-separated (optional)
         in: query
         name: scope
         required: false
@@ -244,12 +250,17 @@ paths:
         '200':
           content:
             application/json:
-              schema:
-                type: object
-          description: Authentication successful
+              example:
+                redirect_uri: http://127.0.0.1:5173/callback?code=xyz123
+                status: success
+          description: Authentication successful (JSON with redirect_uri)
         '302':
-          description: Redirect with authorization code
+          description: Redirect with authorization code (if requested via browser)
         '401':
+          content:
+            application/json:
+              example:
+                error: invalid_client
           description: Authentication failed
       summary: Authenticate user
       tags:
