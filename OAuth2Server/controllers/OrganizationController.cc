@@ -1,7 +1,43 @@
 #include "OrganizationController.h"
 #include <oauth2/AuditLogger.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <regex>
+
+namespace {
+struct OrganizationControllerDocs {
+    OrganizationControllerDocs() {
+        common::documentation::EndpointInfo getOrgsDocs;
+        getOrgsDocs.path = "/api/orgs";
+        getOrgsDocs.method = "GET";
+        getOrgsDocs.summary = "List Organizations";
+        getOrgsDocs.description = "List all organizations.";
+        getOrgsDocs.tags = {"Organization"};
+        getOrgsDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getOrgsDocs);
+
+        common::documentation::EndpointInfo postOrgsDocs;
+        postOrgsDocs.path = "/api/orgs";
+        postOrgsDocs.method = "POST";
+        postOrgsDocs.summary = "Create Organization";
+        postOrgsDocs.description = "Create a new organization.";
+        postOrgsDocs.tags = {"Organization"};
+        postOrgsDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(postOrgsDocs);
+
+        common::documentation::EndpointInfo postOrgUsersDocs;
+        postOrgUsersDocs.path = "/api/orgs/{orgId}/users";
+        postOrgUsersDocs.method = "POST";
+        postOrgUsersDocs.summary = "Add User to Organization";
+        postOrgUsersDocs.description = "Add a user to an organization.";
+        postOrgUsersDocs.tags = {"Organization"};
+        postOrgUsersDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(postOrgUsersDocs);
+    }
+};
+
+OrganizationControllerDocs docs_;
+}  // namespace
 
 void OrganizationController::list(
   const HttpRequestPtr &req,

@@ -2,12 +2,46 @@
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/OAuth2ErrorHandler.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
 
 namespace
 {
+struct DeviceAuthControllerDocs {
+    DeviceAuthControllerDocs() {
+        common::documentation::EndpointInfo authDocs;
+        authDocs.path = "/oauth2/device_authorization";
+        authDocs.method = "POST";
+        authDocs.summary = "Device Authorization";
+        authDocs.description = "Request device authorization.";
+        authDocs.tags = {"OAuth2", "Device Flow"};
+        authDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(authDocs);
+
+        common::documentation::EndpointInfo verifyGetDocs;
+        verifyGetDocs.path = "/oauth2/device/verify";
+        verifyGetDocs.method = "GET";
+        verifyGetDocs.summary = "Verify Device (GET)";
+        verifyGetDocs.description = "Display device verification page.";
+        verifyGetDocs.tags = {"OAuth2", "Device Flow"};
+        verifyGetDocs.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(verifyGetDocs);
+
+        common::documentation::EndpointInfo verifyPostDocs;
+        verifyPostDocs.path = "/oauth2/device/verify";
+        verifyPostDocs.method = "POST";
+        verifyPostDocs.summary = "Verify Device (POST)";
+        verifyPostDocs.description = "Submit device verification code.";
+        verifyPostDocs.tags = {"OAuth2", "Device Flow"};
+        verifyPostDocs.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(verifyPostDocs);
+    }
+};
+
+DeviceAuthControllerDocs docs_;
+
 constexpr int DEVICE_CODE_LIFETIME_SECONDS = 600;  // 10 minutes
 constexpr int POLLING_INTERVAL_SECONDS = 5;
 constexpr const char *ALLOWED_USER_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

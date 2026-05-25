@@ -1,12 +1,66 @@
 #include "WebAuthnController.h"
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/AuditLogger.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
 
 using namespace drogon;
 using namespace drogon::orm;
+
+namespace {
+struct WebAuthnControllerDocs {
+    WebAuthnControllerDocs() {
+        common::documentation::EndpointInfo regBeginDocs;
+        regBeginDocs.path = "/oauth2/webauthn/register/begin";
+        regBeginDocs.method = "POST";
+        regBeginDocs.summary = "WebAuthn Register Begin";
+        regBeginDocs.description = "Start WebAuthn registration.";
+        regBeginDocs.tags = {"WebAuthn"};
+        regBeginDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(regBeginDocs);
+
+        common::documentation::EndpointInfo regFinishDocs;
+        regFinishDocs.path = "/oauth2/webauthn/register/finish";
+        regFinishDocs.method = "POST";
+        regFinishDocs.summary = "WebAuthn Register Finish";
+        regFinishDocs.description = "Finish WebAuthn registration.";
+        regFinishDocs.tags = {"WebAuthn"};
+        regFinishDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(regFinishDocs);
+
+        common::documentation::EndpointInfo loginBeginDocs;
+        loginBeginDocs.path = "/oauth2/webauthn/login/begin";
+        loginBeginDocs.method = "POST";
+        loginBeginDocs.summary = "WebAuthn Login Begin";
+        loginBeginDocs.description = "Start WebAuthn login.";
+        loginBeginDocs.tags = {"WebAuthn"};
+        loginBeginDocs.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(loginBeginDocs);
+
+        common::documentation::EndpointInfo loginFinishDocs;
+        loginFinishDocs.path = "/oauth2/webauthn/login/finish";
+        loginFinishDocs.method = "POST";
+        loginFinishDocs.summary = "WebAuthn Login Finish";
+        loginFinishDocs.description = "Finish WebAuthn login.";
+        loginFinishDocs.tags = {"WebAuthn"};
+        loginFinishDocs.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(loginFinishDocs);
+
+        common::documentation::EndpointInfo credentialsDocs;
+        credentialsDocs.path = "/oauth2/webauthn/credentials";
+        credentialsDocs.method = "GET";
+        credentialsDocs.summary = "List WebAuthn Credentials";
+        credentialsDocs.description = "List registered WebAuthn credentials.";
+        credentialsDocs.tags = {"WebAuthn"};
+        credentialsDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(credentialsDocs);
+    }
+};
+
+WebAuthnControllerDocs docs_;
+}  // namespace
 
 // WebAuthn RP (Relying Party) configuration
 static std::string getRpId()

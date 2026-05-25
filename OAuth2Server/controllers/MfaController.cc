@@ -3,11 +3,56 @@
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/AuditLogger.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
 using namespace drogon;
 using namespace drogon::orm;
+
+namespace {
+struct MfaControllerDocs {
+    MfaControllerDocs() {
+        common::documentation::EndpointInfo setupDocs;
+        setupDocs.path = "/oauth2/mfa/setup";
+        setupDocs.method = "POST";
+        setupDocs.summary = "Setup MFA";
+        setupDocs.description = "Initiate MFA setup by generating a TOTP secret.";
+        setupDocs.tags = {"MFA"};
+        setupDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(setupDocs);
+
+        common::documentation::EndpointInfo verifySetupDocs;
+        verifySetupDocs.path = "/oauth2/mfa/setup/verify";
+        verifySetupDocs.method = "POST";
+        verifySetupDocs.summary = "Verify MFA Setup";
+        verifySetupDocs.description = "Verify a TOTP code to finalize MFA setup.";
+        verifySetupDocs.tags = {"MFA"};
+        verifySetupDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(verifySetupDocs);
+
+        common::documentation::EndpointInfo disableDocs;
+        disableDocs.path = "/oauth2/mfa/disable";
+        disableDocs.method = "POST";
+        disableDocs.summary = "Disable MFA";
+        disableDocs.description = "Disable MFA for the authenticated user.";
+        disableDocs.tags = {"MFA"};
+        disableDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(disableDocs);
+
+        common::documentation::EndpointInfo verifyDocs;
+        verifyDocs.path = "/oauth2/mfa/verify";
+        verifyDocs.method = "POST";
+        verifyDocs.summary = "Verify MFA Code (Login)";
+        verifyDocs.description = "Verify MFA code during login.";
+        verifyDocs.tags = {"MFA"};
+        verifyDocs.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(verifyDocs);
+    }
+};
+
+MfaControllerDocs docs_;
+}  // namespace
 
 void MfaController::setup(
   const HttpRequestPtr &req,

@@ -1,8 +1,26 @@
 #include "ClientRegistrationController.h"
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/AuditLogger.h>
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
+
+namespace {
+struct ClientRegistrationControllerDocs {
+    ClientRegistrationControllerDocs() {
+        common::documentation::EndpointInfo regDocs;
+        regDocs.path = "/oauth2/register";
+        regDocs.method = "POST";
+        regDocs.summary = "Register Client";
+        regDocs.description = "Dynamic client registration.";
+        regDocs.tags = {"OAuth2", "Dynamic Registration"};
+        regDocs.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(regDocs);
+    }
+};
+
+ClientRegistrationControllerDocs docs_;
+}  // namespace
 
 void ClientRegistrationController::registerClient(
   const HttpRequestPtr &req,
