@@ -1,10 +1,36 @@
 #include "ApiDocController.h"
+#include <oauth2/OpenApiGenerator.h>
 #include <drogon/utils/Utilities.h>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 
 using namespace api;
+
+namespace {
+struct ApiDocControllerDocs {
+    ApiDocControllerDocs() {
+        common::documentation::EndpointInfo spec;
+        spec.path = "/docs/api/openapi.json";
+        spec.method = "GET";
+        spec.summary = "Get OpenAPI Specification";
+        spec.description = "Returns the dynamically generated OpenAPI 3.0 specification in JSON format.";
+        spec.tags = {"Documentation"};
+        spec.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(spec);
+
+        common::documentation::EndpointInfo ui;
+        ui.path = "/docs/api/";
+        ui.method = "GET";
+        ui.summary = "Swagger UI";
+        ui.description = "Serves the Swagger UI HTML page for interactive API documentation.";
+        ui.tags = {"Documentation"};
+        ui.requiresAuth = false;
+        common::documentation::OpenApiGenerator::addEndpoint(ui);
+    }
+};
+ApiDocControllerDocs docs_;
+}
 
 void ApiDocController::openApiSpec(
   const drogon::HttpRequestPtr &req,

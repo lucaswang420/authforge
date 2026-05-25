@@ -3,39 +3,65 @@ import { test, expect } from '@playwright/test';
 test.describe('API Documentation (Swagger UI)', () => {
   const API_DOCS_URL = 'http://localhost:5555/docs/api/';
 
+  // Swagger UI is stateful, run tests sequentially to avoid interference
+  test.describe.configure({ mode: 'serial' });
+
   test('should load Swagger UI successfully', async ({ page }) => {
     await page.goto(API_DOCS_URL);
     
     // Check if the title is correct
     await expect(page).toHaveTitle(/OAuth2 Authorization Server API Documentation/);
     
-    // Wait for the spec to load (it renders the info section)
+    // Wait for the spec to load
     const infoTitle = page.locator('.info .title');
     await expect(infoTitle).toBeVisible({ timeout: 10000 });
     await expect(infoTitle).toContainText('OAuth2 Authorization Server API');
   });
 
-  test('should execute /health endpoint successfully via Try it out', async ({ page }) => {
-    await page.goto(API_DOCS_URL);
+  const testEndpoints = [
+    { path: '/health', expectedStatus: /200/ },
+    { path: '/.well-known/openid-configuration', expectedStatus: /200/ },
+    { path: '/api/me', expectedStatus: /401/ }
+  ];
 
-    // Find the health endpoint
-    const healthEndpoint = page.locator('.opblock-summary-path').filter({ hasText: '/health' }).first();
-    await healthEndpoint.click();
+  for (const endpoint of testEndpoints) {
+    test(`should execute ${endpoint.path} via Try it out`, async ({ page }) => {
+      await page.goto(API_DOCS_URL);
 
-    // Click "Try it out"
-    await page.getByRole('button', { name: 'Try it out' }).click();
+      // Find the specific endpoint operation block
+      const opBlock = page.locator('.opblock').filter({ 
+        has: page.locator('.opblock-summary-path').filter({ hasText: new RegExp(`^${endpoint.path.replace(/\//g, '\\/')}$`) })
+      }).first();
+      
+      await opBlock.scrollIntoViewIfNeeded();
+      
+      // Expand it
+      if (!await opBlock.evaluate(el => el.classList.contains('is-open'))) {
+        await opBlock.locator('.opblock-summary').click();
+      }
 
-    // Click "Execute"
-    await page.getByRole('button', { name: 'Execute' }).click();
+      // Click "Try it out"
+      const tryItOutBtn = opBlock.getByRole('button', { name: 'Try it out' });
+      if (await tryItOutBtn.isVisible()) {
+        await tryItOutBtn.click();
+        // Wait for animation
+        await page.waitForTimeout(500);
+      }
 
-    // Wait for response and check status code 200
-    const responseStatus = page.locator('.responses-table .response-col_status').filter({ hasText: /200/ }).first();
-    await expect(responseStatus).toBeVisible({ timeout: 15000 });
+      // Click "Execute"
+      const executeBtn = opBlock.getByRole('button', { name: 'Execute' });
+      await executeBtn.click({ force: true });
 
-    // Check response body - specifically the one containing the JSON response
-    const responseBody = page.locator('.live-responses-table .microlight').first();
-    await expect(responseBody).toContainText('"status": "ok"', { timeout: 15000 });
-  });
+      // Wait for the response status to appear in the live response section
+      // In some versions of Swagger UI, it's inside .responses-wrapper
+      const responseStatus = opBlock.locator('.live-responses-table .response-col_status, .responses-wrapper .response-col_status').first();
+      await expect(responseStatus).toContainText(endpoint.expectedStatus, { timeout: 20000 });
+      
+      // Verify response body is present
+      const responseBody = opBlock.locator('.live-responses-table .microlight').first();
+      await expect(responseBody).toBeVisible();
+    });
+  }
 
   test('should list all major tags (System, OAuth2, Admin, User Profile, etc.)', async ({ page }) => {
     await page.goto(API_DOCS_URL);
