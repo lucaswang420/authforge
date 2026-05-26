@@ -282,9 +282,9 @@ void GitHubController::login(
                           std::string username = "gh_" + githubLogin;
                           std::string passwordHash = oauth2::utils::generateSecureToken(); // random, user can't login with password
                           db->execSqlAsync(
-                            "INSERT INTO users (username, password_hash, salt, email) "
-                            "VALUES ($1, $2, '', $3) "
-                            "ON CONFLICT (username) DO UPDATE SET email = EXCLUDED.email "
+                            "INSERT INTO users (username, password_hash, salt, email, email_verified) "
+                            "VALUES ($1, $2, '', $3, true) "
+                            "ON CONFLICT (username) DO UPDATE SET email = EXCLUDED.email, email_verified = true "
                             "RETURNING id",
                             [callbackPtr, db, issueTokens, provider, subject, username](
                               const drogon::orm::Result &userResult
