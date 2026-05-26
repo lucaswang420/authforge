@@ -784,6 +784,58 @@
         ]
       }
     },
+    "/api/github/login" : 
+    {
+      "post" : 
+      {
+        "description" : "Exchange GitHub authorization code for user information.",
+        "operationId" : "post_api_github_login",
+        "parameters" : 
+        [
+          {
+            "description" : "Authorization code from GitHub OAuth2 callback",
+            "in" : "query",
+            "name" : "code",
+            "required" : true,
+            "schema" : 
+            {
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : 
+        {
+          "200" : 
+          {
+            "content" : 
+            {
+              "application/json" : 
+              {
+                "schema" : 
+                {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "GitHub user info retrieved successfully"
+          },
+          "400" : 
+          {
+            "description" : "Invalid request (missing or invalid code)"
+          },
+          "502" : 
+          {
+            "description" : "Failed to contact GitHub API"
+          }
+        },
+        "summary" : "GitHub OAuth2 Login",
+        "tags" : 
+        [
+          "External Auth",
+          "GitHub"
+        ]
+      }
+    },
     "/api/google/login" : 
     {
       "post" : 

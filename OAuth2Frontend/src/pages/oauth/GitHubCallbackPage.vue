@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+import { setTokens } from '../../services/http'
 import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuthStore()
 const error = ref('')
 
 onMounted(async () => {
@@ -18,15 +21,18 @@ onMounted(async () => {
     const resp = await axios.post('/api/github/login', { code }, {
       headers: { 'Content-Type': 'application/json' },
     })
-    // GitHub login returns user info — for now show it
-    // In a full implementation, the backend would create/link a local account
-    // and return an OAuth2 token
-    if (resp.data.login) {
-      // TODO: Backend should return access_token after account linking
-      error.value = `GitHub user "${resp.data.login}" authenticated. Account linking not yet implemented.`
+
+    if (resp.data.access_token) {
+      // Backend returned tokens — complete login
+      setTokens(resp.data.access_token, resp.data.refresh_token)
+      auth.markAuthenticated()
+      await auth.fetchUser()
+      router.replace('/')
+    } else {
+      error.value = 'GitHub login did not return an access token'
     }
   } catch (e: any) {
-    error.value = e.response?.data?.error || 'GitHub login failed'
+    error.value = e.response?.data?.error || e.response?.data?.detail || 'GitHub login failed'
   }
 })
 </script>
@@ -34,9 +40,9 @@ onMounted(async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center max-w-md">
-      <div v-if="error" class="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p class="text-yellow-800 font-medium">GitHub Login</p>
-        <p class="text-yellow-700 text-sm mt-2">{{ error }}</p>
+      <div v-if="error" class="p-6 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-700 font-medium">GitHub Login Failed</p>
+        <p class="text-red-600 text-sm mt-2">{{ error }}</p>
         <router-link to="/login" class="mt-4 inline-block text-indigo-600 hover:text-indigo-800">Back to Login</router-link>
       </div>
       <div v-else>
