@@ -48,12 +48,14 @@ FROM ubuntu:22.04 AS backend-runtime
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     libjsoncpp25 zlib1g libssl3 libbrotli1 libc-ares2 libpq5 \
-    libhiredis0.14 libsqlite3-0 libcurl4 libuuid1 ca-certificates \
+    libhiredis0.14 libsqlite3-0 libcurl4 libuuid1 ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=backend-builder /app/build/OAuth2Server/OAuth2Server .
 COPY --from=backend-builder /app/OAuth2Server/config.prod.json ./config.json
 COPY --from=backend-builder /app/OAuth2Server/views ./views
+COPY --from=backend-builder /app/OAuth2Server/sql/migrations ./sql/migrations
+COPY --from=backend-builder /app/OAuth2Server/sql/seed ./sql/seed
 RUN mkdir -p logs uploads
 EXPOSE 5555
 CMD ["./OAuth2Server"]

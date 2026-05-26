@@ -13,9 +13,12 @@ services:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - oauth2-backend
-      - oauth2-frontend
-      - oauth2-admin
+      oauth2-backend:
+        condition: service_healthy
+      oauth2-frontend:
+        condition: service_started
+      oauth2-admin:
+        condition: service_started
     networks:
       - oauth2-net
 
@@ -63,8 +66,17 @@ services:
       - OAUTH2_REDIS_HOST=${OAUTH2_REDIS_HOST}
       - OAUTH2_REDIS_PASSWORD=${OAUTH2_REDIS_PASSWORD}
       - OAUTH2_JWT_KEY_PATH=/app/keys/signing.pem
+      - OAUTH2_AUTO_MIGRATE=true
     volumes:
       - ./deploy/keys:/app/keys:ro
+      - ./OAuth2Server/sql/migrations:/app/sql/migrations:ro
+      - ./OAuth2Server/sql/seed:/app/sql/seed:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - oauth2-net
 
