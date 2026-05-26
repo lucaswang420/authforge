@@ -35,7 +35,7 @@ cookies.txt
 secrets/
 credentials/
 # Frontend runtime config with production credentials
-OAuth2Frontend/public/config.json
+OAuth2Frontend/.env
 
 # Release Files
 Release_v1.0.0.zip

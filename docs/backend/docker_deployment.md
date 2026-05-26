@@ -37,7 +37,7 @@ prometheus
 
 | 服务 | 镜像/构建 | 对外端口 | 说明 |
 |---|---|---|---|
-| `oauth2-frontend` | `./OAuth2Frontend` Dockerfile 构建 | `8080:80` | Vue SPA + Nginx |
+| `oauth2-frontend` | `./OAuth2Frontend` Dockerfile 构建 | `8080:80` | Vue SPA (用户端) + Nginx |
 | `oauth2-backend` | `./Dockerfile` 构建 | `5555:5555` | Drogon C++ 后端 |
 | `oauth2-postgres` | `postgres:15-alpine` | `5433:5432` | PostgreSQL（宿主机 5433，避开本地冲突）|
 | `oauth2-redis` | `redis:alpine` | `6380:6379` | Redis（宿主机 6380，避开本地冲突）|

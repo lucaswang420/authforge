@@ -35,9 +35,9 @@ check_sensitive_files() {
         echo -e "${GREEN}✅ No .env files tracked${NC}"
     fi
 
-    # 检查前端 config.json
-    if git ls-files | grep "OAuth2Frontend/public/config.json" > /dev/null 2>&1; then
-        echo -e "${RED}❌ ERROR: OAuth2Frontend/public/config.json is tracked${NC}"
+    # 检查前端 .env 文件
+    if git ls-files | grep "OAuth2Frontend/.env" > /dev/null 2>&1; then
+        echo -e "${RED}❌ ERROR: OAuth2Frontend/.env is tracked${NC}"
         ERRORS=$((ERRORS + 1))
     else
         echo -e "${GREEN}✅ Frontend config.json not tracked${NC}"
