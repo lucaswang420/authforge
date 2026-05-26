@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $passed = 0
 $failed = 0
-$total = 32
+$total = 37
 
 # Import common functions
 . "$PSScriptRoot\common-test-functions.ps1"
@@ -461,6 +461,63 @@ Test-Endpoint "Test 32: GET /api/admin/logs - Audit Logs" {
     if ($null -eq $r.logs) { throw "missing logs" }
     if ($r.logs -isnot [array]) { throw "logs not array" }
     Write-Host "    page=$($r.page), returned=$($r.logs.Count) logs"
+}
+
+# ========================================
+# Section H: Organization Management
+# ========================================
+$testOrgSlug = $null
+Test-Endpoint "Test 33: GET /api/admin/organizations - List" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/organizations" -Method Get -Headers $h
+    if ($null -eq $r.organizations) { throw "missing organizations" }
+    if ($r.organizations -isnot [array]) { throw "organizations not array" }
+    Write-Host "    total=$($r.total)"
+}
+
+Test-Endpoint "Test 34: POST /api/admin/organizations - Create" {
+    $h = Get-AuthHeaders
+    $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $body = @{ slug = "test-org-$ts"; name = "Test Organization $ts" } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/organizations" -Method Post -Headers $h -Body $body
+    if (-not $r.id) { throw "missing id" }
+    if (-not $r.slug) { throw "missing slug" }
+    $script:testOrgSlug = $r.slug
+    Write-Host "    Created: id=$($r.id), slug=$($r.slug)"
+}
+
+Test-Endpoint "Test 35: GET /api/admin/organizations/:slug - Detail" {
+    if (-not $testOrgSlug) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/organizations/$testOrgSlug" -Method Get -Headers $h
+    if ($r.slug -ne $testOrgSlug) { throw "slug mismatch: $($r.slug)" }
+    if (-not $r.name) { throw "missing name" }
+    Write-Host "    slug=$($r.slug), name=$($r.name)"
+}
+
+Test-Endpoint "Test 36: GET /api/admin/organizations/:slug - Not Found" {
+    $h = Get-AuthHeaders
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/organizations/nonexistent-org-xyz" -Method Get -Headers $h -ErrorAction Stop
+        throw "should have returned 404"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "NotFound") {
+            Write-Host "    Correctly returned 404"
+        } else { throw "expected 404, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+Test-Endpoint "Test 37: POST /api/admin/organizations - Invalid slug (400)" {
+    $h = Get-AuthHeaders
+    try {
+        $body = @{ slug = "AB"; name = "Bad" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/organizations" -Method Post -Headers $h -Body $body -ErrorAction Stop
+        throw "should have returned 400"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "BadRequest") {
+            Write-Host "    Correctly returned 400 for invalid slug"
+        } else { throw "expected 400, got: $($_.Exception.Response.StatusCode)" }
+    }
 }
 
 # ========================================
