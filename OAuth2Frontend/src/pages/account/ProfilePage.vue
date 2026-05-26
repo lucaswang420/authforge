@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '../../stores/auth'
 import axios from 'axios'
 
 const auth = useAuthStore()
@@ -56,7 +56,7 @@ onMounted(fetchProfile)
         <div>
           <label class="block text-sm font-medium text-gray-500">Email</label>
           <div class="flex items-center gap-2 mt-1">
-            <p class="text-gray-900">{{ profile?.email || '—' }}</p>
+            <p class="text-gray-900">{{ profile?.email || 'N/A' }}</p>
             <span v-if="profile?.email_verified" class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Verified</span>
             <span v-else class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full">Unverified</span>
           </div>

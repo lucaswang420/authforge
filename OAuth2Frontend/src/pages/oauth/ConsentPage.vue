@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -66,7 +66,7 @@ async function handleConsent(action: 'approve' | 'deny') {
         <p class="text-sm font-medium text-gray-700 mb-3">This application will be able to:</p>
         <ul class="space-y-2">
           <li v-for="s in scopes" :key="s" class="flex items-center gap-2 text-sm text-gray-600">
-            <span class="w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs">✓</span>
+            <span class="w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs">&#10003;</span>
             {{ scopeDescriptions[s] || s }}
           </li>
         </ul>

@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { useAuthStore } from './stores/auth'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import AuthLayout from './layouts/AuthLayout.vue'
 
-const auth = useAuthStore()
+const route = useRoute()
+const useAuthLayout = computed(() => route.meta.layout === 'auth')
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <AuthLayout v-if="useAuthLayout">
     <router-view />
-  </div>
+  </AuthLayout>
+  <router-view v-else />
 </template>
