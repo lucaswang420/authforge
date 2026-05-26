@@ -24,6 +24,7 @@ async function fetchProfile() {
   try {
     const resp = await axios.get('/api/me')
     profile.value = resp.data
+    if (webauthnSupported) fetchWebauthnCredentials()
   } catch {} finally { loading.value = false }
 }
 
@@ -78,6 +79,87 @@ async function disableMfa() {
   } catch (e: any) {
     showError(e.response?.data?.message || 'Failed to disable MFA')
   } finally { disablingMfa.value = false }
+}
+
+// Account deletion
+const deleteConfirmUsername = ref('')
+const deletingAccount = ref(false)
+
+// WebAuthn / Passkeys
+const webauthnCredentials = ref<any[]>([])
+const registeringPasskey = ref(false)
+
+async function fetchWebauthnCredentials() {
+  try {
+    const resp = await axios.get('/api/me/webauthn/credentials')
+    webauthnCredentials.value = resp.data.credentials || resp.data || []
+  } catch {}
+}
+
+async function registerPasskey() {
+  registeringPasskey.value = true
+  try {
+    // Step 1: Get challenge from server
+    const beginResp = await axios.post('/api/me/webauthn/register/begin')
+    const options = beginResp.data
+
+    // Step 2: Call browser WebAuthn API
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)),
+        rp: options.rp || { name: 'OAuth2 App', id: window.location.hostname },
+        user: {
+          id: Uint8Array.from(atob(options.user?.id || btoa(profile.value?.username || 'user')), c => c.charCodeAt(0)),
+          name: options.user?.name || profile.value?.username || 'user',
+          displayName: options.user?.displayName || profile.value?.username || 'User',
+        },
+        pubKeyCredParams: options.pubKeyCredParams || [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: options.authenticatorSelection || { userVerification: 'preferred' },
+        timeout: options.timeout || 60000,
+      }
+    }) as PublicKeyCredential
+
+    if (!credential) { showError('Passkey registration cancelled'); return }
+
+    // Step 3: Send credential to server
+    const attestationResponse = credential.response as AuthenticatorAttestationResponse
+    await axios.post('/api/me/webauthn/register/finish', {
+      id: credential.id,
+      rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+      type: credential.type,
+      response: {
+        attestationObject: btoa(String.fromCharCode(...new Uint8Array(attestationResponse.attestationObject))),
+        clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(attestationResponse.clientDataJSON))),
+      }
+    }, { headers: { 'Content-Type': 'application/json' } })
+
+    showSuccess('Passkey registered successfully!')
+    await fetchWebauthnCredentials()
+  } catch (e: any) {
+    if (e.name === 'NotAllowedError') {
+      showError('Passkey registration was cancelled or timed out')
+    } else {
+      showError(e.response?.data?.message || e.message || 'Failed to register passkey')
+    }
+  } finally { registeringPasskey.value = false }
+}
+
+const webauthnSupported = typeof window !== 'undefined' && !!window.PublicKeyCredential
+
+async function deleteAccount() {
+  if (deleteConfirmUsername.value !== profile.value?.username) {
+    showError('Username does not match. Please type your username to confirm.')
+    return
+  }
+  deletingAccount.value = true
+  try {
+    await axios.delete('/api/me')
+    // Clear session and redirect to login
+    localStorage.clear()
+    window.location.href = '/login'
+  } catch (e: any) {
+    showError(e.response?.data?.message || 'Failed to delete account')
+  } finally { deletingAccount.value = false }
 }
 
 onMounted(fetchProfile)
@@ -165,6 +247,55 @@ onMounted(fetchProfile)
           <button @click="setupMfa" :disabled="settingUpMfa"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50">
             {{ settingUpMfa ? 'Setting up...' : 'Enable MFA' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- WebAuthn / Passkeys -->
+      <div v-if="webauthnSupported" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Passkeys (WebAuthn)</h2>
+        <p class="text-sm text-gray-600 mb-4">
+          Use your fingerprint, face, or security key for passwordless sign-in.
+        </p>
+
+        <!-- Registered credentials -->
+        <div v-if="webauthnCredentials.length > 0" class="space-y-2 mb-4">
+          <div v-for="cred in webauthnCredentials" :key="cred.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm font-medium text-gray-900">{{ cred.name || 'Passkey' }}</p>
+              <p class="text-xs text-gray-500">Registered: {{ cred.created_at ? new Date(cred.created_at).toLocaleDateString() : 'Unknown' }}</p>
+            </div>
+            <span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Active</span>
+          </div>
+        </div>
+        <div v-else class="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-500">
+          No passkeys registered yet.
+        </div>
+
+        <button @click="registerPasskey" :disabled="registeringPasskey"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50">
+          {{ registeringPasskey ? 'Registering...' : '+ Add Passkey' }}
+        </button>
+      </div>
+
+      <!-- Delete Account -->
+      <div class="bg-white rounded-xl shadow-sm border border-rose-200 p-6">
+        <h2 class="text-lg font-semibold text-rose-700 mb-2">Danger Zone</h2>
+        <p class="text-sm text-gray-600 mb-4">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+        <div class="space-y-3 max-w-md">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Type <strong>{{ profile?.username }}</strong> to confirm
+            </label>
+            <input v-model="deleteConfirmUsername" type="text" autocomplete="off"
+              class="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+              :placeholder="profile?.username" />
+          </div>
+          <button @click="deleteAccount" :disabled="deletingAccount || deleteConfirmUsername !== profile?.username"
+            class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ deletingAccount ? 'Deleting...' : 'Delete My Account' }}
           </button>
         </div>
       </div>

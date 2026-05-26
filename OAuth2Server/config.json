@@ -192,6 +192,10 @@
             "register_path": "/register"
         },
         "external_auth": {
+            "github": {
+                "client_id": "YOUR_GITHUB_CLIENT_ID",
+                "client_secret": "YOUR_GITHUB_CLIENT_SECRET"
+            },
             "wechat": {
                 "appid": "YOUR_WECHAT_APPID",
                 "secret": "YOUR_WECHAT_SECRET"

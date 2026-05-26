@@ -43,6 +43,11 @@ const router = createRouter({
       component: () => import('../pages/oauth/CallbackPage.vue'),
     },
     {
+      path: '/callback/github',
+      name: 'github-callback',
+      component: () => import('../pages/oauth/GitHubCallbackPage.vue'),
+    },
+    {
       path: '/consent',
       name: 'consent',
       component: () => import('../pages/oauth/ConsentPage.vue'),
