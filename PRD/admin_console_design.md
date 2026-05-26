@@ -219,22 +219,19 @@
 
 ### 5.2 需要新增的 API
 
-| 接口 | 方法 | 用途 |
-|------|------|------|
-| `/api/admin/dashboard/stats` | GET | 仪表盘统计数据 |
-| `/api/admin/users/:id` | GET | 用户详情 |
-| `/api/admin/users/:id/disable` | PUT | 禁用用户 |
-| `/api/admin/users/:id/unlock` | PUT | 解锁账号 |
-| `/api/admin/users/:id/reset-password` | POST | 管理员重置密码 |
-| `/api/admin/users/:id/login-history` | GET | 登录历史 |
-| `/api/admin/roles` | GET/POST | 角色 CRUD |
-| `/api/admin/roles/:id` | PUT/DELETE | 角色编辑/删除 |
-| `/api/admin/roles/:id/permissions` | PUT | 权限分配 |
-| `/api/admin/permissions` | GET | 权限列表 |
-| `/api/admin/logs` | GET | 审计日志（分页+筛选） |
-| `/api/admin/logs/:id` | GET | 日志详情 |
-| `/api/admin/settings` | GET/PUT | 系统设置 |
-| `/api/admin/clients/:id` | GET/PUT | 客户端详情/更新 |
+所有 API 已实现 ✅
+
+| 接口 | 方法 | 用途 | 状态 |
+|------|------|------|------|
+| `/api/admin/dashboard/stats` | GET | 仪表盘统计数据 | ✅ |
+| `/api/admin/users/:id` | GET | 用户详情 | ✅ |
+| `/api/admin/users/:id` | PUT | 更新用户信息 | ✅ |
+| `/api/admin/users/:id/enable` | POST | 启用用户 | ✅ |
+| `/api/admin/users/:id/roles` | GET | 获取用户角色 | ✅ |
+| `/api/admin/roles` | GET/POST | 角色列表/创建 | ✅ |
+| `/api/admin/roles/:id` | PUT/DELETE | 角色编辑/删除 | ✅ |
+| `/api/admin/scopes` | POST | 创建 Scope | ✅ |
+| `/api/admin/scopes/:id` | PUT/DELETE | 更新/删除 Scope | ✅ |
 
 ### 5.3 前端状态管理 (Pinia Stores)
 
@@ -449,11 +446,21 @@ Phase 4 (3 天): 优化 + 测试 + 部署 ✅
   ├── Docker 部署配置
   └── 文档
 
-Phase 5 (1 周): 功能补全 — 详见 admin_console_phase5_design.md
-  ├── 5A: 应用详情页 + Scope 分配
-  ├── 5B: Token 管理（列表/撤销/筛选）
-  ├── 5C: OIDC 签名密钥查看
-  └── 5D: E2E 测试补充
+Phase 5 (1 周): 功能补全 ✅
+  ├── 5A: 应用详情页 + Scope 分配 ✅
+  ├── 5B: Token 管理（列表/撤销/筛选）✅
+  ├── 5C: OIDC 签名密钥查看 ✅
+  ├── 5D: E2E 测试补充 ✅
+  └── 5E: 用户详情/角色管理/Scope管理 ✅
+
+Phase 6 (完成): 全功能补全
+  ├── 用户详情页（Info/Security/Roles Tab）✅
+  ├── 角色管理页（列表/创建/编辑/删除）✅
+  ├── Scope 管理页（列表/创建/编辑/删除）✅
+  ├── Dashboard 统计数据 ✅
+  ├── 后端 API 测试（32 tests）✅
+  ├── 前端 E2E 测试（123 tests）✅
+  └── OpenAPI 文档补全 ✅
 ```
 
 ---

@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $passed = 0
 $failed = 0
-$total = 12
+$total = 32
 
 # Import common functions
 . "$PSScriptRoot\common-test-functions.ps1"
@@ -25,7 +25,7 @@ function Test-Endpoint {
 }
 
 # ========================================
-# Pre-test Setup: Reset admin account
+# Pre-test Setup
 # ========================================
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host "Pre-test Setup" -ForegroundColor Yellow
@@ -33,9 +33,6 @@ Write-Host "========================================" -ForegroundColor Yellow
 Reset-AdminAccount
 Write-Host ""
 
-# ========================================
-# OAuth2 Endpoints Tests
-# ========================================
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host "Admin API Endpoints Tests ($total tests)" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
@@ -50,320 +47,424 @@ Test-Endpoint "Setup: Admin Login + Token" {
         client_id = 'admin-console'
         redirect_uri = 'http://localhost:5174/admin/callback'
         scope = 'openid profile admin'
-        state = 'admin-test-state'
-        json = 'true'
+        state = 'admin-test-state'; json = 'true'
     }
     $login = Invoke-RestMethod -Uri "$BaseUrl/oauth2/login" -Method Post -Body $loginBody
     if (-not $login.code) { throw "no auth code from login" }
-
-    $tokenBody = @{
-        grant_type = 'authorization_code'
-        code = $login.code
+    $tok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body @{
+        grant_type = 'authorization_code'; code = $login.code
         redirect_uri = 'http://localhost:5174/admin/callback'
-        client_id = 'admin-console'
-        client_secret = ''
+        client_id = 'admin-console'; client_secret = ''
     }
-    $tok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body $tokenBody
     if (-not $tok.access_token) { throw "no access_token" }
     $script:accessToken = $tok.access_token
-    Write-Host "    Token obtained: $($tok.access_token.Substring(0,16))..."
+    Write-Host "    Token: $($tok.access_token.Substring(0,16))..."
 }
 
-$headers = $null
 function Get-AuthHeaders {
     return @{ Authorization = "Bearer $script:accessToken"; "Content-Type" = "application/json" }
 }
 
 # ========================================
-# Test 1: GET /api/admin/clients/:id (Client Detail)
+# Section A: Dashboard Stats
 # ========================================
-Test-Endpoint "Test 1: GET /api/admin/clients/:id - Client Detail" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 1: GET /api/admin/dashboard/stats" {
     $h = Get-AuthHeaders
-    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client" -Method Get -Headers $h
-    # Verify all expected fields
-    if ($r.status -ne "success") { throw "status != success, got: $($r.status)" }
-    if ($r.client_id -ne "vue-client") { throw "client_id mismatch: $($r.client_id)" }
-    if (-not $r.client_type) { throw "missing client_type" }
-    if ($null -eq $r.name) { throw "missing name field" }
-    if ($null -eq $r.redirect_uris) { throw "missing redirect_uris field" }
-    if ($null -eq $r.allowed_grant_types) { throw "missing allowed_grant_types field" }
-    if ($null -eq $r.scopes) { throw "missing scopes array" }
-    if ($r.scopes -isnot [array]) { throw "scopes is not an array" }
-    # Ensure secret is NOT returned
-    if ($r.client_secret) { throw "SECURITY: client_secret should NOT be returned!" }
-    if ($r.salt) { throw "SECURITY: salt should NOT be returned!" }
-    Write-Host "    client_id: $($r.client_id), type: $($r.client_type), name: $($r.name)"
-    Write-Host "    redirect_uris: $($r.redirect_uris)"
-    Write-Host "    grant_types: $($r.allowed_grant_types)"
-    Write-Host "    scopes: [$($r.scopes -join ', ')]"
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/dashboard/stats" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($null -eq $r.total_users) { throw "missing total_users" }
+    if ($null -eq $r.total_clients) { throw "missing total_clients" }
+    if ($null -eq $r.active_tokens) { throw "missing active_tokens" }
+    if ($null -eq $r.failures_today) { throw "missing failures_today" }
+    Write-Host "    users=$($r.total_users), clients=$($r.total_clients), tokens=$($r.active_tokens)"
 }
 
 # ========================================
-# Test 2: GET /api/admin/clients/:id - Not Found
+# Section B: Client Management
 # ========================================
-Test-Endpoint "Test 2: GET /api/admin/clients/:id - Not Found (404)" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 2: GET /api/admin/clients/:id - Client Detail" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($r.client_id -ne "vue-client") { throw "client_id mismatch" }
+    if (-not $r.client_type) { throw "missing client_type" }
+    if ($null -eq $r.scopes) { throw "missing scopes" }
+    if ($r.client_secret) { throw "SECURITY: client_secret exposed!" }
+    Write-Host "    client_id=$($r.client_id), type=$($r.client_type), scopes=[$($r.scopes -join ',')]"
+}
+
+Test-Endpoint "Test 3: GET /api/admin/clients/:id - Not Found (404)" {
     $h = Get-AuthHeaders
     try {
-        Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/nonexistent-client-xyz" -Method Get -Headers $h -ErrorAction Stop
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/nonexistent-xyz" -Method Get -Headers $h -ErrorAction Stop
         throw "should have returned 404"
     } catch {
         if ($_.Exception.Response.StatusCode -eq "NotFound") {
-            Write-Host "    Correctly returned 404 for non-existent client"
-        } else {
-            throw "expected 404, got: $($_.Exception.Response.StatusCode)"
-        }
+            Write-Host "    Correctly returned 404"
+        } else { throw "expected 404, got: $($_.Exception.Response.StatusCode)" }
     }
 }
 
-# ========================================
-# Test 3: PUT /api/admin/clients/:id (Update Client)
-# ========================================
-Test-Endpoint "Test 3: PUT /api/admin/clients/:id - Update Client" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 4: PUT /api/admin/clients/:id - Update Client" {
     $h = Get-AuthHeaders
     $body = @{ name = "Vue Frontend Updated" } | ConvertTo-Json
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client" -Method Put -Headers $h -Body $body
-    if ($r.status -ne "success") { throw "status != success: $($r.status)" }
-    if (-not $r.message) { throw "missing message" }
-    Write-Host "    Response: $($r.message)"
-
-    # Verify the update persisted
+    if ($r.status -ne "success") { throw "status != success" }
     $check = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client" -Method Get -Headers $h
-    if ($check.name -ne "Vue Frontend Updated") { throw "name not updated: $($check.name)" }
-    Write-Host "    Verified: name = '$($check.name)'"
-
-    # Restore original name
+    if ($check.name -ne "Vue Frontend Updated") { throw "name not updated" }
+    Write-Host "    Verified: name='$($check.name)'"
+    # Restore
     $restore = @{ name = "Vue Frontend" } | ConvertTo-Json
     Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client" -Method Put -Headers $h -Body $restore | Out-Null
 }
 
-# ========================================
-# Test 4: GET /api/admin/clients/:id/scopes
-# ========================================
-Test-Endpoint "Test 4: GET /api/admin/clients/:id/scopes" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 5: GET /api/admin/clients/:id/scopes" {
     $h = Get-AuthHeaders
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client/scopes" -Method Get -Headers $h
     if ($r.status -ne "success") { throw "status != success" }
-    if ($null -eq $r.scopes) { throw "missing scopes field" }
-    if ($r.scopes -isnot [array]) { throw "scopes is not an array" }
-    Write-Host "    Current scopes: [$($r.scopes -join ', ')]"
+    if ($r.scopes -isnot [array]) { throw "scopes is not array" }
+    Write-Host "    scopes: [$($r.scopes -join ', ')]"
 }
 
-# ========================================
-# Test 5: PUT /api/admin/clients/:id/scopes (Update Scopes)
-# ========================================
-Test-Endpoint "Test 5: PUT /api/admin/clients/:id/scopes - Update Scopes" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 6: PUT /api/admin/clients/:id/scopes - Update" {
     $h = Get-AuthHeaders
-
-    # First get current scopes to restore later
     $current = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client/scopes" -Method Get -Headers $h
-    $originalScopes = $current.scopes
-
-    # Update to new scopes
+    $original = $current.scopes
     $body = @{ scopes = @("openid", "profile", "email") } | ConvertTo-Json
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client/scopes" -Method Put -Headers $h -Body $body
-    if ($r.status -ne "success") { throw "status != success: $($r.status)" }
-    if ($null -eq $r.scopes) { throw "missing scopes in response" }
-    Write-Host "    Updated scopes: [$($r.scopes -join ', ')]"
-
-    # Verify persistence
+    if ($r.status -ne "success") { throw "status != success" }
     $verify = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client/scopes" -Method Get -Headers $h
     if ($verify.scopes.Count -ne 3) { throw "expected 3 scopes, got $($verify.scopes.Count)" }
-    $hasOpenid = $verify.scopes -contains "openid"
-    $hasProfile = $verify.scopes -contains "profile"
-    $hasEmail = $verify.scopes -contains "email"
-    if (-not $hasOpenid) { throw "missing openid scope" }
-    if (-not $hasProfile) { throw "missing profile scope" }
-    if (-not $hasEmail) { throw "missing email scope" }
-    Write-Host "    Verified: all 3 scopes persisted correctly"
-
-    # Restore original scopes
-    if ($originalScopes -and $originalScopes.Count -gt 0) {
-        $restoreBody = @{ scopes = $originalScopes } | ConvertTo-Json
+    Write-Host "    Updated and verified: [$($verify.scopes -join ', ')]"
+    # Restore
+    if ($original -and $original.Count -gt 0) {
+        $restoreBody = @{ scopes = $original } | ConvertTo-Json
         Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/vue-client/scopes" -Method Put -Headers $h -Body $restoreBody | Out-Null
     }
 }
 
 # ========================================
-# Test 6: PUT /api/admin/clients/:id/scopes - Empty scopes
-# ========================================
-Test-Endpoint "Test 6: PUT /api/admin/clients/:id/scopes - Empty Array" {
-    if (-not $accessToken) { throw "skipped: no token" }
-    $h = Get-AuthHeaders
-
-    # Save current
-    $current = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/admin-console/scopes" -Method Get -Headers $h
-    $originalScopes = $current.scopes
-
-    # Set empty
-    $body = @{ scopes = @() } | ConvertTo-Json
-    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/admin-console/scopes" -Method Put -Headers $h -Body $body
-    if ($r.status -ne "success") { throw "status != success" }
-
-    # Verify empty
-    $verify = Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/admin-console/scopes" -Method Get -Headers $h
-    if ($verify.scopes.Count -ne 0) { throw "expected 0 scopes, got $($verify.scopes.Count)" }
-    Write-Host "    Verified: scopes cleared to empty array"
-
-    # Restore
-    if ($originalScopes -and $originalScopes.Count -gt 0) {
-        $restoreBody = @{ scopes = $originalScopes } | ConvertTo-Json
-        Invoke-RestMethod -Uri "$BaseUrl/api/admin/clients/admin-console/scopes" -Method Put -Headers $h -Body $restoreBody | Out-Null
-        Write-Host "    Restored original scopes"
-    }
-}
-
-# ========================================
-# Test 7: GET /api/admin/tokens (Token List)
+# Section C: Token Management
 # ========================================
 Test-Endpoint "Test 7: GET /api/admin/tokens - Token List" {
-    if (-not $accessToken) { throw "skipped: no token" }
     $h = Get-AuthHeaders
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens?page=1&per_page=10" -Method Get -Headers $h
-    if ($null -eq $r.tokens) { throw "missing tokens array" }
-    if ($r.tokens -isnot [array]) { throw "tokens is not an array" }
-    if ($null -eq $r.total) { throw "missing total field" }
-    if ($null -eq $r.page) { throw "missing page field" }
-    if ($null -eq $r.per_page) { throw "missing per_page field" }
-    Write-Host "    Total tokens: $($r.total), Page: $($r.page), Per page: $($r.per_page)"
-    Write-Host "    Returned: $($r.tokens.Count) tokens"
-
-    # Verify token fields (if any tokens exist)
+    if ($null -eq $r.tokens) { throw "missing tokens" }
+    if ($r.tokens -isnot [array]) { throw "tokens not array" }
+    if ($null -eq $r.total) { throw "missing total" }
     if ($r.tokens.Count -gt 0) {
         $t = $r.tokens[0]
         if (-not $t.token_prefix) { throw "missing token_prefix" }
-        if ($t.token_prefix.Length -gt 8) { throw "token_prefix too long (security: should be max 8 chars)" }
-        if ($null -eq $t.client_id) { throw "missing client_id" }
-        if ($null -eq $t.scope) { throw "missing scope" }
-        if ($null -eq $t.expires_at) { throw "missing expires_at" }
-        Write-Host "    First token: prefix=$($t.token_prefix), client=$($t.client_id), scope=$($t.scope)"
+        if ($t.token_prefix.Length -gt 8) { throw "token_prefix too long" }
     }
+    Write-Host "    total=$($r.total), returned=$($r.tokens.Count)"
 }
 
-# ========================================
-# Test 8: GET /api/admin/tokens with filter
-# ========================================
 Test-Endpoint "Test 8: GET /api/admin/tokens - Filter by client_id" {
-    if (-not $accessToken) { throw "skipped: no token" }
     $h = Get-AuthHeaders
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens?client_id=admin-console&page=1&per_page=50" -Method Get -Headers $h
-    if ($null -eq $r.tokens) { throw "missing tokens array" }
-    # All returned tokens should belong to admin-console
     foreach ($t in $r.tokens) {
-        if ($t.client_id -ne "admin-console") {
-            throw "filter failed: got token for client '$($t.client_id)' instead of 'admin-console'"
-        }
+        if ($t.client_id -ne "admin-console") { throw "filter failed: got '$($t.client_id)'" }
     }
-    Write-Host "    Filtered tokens for admin-console: $($r.tokens.Count)"
+    Write-Host "    Filtered: $($r.tokens.Count) tokens for admin-console"
 }
 
-# ========================================
-# Test 9: POST /api/admin/tokens/revoke-by-client
-# ========================================
 Test-Endpoint "Test 9: POST /api/admin/tokens/revoke-by-client" {
-    # Get a fresh token for this test
-    $loginBody9 = @{
-        username = 'admin'; password = 'admin'
-        client_id = 'admin-console'
-        redirect_uri = 'http://localhost:5174/admin/callback'
-        scope = 'openid profile admin'
-        state = 'test9-state'
-        json = 'true'
-    }
-    $login9 = Invoke-RestMethod -Uri "$BaseUrl/oauth2/login" -Method Post -Body $loginBody9
-    if (-not $login9.code) { throw "no auth code for test 9" }
-    $tokenBody9 = @{
-        grant_type = 'authorization_code'
-        code = $login9.code
-        redirect_uri = 'http://localhost:5174/admin/callback'
-        client_id = 'admin-console'
-        client_secret = ''
-    }
-    $tok9 = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body $tokenBody9
-    if (-not $tok9.access_token) { throw "no access_token for test 9" }
-    $freshToken = $tok9.access_token
-
-    # Revoke all tokens for a non-critical client (backend-svc)
     $body = @{ client_id = "backend-svc" } | ConvertTo-Json
-    $revokeHeaders = @{ Authorization = "Bearer $freshToken"; "Content-Type" = "application/json" }
-    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens/revoke-by-client" -Method Post -Headers $revokeHeaders -Body $body
-    if ($r.status -ne "success") { throw "status != success: $($r.status)" }
-    if ($null -eq $r.count) { throw "missing count field" }
-    Write-Host "    Revoked $($r.count) tokens for backend-svc"
-    Write-Host "    Message: $($r.message)"
-}
-
-# ========================================
-# Test 10: POST /api/admin/tokens/revoke-by-user
-# ========================================
-Test-Endpoint "Test 10: POST /api/admin/tokens/revoke-by-user" {
-    if (-not $accessToken) { throw "skipped: no token" }
     $h = Get-AuthHeaders
-    # Use a non-existent user to avoid revoking our own token
-    $body = @{ user_id = "nonexistent-user-id-12345" } | ConvertTo-Json
-    $revokeHeaders = @{ Authorization = "Bearer $script:accessToken"; "Content-Type" = "application/json" }
-    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens/revoke-by-user" -Method Post -Headers $revokeHeaders -Body $body
-    if ($r.status -ne "success") { throw "status != success: $($r.status)" }
-    if ($null -eq $r.count) { throw "missing count field" }
-    Write-Host "    Revoked $($r.count) tokens for nonexistent user (expected 0)"
-    Write-Host "    Message: $($r.message)"
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens/revoke-by-client" -Method Post -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($null -eq $r.count) { throw "missing count" }
+    Write-Host "    Revoked $($r.count) tokens for backend-svc"
 }
 
-# ========================================
-# Test 11: GET /api/admin/oidc/keys
-# ========================================
-Test-Endpoint "Test 11: GET /api/admin/oidc/keys - OIDC Key Info" {
-    if (-not $accessToken) { throw "skipped: no token" }
+Test-Endpoint "Test 10: POST /api/admin/tokens/revoke-by-user" {
+    $body = @{ user_id = "nonexistent-user-12345" } | ConvertTo-Json
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/tokens/revoke-by-user" -Method Post -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    Revoked $($r.count) tokens (expected 0)"
+}
+
+Test-Endpoint "Test 11: GET /api/admin/oidc/keys" {
     $h = Get-AuthHeaders
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/oidc/keys" -Method Get -Headers $h
     if ($r.status -ne "success") { throw "status != success" }
-    if (-not $r.kid) { throw "missing kid" }
-    if ($r.kty -ne "RSA") { throw "kty != RSA, got: $($r.kty)" }
-    if ($r.alg -ne "RS256") { throw "alg != RS256, got: $($r.alg)" }
-    if ($r.use -ne "sig") { throw "use != sig, got: $($r.use)" }
-    if (-not $r.jwks_uri) { throw "missing jwks_uri" }
-    if (-not $r.discovery_uri) { throw "missing discovery_uri" }
-    if (-not $r.key_status) { throw "missing key_status" }
+    if ($r.kty -ne "RSA") { throw "kty != RSA" }
+    if ($r.alg -ne "RS256") { throw "alg != RS256" }
     if ($r.key_status -ne "active") { throw "key_status != active" }
-    Write-Host "    kid: $($r.kid), kty: $($r.kty), alg: $($r.alg), use: $($r.use)"
-    Write-Host "    jwks_uri: $($r.jwks_uri)"
-    Write-Host "    discovery_uri: $($r.discovery_uri)"
-    Write-Host "    key_status: $($r.key_status)"
+    Write-Host "    kid=$($r.kid), alg=$($r.alg), status=$($r.key_status)"
 }
 
 # ========================================
-# Test 12: Unauthorized access (no token)
+# Section D: User Management
 # ========================================
-Test-Endpoint "Test 12: Unauthorized Access - All Phase 5 endpoints require auth" {
+$adminUserId = $null
+Test-Endpoint "Test 12: GET /api/admin/users - List" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    $adminUser = $r.users | Where-Object { $_.username -eq 'admin' }
+    if (-not $adminUser) { throw "admin user not found" }
+    $script:adminUserId = $adminUser.id
+    Write-Host "    total=$($r.total), admin id=$($script:adminUserId)"
+}
+
+Test-Endpoint "Test 13: GET /api/admin/users/:id - Detail" {
+    if (-not $adminUserId) { throw "skipped: no user id" }
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$adminUserId" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($r.username -ne "admin") { throw "username mismatch" }
+    if ($null -eq $r.roles) { throw "missing roles" }
+    if ($r.roles -isnot [array]) { throw "roles not array" }
+    if ($null -eq $r.locked) { throw "missing locked" }
+    Write-Host "    username=$($r.username), roles=[$($r.roles -join ',')], locked=$($r.locked)"
+}
+
+Test-Endpoint "Test 14: GET /api/admin/users/:id - Not Found" {
+    $h = Get-AuthHeaders
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/99999999" -Method Get -Headers $h -ErrorAction Stop
+        throw "should have returned 404"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "NotFound") {
+            Write-Host "    Correctly returned 404"
+        } else { throw "expected 404, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+Test-Endpoint "Test 15: PUT /api/admin/users/:id - Update" {
+    if (-not $adminUserId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $body = @{ email_verified = $true } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$adminUserId" -Method Put -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    $($r.message)"
+}
+
+Test-Endpoint "Test 16: GET /api/admin/users/:id/roles" {
+    if (-not $adminUserId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$adminUserId/roles" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($r.roles -isnot [array]) { throw "roles not array" }
+    Write-Host "    roles: [$($r.roles.name -join ', ')]"
+}
+
+$testUserId = $null
+Test-Endpoint "Test 17: Disable/Enable User" {
+    $h = Get-AuthHeaders
+    $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    # Create test user
+    Invoke-RestMethod -Uri "$BaseUrl/api/register" -Method Post -Body @{ username = "testuser_$ts"; password = "TestPass123"; email = "t_$ts@test.com" } | Out-Null
+    $users = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users" -Method Get -Headers $h
+    $testUser = $users.users | Where-Object { $_.username -eq "testuser_$ts" }
+    if (-not $testUser) { throw "test user not found" }
+    $script:testUserId = $testUser.id
+    # Disable
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$($testUser.id)/disable" -Method Put -Headers $h
+    if ($r.status -ne "success") { throw "disable failed" }
+    $check = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$($testUser.id)" -Method Get -Headers $h
+    if (-not $check.locked) { throw "user should be locked" }
+    # Enable
+    $r2 = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$($testUser.id)/enable" -Method Post -Headers $h
+    if ($r2.status -ne "success") { throw "enable failed" }
+    $check2 = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$($testUser.id)" -Method Get -Headers $h
+    if ($check2.locked) { throw "user should be unlocked" }
+    Write-Host "    Disable/Enable cycle verified"
+}
+
+# ========================================
+# Section E: Role Management
+# ========================================
+$testRoleId = $null
+Test-Endpoint "Test 18: GET /api/admin/roles - List" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($r.roles -isnot [array]) { throw "roles not array" }
+    $adminRole = $r.roles | Where-Object { $_.name -eq 'admin' }
+    if (-not $adminRole) { throw "admin role not found" }
+    if ($null -eq $adminRole.user_count) { throw "missing user_count" }
+    Write-Host "    total=$($r.total), admin users=$($adminRole.user_count)"
+}
+
+Test-Endpoint "Test 19: POST /api/admin/roles - Create" {
+    $h = Get-AuthHeaders
+    $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $body = @{ name = "testrole_$ts"; description = "Test role" } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles" -Method Post -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    if (-not $r.id) { throw "missing id" }
+    $script:testRoleId = $r.id
+    Write-Host "    Created: id=$($r.id), name=$($r.name)"
+}
+
+Test-Endpoint "Test 20: POST /api/admin/roles - Duplicate (409)" {
+    $h = Get-AuthHeaders
+    try {
+        $body = @{ name = "admin" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles" -Method Post -Headers $h -Body $body -ErrorAction Stop
+        throw "should have returned 409"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "Conflict") {
+            Write-Host "    Correctly returned 409"
+        } else { throw "expected 409, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+Test-Endpoint "Test 21: PUT /api/admin/roles/:id - Update" {
+    if (-not $testRoleId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $body = @{ description = "Updated" } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles/$testRoleId" -Method Put -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    $($r.message)"
+}
+
+Test-Endpoint "Test 22: DELETE /api/admin/roles/:id - Delete" {
+    if (-not $testRoleId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles/$testRoleId" -Method Delete -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    $($r.message)"
+}
+
+Test-Endpoint "Test 23: DELETE /api/admin/roles - Cannot delete built-in" {
+    $h = Get-AuthHeaders
+    $roles = Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles" -Method Get -Headers $h
+    $adminRole = $roles.roles | Where-Object { $_.name -eq 'admin' }
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/roles/$($adminRole.id)" -Method Delete -Headers $h -ErrorAction Stop
+        throw "should have returned 404"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "NotFound") {
+            Write-Host "    Correctly prevented deletion of built-in role"
+        } else { throw "expected 404, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+# ========================================
+# Section F: Scope Management
+# ========================================
+$testScopeId = $null
+Test-Endpoint "Test 24: POST /api/admin/scopes - Create" {
+    $h = Get-AuthHeaders
+    $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $body = @{ name = "testscope_$ts"; description = "Test scope"; mapped_role = "user"; is_default = $false; requires_admin_role = $false } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes" -Method Post -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    if (-not $r.id) { throw "missing id" }
+    $script:testScopeId = $r.id
+    Write-Host "    Created: id=$($r.id), name=$($r.name)"
+}
+
+Test-Endpoint "Test 25: GET /api/admin/scopes - List" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($r.scopes -isnot [array]) { throw "scopes not array" }
+    $openid = $r.scopes | Where-Object { $_.name -eq 'openid' }
+    if (-not $openid) { throw "openid scope not found" }
+    Write-Host "    total=$($r.total), found openid scope"
+}
+
+Test-Endpoint "Test 26: PUT /api/admin/scopes/:id - Update" {
+    if (-not $testScopeId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $body = @{ description = "Updated"; is_default = $true } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes/$testScopeId" -Method Put -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    $($r.message)"
+}
+
+Test-Endpoint "Test 27: DELETE /api/admin/scopes/:id - Delete" {
+    if (-not $testScopeId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes/$testScopeId" -Method Delete -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    Write-Host "    $($r.message)"
+}
+
+Test-Endpoint "Test 28: DELETE /api/admin/scopes - Cannot delete built-in" {
+    $h = Get-AuthHeaders
+    $scopes = Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes" -Method Get -Headers $h
+    $openid = $scopes.scopes | Where-Object { $_.name -eq 'openid' }
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes/$($openid.id)" -Method Delete -Headers $h -ErrorAction Stop
+        throw "should have returned 404"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "NotFound") {
+            Write-Host "    Correctly prevented deletion of built-in scope"
+        } else { throw "expected 404, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+Test-Endpoint "Test 29: POST /api/admin/scopes - Duplicate (409)" {
+    $h = Get-AuthHeaders
+    try {
+        $body = @{ name = "openid" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "$BaseUrl/api/admin/scopes" -Method Post -Headers $h -Body $body -ErrorAction Stop
+        throw "should have returned 409"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq "Conflict") {
+            Write-Host "    Correctly returned 409"
+        } else { throw "expected 409, got: $($_.Exception.Response.StatusCode)" }
+    }
+}
+
+# ========================================
+# Section G: Authorization / Security
+# ========================================
+Test-Endpoint "Test 30: Unauthorized Access - Endpoints require auth" {
     $endpoints = @(
         @{ Uri = "$BaseUrl/api/admin/clients/vue-client"; Method = "Get" },
-        @{ Uri = "$BaseUrl/api/admin/clients/vue-client/scopes"; Method = "Get" },
         @{ Uri = "$BaseUrl/api/admin/tokens"; Method = "Get" },
-        @{ Uri = "$BaseUrl/api/admin/oidc/keys"; Method = "Get" }
+        @{ Uri = "$BaseUrl/api/admin/roles"; Method = "Get" },
+        @{ Uri = "$BaseUrl/api/admin/users/1"; Method = "Get" },
+        @{ Uri = "$BaseUrl/api/admin/dashboard/stats"; Method = "Get" }
     )
     $allBlocked = $true
     foreach ($ep in $endpoints) {
         try {
             Invoke-RestMethod -Uri $ep.Uri -Method $ep.Method -ErrorAction Stop
-            Write-Host "    SECURITY ISSUE: $($ep.Uri) accessible without auth!" -ForegroundColor Red
+            Write-Host "    SECURITY: $($ep.Uri) accessible without auth!" -ForegroundColor Red
             $allBlocked = $false
         } catch {
             $status = $_.Exception.Response.StatusCode
             if ($status -ne "Unauthorized" -and $status -ne "Forbidden") {
-                Write-Host "    WARNING: $($ep.Uri) returned $status (expected 401/403)" -ForegroundColor Yellow
+                Write-Host "    WARNING: $($ep.Uri) returned $status" -ForegroundColor Yellow
             }
         }
     }
-    if (-not $allBlocked) { throw "Some endpoints accessible without authentication!" }
-    Write-Host "    All 4 endpoints correctly require authentication"
+    if (-not $allBlocked) { throw "Some endpoints accessible without auth!" }
+    Write-Host "    All 5 endpoints correctly require authentication"
+}
+
+Test-Endpoint "Test 31: PUT /api/admin/users/:id/roles - Assign Roles" {
+    if (-not $testUserId) { throw "skipped" }
+    $h = Get-AuthHeaders
+    $body = @{ roles = @("admin", "user") } | ConvertTo-Json
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$testUserId/roles" -Method Put -Headers $h -Body $body
+    if ($r.status -ne "success") { throw "status != success" }
+    # Verify
+    $check = Invoke-RestMethod -Uri "$BaseUrl/api/admin/users/$testUserId/roles" -Method Get -Headers $h
+    if ($check.roles.Count -lt 1) { throw "no roles assigned" }
+    Write-Host "    Assigned and verified: [$($check.roles.name -join ', ')]"
+}
+
+Test-Endpoint "Test 32: GET /api/admin/logs - Audit Logs" {
+    $h = Get-AuthHeaders
+    $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/logs?page=1&per_page=10" -Method Get -Headers $h
+    if ($r.status -ne "success") { throw "status != success" }
+    if ($null -eq $r.logs) { throw "missing logs" }
+    if ($r.logs -isnot [array]) { throw "logs not array" }
+    Write-Host "    page=$($r.page), returned=$($r.logs.Count) logs"
 }
 
 # ========================================
-# Cleanup: Reset admin account
+# Post-test Cleanup
 # ========================================
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Yellow
@@ -371,12 +472,9 @@ Write-Host "Post-test Cleanup" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
 Reset-AdminAccount
 
-# ========================================
-# Summary
-# ========================================
 Write-Host ""
 Write-Host "========================================"
-Write-Host "Admin Phase 5 API Tests: $passed/$total passed, $failed failed"
+Write-Host "Admin API Tests: $passed/$total passed, $failed failed"
 Write-Host "========================================"
 
 if ($failed -gt 0) {

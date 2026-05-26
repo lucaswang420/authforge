@@ -170,6 +170,115 @@ struct AdminApiControllerDocs {
         getOidcKeys.tags = {"Admin", "OIDC"};
         getOidcKeys.requiresAuth = true;
         common::documentation::OpenApiGenerator::addEndpoint(getOidcKeys);
+
+        // New endpoints
+        common::documentation::EndpointInfo getUser;
+        getUser.path = "/api/admin/users/{userId}";
+        getUser.method = "GET";
+        getUser.summary = "Get User Detail";
+        getUser.description = "Get detailed information about a specific user including roles and account status.";
+        getUser.tags = {"Admin", "Users"};
+        getUser.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getUser);
+
+        common::documentation::EndpointInfo updateUser;
+        updateUser.path = "/api/admin/users/{userId}";
+        updateUser.method = "PUT";
+        updateUser.summary = "Update User";
+        updateUser.description = "Update user information (email, email_verified).";
+        updateUser.tags = {"Admin", "Users"};
+        updateUser.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(updateUser);
+
+        common::documentation::EndpointInfo enableUser;
+        enableUser.path = "/api/admin/users/{userId}/enable";
+        enableUser.method = "POST";
+        enableUser.summary = "Enable User";
+        enableUser.description = "Enable a disabled user account by resetting lockout state.";
+        enableUser.tags = {"Admin", "Users"};
+        enableUser.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(enableUser);
+
+        common::documentation::EndpointInfo getUserRoles;
+        getUserRoles.path = "/api/admin/users/{userId}/roles";
+        getUserRoles.method = "GET";
+        getUserRoles.summary = "Get User Roles";
+        getUserRoles.description = "Get the roles assigned to a specific user.";
+        getUserRoles.tags = {"Admin", "Users"};
+        getUserRoles.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getUserRoles);
+
+        common::documentation::EndpointInfo listRoles;
+        listRoles.path = "/api/admin/roles";
+        listRoles.method = "GET";
+        listRoles.summary = "List Roles";
+        listRoles.description = "Get a list of all roles with user counts.";
+        listRoles.tags = {"Admin", "Roles"};
+        listRoles.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(listRoles);
+
+        common::documentation::EndpointInfo createRole;
+        createRole.path = "/api/admin/roles";
+        createRole.method = "POST";
+        createRole.summary = "Create Role";
+        createRole.description = "Create a new role. Built-in roles cannot be duplicated.";
+        createRole.tags = {"Admin", "Roles"};
+        createRole.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(createRole);
+
+        common::documentation::EndpointInfo updateRole;
+        updateRole.path = "/api/admin/roles/{roleId}";
+        updateRole.method = "PUT";
+        updateRole.summary = "Update Role";
+        updateRole.description = "Update a role's description.";
+        updateRole.tags = {"Admin", "Roles"};
+        updateRole.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(updateRole);
+
+        common::documentation::EndpointInfo deleteRole;
+        deleteRole.path = "/api/admin/roles/{roleId}";
+        deleteRole.method = "DELETE";
+        deleteRole.summary = "Delete Role";
+        deleteRole.description = "Delete a role. Built-in roles (admin, user) cannot be deleted.";
+        deleteRole.tags = {"Admin", "Roles"};
+        deleteRole.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(deleteRole);
+
+        common::documentation::EndpointInfo createScope;
+        createScope.path = "/api/admin/scopes";
+        createScope.method = "POST";
+        createScope.summary = "Create Scope";
+        createScope.description = "Create a new OAuth2 scope.";
+        createScope.tags = {"Admin", "Scopes"};
+        createScope.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(createScope);
+
+        common::documentation::EndpointInfo updateScope;
+        updateScope.path = "/api/admin/scopes/{scopeId}";
+        updateScope.method = "PUT";
+        updateScope.summary = "Update Scope";
+        updateScope.description = "Update a scope's properties.";
+        updateScope.tags = {"Admin", "Scopes"};
+        updateScope.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(updateScope);
+
+        common::documentation::EndpointInfo deleteScope;
+        deleteScope.path = "/api/admin/scopes/{scopeId}";
+        deleteScope.method = "DELETE";
+        deleteScope.summary = "Delete Scope";
+        deleteScope.description = "Delete a scope. Built-in scopes cannot be deleted.";
+        deleteScope.tags = {"Admin", "Scopes"};
+        deleteScope.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(deleteScope);
+
+        common::documentation::EndpointInfo getDashboardStats;
+        getDashboardStats.path = "/api/admin/dashboard/stats";
+        getDashboardStats.method = "GET";
+        getDashboardStats.summary = "Get Dashboard Stats";
+        getDashboardStats.description = "Get dashboard statistics including user count, client count, active tokens, and failure metrics.";
+        getDashboardStats.tags = {"Admin", "Dashboard"};
+        getDashboardStats.requiresAuth = true;
+        common::documentation::OpenApiGenerator::addEndpoint(getDashboardStats);
     }
 };
 AdminApiControllerDocs docs_;
