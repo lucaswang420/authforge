@@ -103,10 +103,12 @@ redis-cli -h localhost ping || echo "Redis not ready"
 
 # 初始化测试数据库（如果需要）
 export PGPASSWORD="123456"
-psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/001_oauth2_core.sql
-psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/002_users_table.sql
-psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/003_rbac_schema.sql
-psql -h localhost -U oauth2_user -d oauth2_db -f ../sql/004_oauth2_scopes.sql
+for f in ../sql/migrations/V*.sql; do
+    psql -h localhost -U oauth2_user -d oauth2_db -f "$f"
+done
+for f in ../sql/seed/*.sql; do
+    psql -h localhost -U oauth2_user -d oauth2_db -f "$f"
+done
 ```
 
 ### 8. 运行测试

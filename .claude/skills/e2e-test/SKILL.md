@@ -84,10 +84,12 @@ cd /path/to/project
 $env:PGPASSWORD='123456'
 psql -U oauth2_user -d postgres -c "DROP DATABASE IF EXISTS oauth2_db;"
 psql -U oauth2_user -d postgres -c "CREATE DATABASE oauth2_db;"
-psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/001_oauth2_core.sql"
-psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/002_users_table.sql"
-psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/003_rbac_schema.sql"
-psql -U oauth2_user -d oauth2_db -f "OAuth2Server/sql/004_oauth2_scopes.sql"
+for f in OAuth2Server/sql/migrations/V*.sql; do
+    psql -U oauth2_user -d oauth2_db -f "$f"
+done
+for f in OAuth2Server/sql/seed/*.sql; do
+    psql -U oauth2_user -d oauth2_db -f "$f"
+done
 
 # 编译服务（如果需要）
 .\manage.ps1 build-backend -release

@@ -55,11 +55,15 @@ echo -e "✓ Redis is ready"
 
 echo -e "\n${GREEN}[2/4] Initializing database...${NC}"
 export PGPASSWORD=$OAUTH2_DB_PASSWORD
-psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f /app/OAuth2Server/sql/001_oauth2_core.sql > /dev/null
-psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f /app/OAuth2Server/sql/002_users_table.sql > /dev/null
-psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f /app/OAuth2Server/sql/003_rbac_schema.sql > /dev/null
-psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f /app/OAuth2Server/sql/004_oauth2_scopes.sql > /dev/null
-echo -e "✓ Database initialized"
+# Apply all migrations in order
+for migration in /app/OAuth2Server/sql/migrations/V*.sql; do
+    psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f "$migration" > /dev/null 2>&1
+done
+# Apply seed data
+for seed in /app/OAuth2Server/sql/seed/*.sql; do
+    psql -h "$OAUTH2_DB_HOST" -p "${OAUTH2_DB_PORT:-5432}" -U "$OAUTH2_DB_USER" -d "$OAUTH2_DB_NAME" -f "$seed" > /dev/null 2>&1
+done
+echo -e "✓ Database initialized (migrations + seed)"
 
 echo -e "\n${GREEN}[3/4] Building Project...${NC}"
 bash /app/scripts/backend/build.sh --debug

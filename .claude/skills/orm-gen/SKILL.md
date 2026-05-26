@@ -450,8 +450,8 @@ psql -h localhost -U oauth2_user -d oauth2_db -c "\d oauth2_clients"
 
 ### 1. 表结构变更流程
 ```bash
-# 1. 修改 SQL 脚本
-vim OAuth2Server/sql/001_oauth2_core.sql
+# 1. 修改 migration SQL 脚本
+vim OAuth2Server/sql/migrations/V002__oauth2_core.sql
 
 # 2. 重置数据库
 /db-reset

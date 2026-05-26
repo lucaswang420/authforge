@@ -427,11 +427,11 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 // 4. 记录到 schema_migrations
 ```
 
-### 6.4 清理现有 SQL
+### 6.4 清理现有 SQL ✅ 已完成
 
-- `001_oauth2_core.sql` 中的 `DROP TABLE` 全部移除
-- 所有 `CREATE TABLE` 改为 `CREATE TABLE IF NOT EXISTS`
-- 默认 admin 和 vue-client INSERT 移到 `seed/`
+- 旧的 `001_oauth2_core.sql` ~ `004_oauth2_scopes.sql` 已删除
+- 所有 schema 统一在 `sql/migrations/V001-V018` 管理
+- 默认 admin 和 vue-client INSERT 已移到 `sql/seed/`
 - 生产配置中不执行 seed
 
 ### 6.5 验收

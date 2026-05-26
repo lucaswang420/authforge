@@ -20,9 +20,14 @@
 
 ## 二、P0-Critical: 基础设施修复
 
-### NF-1: full_test_docker.bat 适配新 migration 结构
+### NF-1: full_test_docker.bat 适配新 migration 结构 ✅ 已完成
 
-**问题**: `full_test_docker.bat` 仍引用旧的 `sql/001_oauth2_core.sql` 等文件，不会创建 P0+P1 新增的表（password_reset_tokens, email_verification_tokens, audit_logs, mfa 列等）。
+**问题**: 旧的 `sql/001_oauth2_core.sql` 等文件已删除，所有 schema 统一在 `sql/migrations/` 目录管理。
+
+**已完成改动**:
+- `docker-quick-verify-debug.sh` 已改为遍历 `sql/migrations/V*.sql` + `sql/seed/*.sql`
+- `.claude/skills/` 中所有引用已更新
+- `docs/backend/ci_cd_guide.md` 已更新
 
 **改动**:
 - 将 Step 2 的 4 条 `docker exec ... < sql/00x.sql` 替换为循环执行 `sql/migrations/V*.sql`

@@ -29,7 +29,7 @@ DROGON_TEST(Integration_P0_UserSystem_General_Works)
         return;
     }
 
-    // Schema already correct in 002_users_table.sql
+    // Schema defined in sql/migrations/V004__users_table.sql
 
     // Clean up
     try
