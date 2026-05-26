@@ -51,9 +51,12 @@ test.describe('Login', () => {
     await page.locator('input[autocomplete="username"]').fill('testuser')
     await page.locator('input[autocomplete="current-password"]').fill('password123')
     await page.locator('button[type="submit"]').click()
+    // Should show MFA form
+    await expect(page.locator('input[maxlength="6"]')).toBeVisible()
     await page.locator('input[maxlength="6"]').fill('123456')
     await page.locator('button[type="submit"]').click()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 })
+    // After MFA verify, should navigate to dashboard
+    await expect(page).toHaveURL('/', { timeout: 10000 })
   })
 
   test('forgot password link navigates correctly', async ({ page }) => {

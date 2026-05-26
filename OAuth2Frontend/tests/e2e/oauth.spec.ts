@@ -58,7 +58,8 @@ test.describe('Callback Page', () => {
 
   test('exchanges code for token and redirects', async ({ page }) => {
     await page.goto('/callback?code=test-auth-code&state=test-state')
-    await page.waitForURL('/')
+    // After successful token exchange, should redirect to /
+    await expect(page).toHaveURL('/', { timeout: 10000 })
   })
 
   test('shows error when error param present', async ({ page }) => {

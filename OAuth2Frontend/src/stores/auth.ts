@@ -2,15 +2,19 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
-import { getAccessToken, clearTokens } from '../services/http'
+import { getAccessToken, setTokens as httpSetTokens, clearTokens as httpClearTokens } from '../services/http'
 import type { User, LoginResult } from '../types'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const loading = ref(false)
   const error = ref('')
+  const tokenPresent = ref(!!getAccessToken())
 
-  const isAuthenticated = computed(() => !!getAccessToken())
+  const isAuthenticated = computed(() => tokenPresent.value)
+
+  function markAuthenticated() { tokenPresent.value = true }
+  function markUnauthenticated() { tokenPresent.value = false }
 
   async function login(username: string, password: string): Promise<LoginResult> {
     error.value = ''
@@ -18,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authService.login(username, password)
       if (result.success) {
+        markAuthenticated()
         await fetchUser()
       }
       return result
@@ -34,7 +39,10 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     try {
       const result = await authService.verifyMfa(mfaToken, code)
-      if (result.success) await fetchUser()
+      if (result.success) {
+        markAuthenticated()
+        await fetchUser()
+      }
       return result
     } catch (e: any) {
       error.value = e.response?.data?.error_description || 'Verification failed'
@@ -42,6 +50,12 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function exchangeCode(code: string) {
+    await authService.exchangeCode(code)
+    markAuthenticated()
+    await fetchUser()
   }
 
   async function fetchUser() {
@@ -55,7 +69,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     await authService.logout()
     user.value = null
-    clearTokens()
+    httpClearTokens()
+    markUnauthenticated()
   }
 
   // Initialize
@@ -63,5 +78,5 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser()
   }
 
-  return { user, loading, error, isAuthenticated, login, verifyMfa, fetchUser, logout }
+  return { user, loading, error, isAuthenticated, login, verifyMfa, exchangeCode, fetchUser, logout }
 })

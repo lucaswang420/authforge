@@ -12,9 +12,9 @@ test.describe('Dashboard', () => {
   })
 
   test('shows quick links', async ({ page }) => {
-    await expect(page.locator('a:has-text("Edit Profile")')).toBeVisible()
-    await expect(page.locator('a:has-text("Security Settings")')).toBeVisible()
-    await expect(page.locator('a:has-text("Authorized Apps")')).toBeVisible()
+    await expect(page.locator('main a:has-text("Edit Profile")')).toBeVisible()
+    await expect(page.locator('main a:has-text("Security Settings")')).toBeVisible()
+    await expect(page.locator('main a:has-text("Authorized Apps")')).toBeVisible()
   })
 
   test('quick links navigate correctly', async ({ page }) => {
@@ -54,8 +54,8 @@ test.describe('Security', () => {
   })
 
   test('displays security page sections', async ({ page }) => {
-    await expect(page.locator('text=Change Password')).toBeVisible()
-    await expect(page.locator('text=Two-Factor Authentication')).toBeVisible()
+    await expect(page.locator('h2:has-text("Change Password")')).toBeVisible()
+    await expect(page.locator('h2:has-text("Two-Factor Authentication")')).toBeVisible()
   })
 
   test('can change password', async ({ page }) => {

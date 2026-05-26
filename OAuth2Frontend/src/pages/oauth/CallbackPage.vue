@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
-import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,15 +23,7 @@ onMounted(async () => {
   }
 
   try {
-    const resp = await axios.post('/oauth2/token', new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: window.location.origin + '/callback',
-      client_id: 'vue-client',
-      client_secret: '123456',
-    }))
-    auth.setTokens(resp.data.access_token, resp.data.refresh_token)
-    await auth.fetchUser()
+    await auth.exchangeCode(code)
     router.replace('/')
   } catch (e: any) {
     error.value = e.response?.data?.error_description || 'Token exchange failed'

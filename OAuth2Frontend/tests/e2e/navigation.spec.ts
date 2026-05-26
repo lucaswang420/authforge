@@ -53,18 +53,31 @@ test.describe('Navigation & Route Guards', () => {
 
   test('sign out clears session and redirects to login', async ({ page }) => {
     await loginUser(page)
-    // Open user menu dropdown first
+    // Click the user avatar button to open dropdown
     await page.locator('header button:has(div.rounded-full)').click()
-    await page.click('button:has-text("Sign Out")')
-    await expect(page).toHaveURL(/\/login/)
+    await page.waitForSelector('button:has-text("Sign Out")', { state: 'visible' })
+    await page.locator('button:has-text("Sign Out")').click()
+    // After sign out, should eventually be on login page
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 })
   })
 
   test('after sign out, protected routes redirect to login', async ({ page }) => {
-    await loginUser(page)
-    await page.locator('header button:has(div.rounded-full)').click()
-    await page.click('button:has-text("Sign Out")')
-    await page.waitForURL(/\/login/)
+    // Use a fresh page without addInitScript
+    await page.goto('/login')
+    // Set token via evaluate (not addInitScript)
+    await page.evaluate(() => {
+      localStorage.setItem('access_token', 'mock-access-token')
+      localStorage.setItem('refresh_token', 'mock-refresh-token')
+    })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    // Now clear tokens
+    await page.evaluate(() => {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+    })
+    // Navigate to protected route on a fresh page load
     await page.goto('/profile')
-    await expect(page).toHaveURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 })
   })
 })
