@@ -1,8 +1,8 @@
-#include <oauth2/TokenService.h>
-#include <oauth2/SubjectGenerator.h>
-#include <oauth2/CryptoUtils.h>
-#include <oauth2/JwkManager.h>
-#include <oauth2/AuditLogger.h>
+#include <oauth2/services/TokenService.h>
+#include <oauth2/utils/SubjectGenerator.h>
+#include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/utils/JwkManager.h>
+#include <oauth2/observability/AuditLogger.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
 
@@ -226,7 +226,7 @@ void TokenService::exchangeCodeForToken(
                                 }
                             }
 
-                            oauth2::AuditLogger::log(
+                            oauth2::observability::AuditLogger::log(
                               "token_issued", "success", nullptr, authCode->userId, "token", ""
                             );
                             callback(json);
@@ -274,7 +274,7 @@ void TokenService::refreshAccessToken(
                         // REUSE DETECTED! Cascade revoke the entire family
                         LOG_WARN << "[SECURITY] Refresh token reuse detected! "
                                  << "Revoking token family: " << maybeRevoked->familyId;
-                        oauth2::AuditLogger::log(
+                        oauth2::observability::AuditLogger::log(
                           "refresh_token_reuse_detected",
                           "failure",
                           nullptr,
@@ -334,7 +334,7 @@ void TokenService::refreshAccessToken(
 
           storage_
             ->saveTokenPair(token, newRt, [callback, newTokenStr, newRefreshTokenStr, storedRt]() {
-                oauth2::AuditLogger::log(
+                oauth2::observability::AuditLogger::log(
                   "token_refreshed", "success", nullptr, storedRt->userId, "token", ""
                 );
                 Json::Value json;

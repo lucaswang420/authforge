@@ -1,7 +1,7 @@
 #pragma once
 
 #include <drogon/HttpController.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 
 namespace oauth2::controllers
 {
@@ -18,19 +18,19 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
       OAuth2StandardController::userInfo,
       "/oauth2/userinfo",
       drogon::Get,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     ADD_METHOD_TO(
       OAuth2StandardController::introspect,
       "/oauth2/introspect",
       drogon::Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     ADD_METHOD_TO(
       OAuth2StandardController::revoke,
       "/oauth2/revoke",
       drogon::Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     ADD_METHOD_TO(
       OAuth2StandardController::metadata,

@@ -12,19 +12,19 @@ class OrganizationController : public drogon::HttpController<OrganizationControl
       OrganizationController::list,
       "/api/admin/organizations",
       Get,
-      "AuthorizationFilter"
+      "oauth2::filters::AuthorizationFilter"
     );
     ADD_METHOD_TO(
       OrganizationController::create,
       "/api/admin/organizations",
       Post,
-      "AuthorizationFilter"
+      "oauth2::filters::AuthorizationFilter"
     );
     ADD_METHOD_TO(
       OrganizationController::getBySlug,
       "/api/admin/organizations/{slug}",
       Get,
-      "AuthorizationFilter"
+      "oauth2::filters::AuthorizationFilter"
     );
     METHOD_LIST_END
 

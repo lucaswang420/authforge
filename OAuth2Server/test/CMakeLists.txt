@@ -6,7 +6,7 @@ option(OAUTH2_MEMORY_TESTS_ONLY "Build only tests that do not require external d
 option(OAUTH2_TEST_COVERAGE "Enable code coverage reporting" OFF)
 
 # Collect source files from the plugin project
-file(GLOB PLUGIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/*.cc")
+file(GLOB PLUGIN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/plugin/*.cc")
 file(GLOB STORAGE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/storage/*.cc")
 file(GLOB SERVICE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/services/*.cc")
 file(GLOB MODEL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models/*.cc")
@@ -14,11 +14,13 @@ file(GLOB PLUGIN_CTL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/con
 file(GLOB PLUGIN_FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/filters/*.cc")
 file(GLOB COMMON_SRC 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/*.cc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/config/*.cc" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/error/*.cc" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/utils/*.cc" 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/validation/*.cc" 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/documentation/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/config/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/error/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/utils/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/observability/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/observability/openapi/*.cc"
 )
 
 # Collect Server source files
@@ -79,10 +81,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/models
     ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/storage
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/services
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common
     ${CMAKE_CURRENT_SOURCE_DIR}/../controllers
 )
 
@@ -92,14 +90,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon OpenSSL::Crypto)
 
 # Platform specific options
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/types/orm_compat.h")
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
         _CRT_SECURE_NO_WARNINGS
     )
 elseif(APPLE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/types/orm_compat.h")
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
     )

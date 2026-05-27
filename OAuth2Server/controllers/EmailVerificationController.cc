@@ -1,7 +1,7 @@
 #include "EmailVerificationController.h"
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/EmailService.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -14,23 +14,23 @@ struct EmailVerificationControllerDocs
 {
     EmailVerificationControllerDocs()
     {
-        common::documentation::EndpointInfo verifyEmail;
+        oauth2::observability::openapi::EndpointInfo verifyEmail;
         verifyEmail.path = "/api/verify-email";
         verifyEmail.method = "GET";
         verifyEmail.summary = "Verify Email";
         verifyEmail.description = "Verify an email address using a token.";
         verifyEmail.tags = {"User Verification"};
         verifyEmail.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(verifyEmail);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(verifyEmail);
 
-        common::documentation::EndpointInfo resendEmail;
+        oauth2::observability::openapi::EndpointInfo resendEmail;
         resendEmail.path = "/api/verify-email/resend";
         resendEmail.method = "POST";
         resendEmail.summary = "Resend Verification Email";
         resendEmail.description = "Resend the email verification link.";
         resendEmail.tags = {"User Verification"};
         resendEmail.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(resendEmail);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(resendEmail);
     }
 };
 

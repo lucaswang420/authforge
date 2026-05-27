@@ -1,7 +1,7 @@
-#include <chrono>
+﻿#include <chrono>
 #include <drogon/drogon_test.h>
 #include <oauth2/SubjectGenerator.h>
-#include "storage/MemoryOAuth2Storage.h"
+#include <oauth2/storage/MemoryOAuth2Storage.h>
 #include <json/json.h>
 
 using namespace oauth2::utils;

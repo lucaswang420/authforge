@@ -1,24 +1,13 @@
+// Forwarding shim header for OAuth2 plugin public API.
+//
+// This header was relocated to <oauth2/error/ErrorHandler.h> in spec
+// repo-structure-refactor phase P1 (see design.md ?4.1, ?6.6.4). It
+// remains here only so existing #include <oauth2/ErrorHandler.h> callers
+// keep compiling during P1..P10. P11 removes the shim entirely.
+//
+// _Design: ?2.8 P1, ?6.6.4_
+// _Requirements: 2.5, 14.3_
+
 #pragma once
 
-#include "ErrorTypes.h"
-#include <drogon/drogon.h>
-#include <drogon/orm/DbClient.h>
-#include <functional>
-
-namespace common::error
-{
-using drogon::orm::DrogonDbException;
-
-class ErrorHandler
-{
-  public:
-    // Handle specific exception types
-    static Error handleDbException(const DrogonDbException &e);
-    static Error handleValidationError(const std::string &field, const std::string &reason);
-
-    // Utility functions
-    static std::string generateRequestId();
-    static void logError(const Error &error, const std::string &context = "");
-};
-
-}  // namespace common::error
+#include <oauth2/error/ErrorHandler.h>

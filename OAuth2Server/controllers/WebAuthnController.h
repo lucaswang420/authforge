@@ -20,13 +20,13 @@ class WebAuthnController : public drogon::HttpController<WebAuthnController>
       WebAuthnController::registerBegin,
       "/api/me/webauthn/register/begin",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     ADD_METHOD_TO(
       WebAuthnController::registerFinish,
       "/api/me/webauthn/register/finish",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Authentication flow (no auth required - this IS the auth)
     ADD_METHOD_TO(
@@ -44,7 +44,7 @@ class WebAuthnController : public drogon::HttpController<WebAuthnController>
       WebAuthnController::listCredentials,
       "/api/me/webauthn/credentials",
       Get,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     METHOD_LIST_END
 

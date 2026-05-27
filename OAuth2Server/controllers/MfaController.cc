@@ -2,8 +2,8 @@
 #include <oauth2/TotpUtils.h>
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/OAuth2Plugin.h>
-#include <oauth2/AuditLogger.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -16,41 +16,41 @@ struct MfaControllerDocs
 {
     MfaControllerDocs()
     {
-        common::documentation::EndpointInfo setupDocs;
+        oauth2::observability::openapi::EndpointInfo setupDocs;
         setupDocs.path = "/oauth2/mfa/setup";
         setupDocs.method = "POST";
         setupDocs.summary = "Setup MFA";
         setupDocs.description = "Initiate MFA setup by generating a TOTP secret.";
         setupDocs.tags = {"MFA"};
         setupDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(setupDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(setupDocs);
 
-        common::documentation::EndpointInfo verifySetupDocs;
+        oauth2::observability::openapi::EndpointInfo verifySetupDocs;
         verifySetupDocs.path = "/oauth2/mfa/setup/verify";
         verifySetupDocs.method = "POST";
         verifySetupDocs.summary = "Verify MFA Setup";
         verifySetupDocs.description = "Verify a TOTP code to finalize MFA setup.";
         verifySetupDocs.tags = {"MFA"};
         verifySetupDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(verifySetupDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(verifySetupDocs);
 
-        common::documentation::EndpointInfo disableDocs;
+        oauth2::observability::openapi::EndpointInfo disableDocs;
         disableDocs.path = "/oauth2/mfa/disable";
         disableDocs.method = "POST";
         disableDocs.summary = "Disable MFA";
         disableDocs.description = "Disable MFA for the authenticated user.";
         disableDocs.tags = {"MFA"};
         disableDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(disableDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(disableDocs);
 
-        common::documentation::EndpointInfo verifyDocs;
+        oauth2::observability::openapi::EndpointInfo verifyDocs;
         verifyDocs.path = "/oauth2/mfa/verify";
         verifyDocs.method = "POST";
         verifyDocs.summary = "Verify MFA Code (Login)";
         verifyDocs.description = "Verify MFA code during login.";
         verifyDocs.tags = {"MFA"};
         verifyDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(verifyDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(verifyDocs);
     }
 };
 
@@ -177,7 +177,7 @@ void MfaController::verifySetup(
             "UPDATE users SET mfa_enabled = true, mfa_backup_codes = $1 "
             "WHERE public_sub::text = $2::text",
             [sharedCb, codesJson, userId, req](const Result &) {
-                oauth2::AuditLogger::log("mfa_enabled", "success", req, userId, "user", userId);
+                oauth2::observability::AuditLogger::log("mfa_enabled", "success", req, userId, "user", userId);
                 Json::Value json;
                 json["message"] = "MFA enabled successfully";
                 json["backup_codes"] = codesJson;

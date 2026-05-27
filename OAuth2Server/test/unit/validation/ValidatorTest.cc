@@ -1,10 +1,10 @@
 #include <drogon/drogon_test.h>
-#include <oauth2/Validator.h>
+#include <oauth2/validation/RuleEngine.h>
 #include <vector>
 #include <string>
 
 using namespace drogon;
-using namespace common::validation;
+using namespace oauth2::validation;
 
 DROGON_TEST(Unit_P0_Validation_ClientId_AllScenarios)
 {
@@ -23,8 +23,8 @@ DROGON_TEST(Unit_P0_Validation_ClientId_AllScenarios)
 
     for (const auto &tc : testCases)
     {
-        auto result = Validator::validateClientId(tc.clientId);
-        CHECK(result.isValid == tc.shouldBeValid);
+        auto result = RuleEngine::validateClientId(tc.clientId);
+        CHECK(result.ok == tc.shouldBeValid);
     }
 }
 
@@ -45,8 +45,8 @@ DROGON_TEST(Unit_P0_Validation_ClientSecret_AllScenarios)
 
     for (const auto &tc : testCases)
     {
-        auto result = Validator::validateClientSecret(tc.secret);
-        CHECK(result.isValid == tc.shouldBeValid);
+        auto result = RuleEngine::validateClientSecret(tc.secret);
+        CHECK(result.ok == tc.shouldBeValid);
     }
 }
 
@@ -67,8 +67,8 @@ DROGON_TEST(Unit_P0_Validation_RedirectUri_AllScenarios)
 
     for (const auto &tc : testCases)
     {
-        auto result = Validator::validateRedirectUri(tc.uri);
-        CHECK(result.isValid == tc.shouldBeValid);
+        auto result = RuleEngine::validateRedirectUri(tc.uri);
+        CHECK(result.ok == tc.shouldBeValid);
     }
 }
 
@@ -85,8 +85,8 @@ DROGON_TEST(Unit_P0_Validation_Token_AllScenarios)
 
     for (const auto &tc : testCases)
     {
-        auto result = Validator::validateToken(tc.token);
-        CHECK(result.isValid == tc.shouldBeValid);
+        auto result = RuleEngine::validateToken(tc.token);
+        CHECK(result.ok == tc.shouldBeValid);
     }
 }
 
@@ -106,35 +106,35 @@ DROGON_TEST(Unit_P0_Validation_Scope_AllScenarios)
 
     for (const auto &tc : testCases)
     {
-        auto result = Validator::validateScope(tc.scope);
-        CHECK(result.isValid == tc.shouldBeValid);
+        auto result = RuleEngine::validateScope(tc.scope);
+        CHECK(result.ok == tc.shouldBeValid);
     }
 }
 
 DROGON_TEST(Unit_P0_Validation_OAuthTypes_AllScenarios)
 {
-    CHECK(Validator::validateResponseType("code").isValid);
-    CHECK(Validator::validateResponseType("token").isValid);
-    CHECK(!Validator::validateResponseType("invalid").isValid);
+    CHECK(RuleEngine::validateResponseType("code").ok);
+    CHECK(RuleEngine::validateResponseType("token").ok);
+    CHECK(!RuleEngine::validateResponseType("invalid").ok);
 
-    CHECK(Validator::validateGrantType("authorization_code").isValid);
-    CHECK(Validator::validateGrantType("refresh_token").isValid);
-    CHECK(Validator::validateGrantType("client_credentials").isValid);
-    CHECK(!Validator::validateGrantType("invalid_grant").isValid);
+    CHECK(RuleEngine::validateGrantType("authorization_code").ok);
+    CHECK(RuleEngine::validateGrantType("refresh_token").ok);
+    CHECK(RuleEngine::validateGrantType("client_credentials").ok);
+    CHECK(!RuleEngine::validateGrantType("invalid_grant").ok);
 }
 
 DROGON_TEST(Unit_P1_Validation_Primitives_BasicRules)
 {
-    CHECK(Validator::notEmpty("valid", "field").isValid);
-    CHECK(!Validator::notEmpty("", "field").isValid);
+    CHECK(RuleEngine::notEmpty("valid", "field").ok);
+    CHECK(!RuleEngine::notEmpty("", "field").ok);
 
-    CHECK(Validator::length("valid", "field", 3, 10).isValid);
-    CHECK(!Validator::length("ab", "field", 3, 10).isValid);
-    CHECK(!Validator::length("this_is_way_too_long", "field", 3, 10).isValid);
+    CHECK(RuleEngine::length("valid", "field", 3, 10).ok);
+    CHECK(!RuleEngine::length("ab", "field", 3, 10).ok);
+    CHECK(!RuleEngine::length("this_is_way_too_long", "field", 3, 10).ok);
 
-    CHECK(Validator::regex("test123", "field", "^[a-z0-9]+$").isValid);
-    CHECK(!Validator::regex("test@123", "field", "^[a-z0-9]+$").isValid);
+    CHECK(RuleEngine::regex("test123", "field", "^[a-z0-9]+$").ok);
+    CHECK(!RuleEngine::regex("test@123", "field", "^[a-z0-9]+$").ok);
 
-    CHECK(Validator::numericRange(5, "field", 1, 10).isValid);
-    CHECK(!Validator::numericRange(15, "field", 1, 10).isValid);
+    CHECK(RuleEngine::numericRange(5, "field", 1, 10).ok);
+    CHECK(!RuleEngine::numericRange(15, "field", 1, 10).ok);
 }

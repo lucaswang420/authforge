@@ -2,7 +2,7 @@
 #include <oauth2/CryptoUtils.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/OAuth2ErrorHandler.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -13,32 +13,32 @@ struct DeviceAuthControllerDocs
 {
     DeviceAuthControllerDocs()
     {
-        common::documentation::EndpointInfo authDocs;
+        oauth2::observability::openapi::EndpointInfo authDocs;
         authDocs.path = "/oauth2/device_authorization";
         authDocs.method = "POST";
         authDocs.summary = "Device Authorization";
         authDocs.description = "Request device authorization.";
         authDocs.tags = {"OAuth2", "Device Flow"};
         authDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(authDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(authDocs);
 
-        common::documentation::EndpointInfo verifyGetDocs;
+        oauth2::observability::openapi::EndpointInfo verifyGetDocs;
         verifyGetDocs.path = "/oauth2/device/verify";
         verifyGetDocs.method = "GET";
         verifyGetDocs.summary = "Verify Device (GET)";
         verifyGetDocs.description = "Display device verification page.";
         verifyGetDocs.tags = {"OAuth2", "Device Flow"};
         verifyGetDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(verifyGetDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(verifyGetDocs);
 
-        common::documentation::EndpointInfo verifyPostDocs;
+        oauth2::observability::openapi::EndpointInfo verifyPostDocs;
         verifyPostDocs.path = "/oauth2/device/verify";
         verifyPostDocs.method = "POST";
         verifyPostDocs.summary = "Verify Device (POST)";
         verifyPostDocs.description = "Submit device verification code.";
         verifyPostDocs.tags = {"OAuth2", "Device Flow"};
         verifyPostDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(verifyPostDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(verifyPostDocs);
     }
 };
 

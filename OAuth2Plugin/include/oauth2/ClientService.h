@@ -1,38 +1,13 @@
+// Forwarding shim header for OAuth2 plugin public API.
+//
+// This header was relocated to <oauth2/services/ClientService.h> in spec
+// repo-structure-refactor phase P1 (see design.md ?4.1, ?6.6.4). It
+// remains here only so existing #include <oauth2/ClientService.h> callers
+// keep compiling during P1..P10. P11 removes the shim entirely.
+//
+// _Design: ?2.8 P1, ?6.6.4_
+// _Requirements: 2.5, 14.3_
+
 #pragma once
 
-#include "IOAuth2Storage.h"
-#include <string>
-#include <vector>
-#include <functional>
-
-namespace oauth2
-{
-
-class ClientService
-{
-  public:
-    explicit ClientService(IOAuth2Storage *storage);
-
-    void validateClient(
-      const std::string &clientId,
-      const std::string &clientSecret,
-      std::function<void(bool)> &&callback
-    );
-
-    void validateRedirectUri(
-      const std::string &clientId,
-      const std::string &redirectUri,
-      std::function<void(bool)> &&callback
-    );
-
-    void validateClientScopes(
-      const std::string &clientId,
-      const std::vector<std::string> &requestedScopes,
-      std::function<void(bool, std::string)> &&callback
-    );
-
-  private:
-    IOAuth2Storage *storage_;
-};
-
-}  // namespace oauth2
+#include <oauth2/services/ClientService.h>

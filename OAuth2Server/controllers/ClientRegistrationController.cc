@@ -1,7 +1,7 @@
 #include "ClientRegistrationController.h"
 #include <oauth2/CryptoUtils.h>
-#include <oauth2/AuditLogger.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 
@@ -11,14 +11,14 @@ struct ClientRegistrationControllerDocs
 {
     ClientRegistrationControllerDocs()
     {
-        common::documentation::EndpointInfo regDocs;
+        oauth2::observability::openapi::EndpointInfo regDocs;
         regDocs.path = "/oauth2/register";
         regDocs.method = "POST";
         regDocs.summary = "Register Client";
         regDocs.description = "Dynamic client registration.";
         regDocs.tags = {"OAuth2", "Dynamic Registration"};
         regDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(regDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(regDocs);
     }
 };
 
@@ -182,7 +182,7 @@ void ClientRegistrationController::registerClient(
               resp->setStatusCode(k201Created);
 
               // Audit log the registration
-              oauth2::AuditLogger::log(
+              oauth2::observability::AuditLogger::log(
                 "client_registered",
                 "success",
                 req,
@@ -201,7 +201,7 @@ void ClientRegistrationController::registerClient(
               resp->setStatusCode(k500InternalServerError);
 
               // Audit log the failure
-              oauth2::AuditLogger::log(
+              oauth2::observability::AuditLogger::log(
                 "client_registered", "failure", req, "", "client", "", Json::Value(e.base().what())
               );
 

@@ -7,10 +7,10 @@
 #include <json/json.h>
 #include <sstream>
 #include <oauth2/ConfigManager.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/controllers/OAuth2StandardController.h>
-#include <oauth2/filters/OAuth2Middleware.h>
-#include "controllers/OAuth2Controller.h"
+#include <oauth2/filters/OAuth2AuthFilter.h>
+#include "controllers/SessionController.h"
 #include "SchemaManager.h"
 
 using namespace drogon;
@@ -307,7 +307,7 @@ int main()
             serverUrl += ":" + std::to_string(port);
         }
 
-        common::documentation::OpenApiGenerator::setServerConfig(
+        oauth2::observability::openapi::OpenApiGenerator::setServerConfig(
           serverUrl, "OAuth2 Authorization Server"
         );
     }
@@ -316,7 +316,7 @@ int main()
     std::filesystem::path baseDir = std::filesystem::current_path();
     std::string openapiPath = (baseDir / "docs" / "api" / "openapi.json").string();
 
-    if (!common::documentation::OpenApiGenerator::writeToFile(openapiPath))
+    if (!oauth2::observability::openapi::OpenApiGenerator::writeToFile(openapiPath))
     {
         LOG_WARN << "Failed to write OpenAPI specification";
     }

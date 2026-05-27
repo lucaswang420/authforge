@@ -13,7 +13,7 @@ class EmailVerificationController : public drogon::HttpController<EmailVerificat
       EmailVerificationController::resend,
       "/api/verify-email/resend",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     METHOD_LIST_END
 

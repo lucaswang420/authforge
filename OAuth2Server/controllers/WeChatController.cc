@@ -1,6 +1,6 @@
 #include "WeChatController.h"
 #include <drogon/HttpClient.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 
 // TODO: REPLACE WITH YOUR REAL CREDENTIALS
 const std::string WECHAT_APPID_KEY = "appid";
@@ -23,7 +23,7 @@ struct WeChatControllerDocs
 {
     WeChatControllerDocs()
     {
-        using namespace common::documentation;
+        using namespace oauth2::observability::openapi;
 
         Json::Value successExample;
         successExample["openid"] = "oXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -34,7 +34,7 @@ struct WeChatControllerDocs
         errorExample["error"] = "Missing code parameter";
 
         // C++17 compatible initialization (avoid designated initializers)
-        common::documentation::EndpointInfo weChatEndpoint;
+        oauth2::observability::openapi::EndpointInfo weChatEndpoint;
         weChatEndpoint.path = "/api/wechat/login";
         weChatEndpoint.method = "POST";
         weChatEndpoint.summary = "WeChat OAuth2 Login";
@@ -45,11 +45,11 @@ struct WeChatControllerDocs
         weChatEndpoint.tags = {"External Auth", "WeChat"};
 
         // Initialize parameters
-        common::documentation::ParameterInfo codeParam;
+        oauth2::observability::openapi::ParameterInfo codeParam;
         codeParam.name = "code";
         codeParam.description = "Authorization code from WeChat OAuth2 callback (required)";
-        codeParam.type = common::documentation::ParameterType::STRING;
-        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        codeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         codeParam.required = true;
         weChatEndpoint.parameters = {codeParam};
 

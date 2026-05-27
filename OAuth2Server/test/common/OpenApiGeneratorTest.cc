@@ -2,9 +2,9 @@
 #include <json/json.h>
 #include <filesystem>
 #include <fstream>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 
-using namespace common::documentation;
+using namespace oauth2::observability::openapi;
 
 DROGON_TEST(Unit_P2_OpenApiGenerator_ValidateOpenApiSpec_Structure)
 {

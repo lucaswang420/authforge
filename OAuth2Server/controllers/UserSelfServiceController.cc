@@ -1,8 +1,8 @@
 #include "UserSelfServiceController.h"
 #include <oauth2/PasswordHasher.h>
 #include <oauth2/CryptoUtils.h>
-#include <oauth2/AuditLogger.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -15,43 +15,43 @@ struct UserSelfServiceControllerDocs
 {
     UserSelfServiceControllerDocs()
     {
-        common::documentation::EndpointInfo getProfile;
+        oauth2::observability::openapi::EndpointInfo getProfile;
         getProfile.path = "/api/me";
         getProfile.method = "GET";
         getProfile.summary = "Get User Profile";
         getProfile.description = "Get current user's profile information.";
         getProfile.tags = {"User Profile"};
         getProfile.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(getProfile);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(getProfile);
 
-        common::documentation::EndpointInfo deleteAccount;
+        oauth2::observability::openapi::EndpointInfo deleteAccount;
         deleteAccount.path = "/api/me";
         deleteAccount.method = "DELETE";
         deleteAccount.summary = "Delete Account";
         deleteAccount.description = "Soft-delete the current user's account.";
         deleteAccount.tags = {"User Profile"};
         deleteAccount.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(deleteAccount);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(deleteAccount);
 
-        common::documentation::EndpointInfo changePassword;
+        oauth2::observability::openapi::EndpointInfo changePassword;
         changePassword.path = "/api/me/password";
         changePassword.method = "PUT";
         changePassword.summary = "Change Password";
         changePassword.description = "Change the current user's password.";
         changePassword.tags = {"User Profile"};
         changePassword.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(changePassword);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(changePassword);
 
-        common::documentation::EndpointInfo listAuthorizedApps;
+        oauth2::observability::openapi::EndpointInfo listAuthorizedApps;
         listAuthorizedApps.path = "/api/me/authorized-apps";
         listAuthorizedApps.method = "GET";
         listAuthorizedApps.summary = "List Authorized Apps";
         listAuthorizedApps.description = "List OAuth2 clients authorized by the current user.";
         listAuthorizedApps.tags = {"User Profile"};
         listAuthorizedApps.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(listAuthorizedApps);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(listAuthorizedApps);
 
-        common::documentation::EndpointInfo revokeApp;
+        oauth2::observability::openapi::EndpointInfo revokeApp;
         revokeApp.path = "/api/me/authorized-apps/{clientId}";
         revokeApp.method = "DELETE";
         revokeApp.summary = "Revoke App Authorization";
@@ -59,7 +59,7 @@ struct UserSelfServiceControllerDocs
           "Revoke the current user's authorization for a specific OAuth2 client.";
         revokeApp.tags = {"User Profile"};
         revokeApp.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(revokeApp);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(revokeApp);
     }
 };
 
@@ -198,7 +198,7 @@ void UserSelfServiceController::changePassword(
               // Verify old password
               if (!oauth2::utils::PasswordHasher::verify(oldPassword, storedHash, salt))
               {
-                  oauth2::AuditLogger::log(
+                  oauth2::observability::AuditLogger::log(
                     "password_change_failed", "failure", req, userId, "user", userId
                   );
                   Json::Value error;
@@ -241,7 +241,7 @@ void UserSelfServiceController::changePassword(
                           db2->execSqlAsync(
                             "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
                             [sharedCb, userId, req](const Result &) {
-                                oauth2::AuditLogger::log(
+                                oauth2::observability::AuditLogger::log(
                                   "password_changed", "success", req, userId, "user", userId
                                 );
                                 Json::Value json;
@@ -252,7 +252,7 @@ void UserSelfServiceController::changePassword(
                             },
                             [sharedCb, userId, req](const DrogonDbException &) {
                                 // Password was changed, token revocation is best-effort
-                                oauth2::AuditLogger::log(
+                                oauth2::observability::AuditLogger::log(
                                   "password_changed", "success", req, userId, "user", userId
                                 );
                                 Json::Value json;
@@ -268,7 +268,7 @@ void UserSelfServiceController::changePassword(
                           db2->execSqlAsync(
                             "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
                             [sharedCb, userId, req](const Result &) {
-                                oauth2::AuditLogger::log(
+                                oauth2::observability::AuditLogger::log(
                                   "password_changed", "success", req, userId, "user", userId
                                 );
                                 Json::Value json;
@@ -277,7 +277,7 @@ void UserSelfServiceController::changePassword(
                                 (*sharedCb)(resp);
                             },
                             [sharedCb, userId, req](const DrogonDbException &) {
-                                oauth2::AuditLogger::log(
+                                oauth2::observability::AuditLogger::log(
                                   "password_changed", "success", req, userId, "user", userId
                                 );
                                 Json::Value json;
@@ -437,7 +437,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
                       "UPDATE oauth2_access_tokens SET revoked = true "
                       "WHERE user_id = $1 AND client_id = $2",
                       [sharedCb, userId, clientId, req](const Result &) {
-                          oauth2::AuditLogger::log(
+                          oauth2::observability::AuditLogger::log(
                             "app_authorization_revoked", "success", req, userId, "client", clientId
                           );
                           Json::Value json;
@@ -448,7 +448,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
                       },
                       [sharedCb, userId, clientId, req](const DrogonDbException &) {
                           // Consent was deleted, token revocation is best-effort
-                          oauth2::AuditLogger::log(
+                          oauth2::observability::AuditLogger::log(
                             "app_authorization_revoked", "success", req, userId, "client", clientId
                           );
                           Json::Value json;
@@ -542,7 +542,7 @@ void UserSelfServiceController::deleteAccount(
                               return;
                           }
 
-                          oauth2::AuditLogger::log(
+                          oauth2::observability::AuditLogger::log(
                             "account_deleted", "success", req, userId, "user", userId
                           );
                           Json::Value json;
@@ -577,7 +577,7 @@ void UserSelfServiceController::deleteAccount(
                       "UPDATE users SET username = $1, email = NULL, password_hash = 'DELETED' "
                       "WHERE public_sub::text = $2::text",
                       [sharedCb, userId, req](const Result &) {
-                          oauth2::AuditLogger::log(
+                          oauth2::observability::AuditLogger::log(
                             "account_deleted", "success", req, userId, "user", userId
                           );
                           Json::Value json;
@@ -615,7 +615,7 @@ void UserSelfServiceController::deleteAccount(
                 "UPDATE users SET username = $1, email = NULL, password_hash = 'DELETED' "
                 "WHERE public_sub::text = $2::text",
                 [sharedCb, userId, req](const Result &) {
-                    oauth2::AuditLogger::log(
+                    oauth2::observability::AuditLogger::log(
                       "account_deleted", "success", req, userId, "user", userId
                     );
                     Json::Value json;
@@ -649,3 +649,6 @@ void UserSelfServiceController::deleteAccount(
         (*sharedCb)(resp);
     }
 }
+
+
+

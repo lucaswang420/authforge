@@ -1,9 +1,9 @@
-#include "RedisOAuth2Storage.h"
+#include <oauth2/storage/RedisOAuth2Storage.h>
 #include <drogon/utils/Utilities.h>
 #include <json/json.h>
 #include <sstream>
 #include <algorithm>
-#include <oauth2/OAuth2Metrics.h>
+#include <oauth2/observability/OAuth2Metrics.h>
 
 namespace oauth2
 {

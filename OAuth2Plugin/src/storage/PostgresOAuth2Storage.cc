@@ -1,8 +1,8 @@
-#include "PostgresOAuth2Storage.h"
+#include <oauth2/storage/PostgresOAuth2Storage.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
-#include <oauth2/OAuth2Metrics.h>
-#include <oauth2/OAuth2Types.h>
+#include <oauth2/observability/OAuth2Metrics.h>
+#include <oauth2/types/OAuth2Types.h>
 
 namespace
 {
