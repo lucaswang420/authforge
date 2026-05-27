@@ -41,8 +41,8 @@ struct PasswordResetControllerDocs
 PasswordResetControllerDocs docs_;
 }  // namespace
 
-// Shared console email service (in production, replace with SMTP impl)
-static oauth2::ConsoleEmailService emailService_;
+// Shared email service (uses SMTP if configured, otherwise console)
+static oauth2::IEmailService &emailService_ = oauth2::getEmailService();
 
 void PasswordResetController::request(
   const HttpRequestPtr &req,
@@ -113,7 +113,11 @@ void PasswordResetController::request(
             "VALUES ($1, $2, $3)",
             [sharedCb, json, rawToken, email](const Result &) {
                 // Send email with reset link
-                std::string resetLink = "http://localhost:5173/reset-password?token=" + rawToken;
+                auto customConfig = drogon::app().getCustomConfig();
+                std::string frontendUrl = "http://localhost:5173";
+                if (customConfig.isMember("frontend") && customConfig["frontend"].isMember("url"))
+                    frontendUrl = customConfig["frontend"]["url"].asString();
+                std::string resetLink = frontendUrl + "/reset-password?token=" + rawToken;
                 std::string emailBody = "Click the following link to reset your password:\n\n" +
                                         resetLink + "\n\nThis link expires in 15 minutes.";
 

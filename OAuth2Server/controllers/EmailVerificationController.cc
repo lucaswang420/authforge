@@ -37,7 +37,7 @@ struct EmailVerificationControllerDocs
 EmailVerificationControllerDocs docs_;
 }  // namespace
 
-static oauth2::ConsoleEmailService emailService_;
+static oauth2::IEmailService &emailService_ = oauth2::getEmailService();
 
 void EmailVerificationController::sendVerificationEmail(int userId, const std::string &email)
 {
@@ -59,11 +59,18 @@ void EmailVerificationController::sendVerificationEmail(int userId, const std::s
       "VALUES ($1, $2, $3, $4) "
       "ON CONFLICT (token_hash) DO NOTHING",
       [rawToken, email](const Result &) {
-          std::string verifyLink = "http://localhost:5555/api/verify-email?token=" + rawToken;
+          // Build verification link using frontend URL
+          auto customConfig = drogon::app().getCustomConfig();
+          std::string frontendUrl = "http://localhost:5173";
+          if (customConfig.isMember("frontend") && customConfig["frontend"].isMember("url"))
+          {
+              frontendUrl = customConfig["frontend"]["url"].asString();
+          }
+          std::string verifyLink = frontendUrl + "/verify-email?token=" + rawToken;
           std::string body = "Please verify your email by clicking:\n\n" + verifyLink +
                              "\n\nThis link expires in 24 hours.";
 
-          emailService_.sendEmail(email, "Verify Your Email", body, [](bool) {});
+          oauth2::getEmailService().sendEmail(email, "Verify Your Email", body, [](bool) {});
       },
       [](const DrogonDbException &e) {
           LOG_ERROR << "Failed to store verification token: " << e.base().what();
