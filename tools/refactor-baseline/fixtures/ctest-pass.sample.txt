@@ -1,0 +1,25 @@
+Test project D:/work/development/Repos/backend/drogon-plugin/OAuth2-plugin-example/build/OAuth2Server
+    Start  1: AuthServiceGetUserInfoTest
+1/10 Test  #1: AuthServiceGetUserInfoTest .........   Passed    0.31 sec
+    Start  2: ErrorHandlerTest
+2/10 Test  #2: ErrorHandlerTest ...................   Passed    0.18 sec
+    Start  3: OpenApiGeneratorTest
+3/10 Test  #3: OpenApiGeneratorTest ...............   Passed    0.42 sec
+    Start  4: OpenApiGeneratorParameterTypesTest
+4/10 Test  #4: OpenApiGeneratorParameterTypesTest .   Passed    0.14 sec
+    Start  5: ConfigManagerLoadTest
+5/10 Test  #5: ConfigManagerLoadTest ..............   Passed    0.07 sec
+    Start  6: TokenServiceIssueTest
+6/10 Test  #6: TokenServiceIssueTest ..............   Passed    0.22 sec
+    Start  7: TokenServiceIntrospectTest
+7/10 Test  #7: TokenServiceIntrospectTest .........   Passed    0.19 sec
+    Start  8: ClientServiceCreateTest
+8/10 Test  #8: ClientServiceCreateTest ............   Passed    0.10 sec
+    Start  9: ClientServiceUpdateTest
+9/10 Test  #9: ClientServiceUpdateTest ............   Passed    0.13 sec
+    Start 10: ValidatorClientIdTest
+10/10 Test #10: ValidatorClientIdTest .............   Passed    0.09 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   2.05 sec

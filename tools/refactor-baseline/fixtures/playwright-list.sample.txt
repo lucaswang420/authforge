@@ -1,0 +1,8 @@
+Listing tests:
+  [chromium] › auth.spec.ts:9:3 › Authentication › redirects to login when not authenticated
+  [chromium] › auth.spec.ts:14:3 › Authentication › shows login form with correct elements
+  [chromium] › auth.spec.ts:22:3 › Authentication › successful login navigates to dashboard
+  [chromium] › navigation.spec.ts:5:3 › Navigation › top bar shows brand
+  [chromium] › navigation.spec.ts:10:3 › Navigation › clicking logo returns home
+
+Total: 5 tests in 2 files

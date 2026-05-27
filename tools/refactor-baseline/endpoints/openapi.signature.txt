@@ -1,0 +1,68 @@
+GET	/.well-known/jwks.json	200	application/json	OpenID Connect,Security	no
+GET	/.well-known/openid-configuration	200	application/json	OpenID Connect	no
+GET	/api/admin/clients	-	-	Admin,Clients	yes
+POST	/api/admin/clients	-	-	Admin,Clients	yes
+GET	/api/admin/clients/{clientId}	-	-	Admin,Clients	yes
+PUT	/api/admin/clients/{clientId}	-	-	Admin,Clients	yes
+DELETE	/api/admin/clients/{clientId}	-	-	Admin,Clients	yes
+POST	/api/admin/clients/{clientId}/reset-secret	-	-	Admin,Clients	yes
+GET	/api/admin/clients/{clientId}/scopes	-	-	Admin,Clients	yes
+PUT	/api/admin/clients/{clientId}/scopes	-	-	Admin,Clients	yes
+GET	/api/admin/dashboard/stats	200	application/json	Admin,Dashboard	yes
+GET	/api/admin/logs	-	-	Admin,Logs	yes
+GET	/api/admin/roles	200	application/json	Admin,Roles	yes
+POST	/api/admin/roles	201,400,409	-	Admin,Roles	yes
+PUT	/api/admin/roles/{roleId}	200,404	-	Admin,Roles	yes
+DELETE	/api/admin/roles/{roleId}	200,404	-	Admin,Roles	yes
+GET	/api/admin/scopes	200	application/json	Admin,Scopes	yes
+POST	/api/admin/scopes	201,400,409	-	Admin,Scopes	yes
+PUT	/api/admin/scopes/{scopeId}	200,404	-	Admin,Scopes	yes
+DELETE	/api/admin/scopes/{scopeId}	200,404	-	Admin,Scopes	yes
+GET	/api/admin/tokens	-	-	Admin,Tokens	yes
+POST	/api/admin/tokens/revoke-by-client	-	-	Admin,Tokens	yes
+POST	/api/admin/tokens/revoke-by-user	-	-	Admin,Tokens	yes
+DELETE	/api/admin/tokens/{tokenPrefix}	-	-	Admin,Tokens	yes
+GET	/api/admin/users	-	-	Admin,Users	yes
+GET	/api/admin/users/{userId}	200,404	application/json	Admin,Users	yes
+PUT	/api/admin/users/{userId}	200,404	-	Admin,Users	yes
+PUT	/api/admin/users/{userId}/disable	-	-	Admin,Users	yes
+POST	/api/admin/users/{userId}/enable	200,404	-	Admin,Users	yes
+GET	/api/admin/users/{userId}/roles	200,404	application/json	Admin,Users	yes
+PUT	/api/admin/users/{userId}/roles	200,400	-	Admin,Users	yes
+POST	/api/github/login	200,400,502	application/json	External Auth,GitHub	no
+POST	/api/google/login	200,400,502	application/json	External Auth,Google	no
+GET	/api/me	-	-	User Profile	yes
+DELETE	/api/me	-	-	User Profile	yes
+GET	/api/me/authorized-apps	-	-	User Profile	yes
+DELETE	/api/me/authorized-apps/{clientId}	-	-	User Profile	yes
+PUT	/api/me/password	-	-	User Profile	yes
+GET	/api/orgs	-	-	Organization	yes
+POST	/api/orgs	-	-	Organization	yes
+POST	/api/orgs/{orgId}/users	-	-	Organization	yes
+POST	/api/password-reset/confirm	-	-	User Verification	no
+POST	/api/password-reset/request	-	-	User Verification	no
+POST	/api/register	200,400	application/json	Registration,User	no
+GET	/api/verify-email	-	-	User Verification	no
+POST	/api/verify-email/resend	-	-	User Verification	no
+POST	/api/wechat/login	200,400,502	application/json	External Auth,WeChat	no
+GET	/health	200	application/json	System	no
+GET	/oauth2/authorize	302,400	-	Authorization,OAuth2	no
+POST	/oauth2/consent	302	-	Consent,OAuth2	no
+GET	/oauth2/device/verify	-	-	Device Flow,OAuth2	no
+POST	/oauth2/device/verify	-	-	Device Flow,OAuth2	no
+POST	/oauth2/device_authorization	-	-	Device Flow,OAuth2	yes
+POST	/oauth2/introspect	200,400,401	application/json	OAuth2,Token	yes
+POST	/oauth2/login	200,302,401	application/json	Authentication,OAuth2	no
+POST	/oauth2/mfa/disable	-	-	MFA	yes
+POST	/oauth2/mfa/setup	-	-	MFA	yes
+POST	/oauth2/mfa/setup/verify	-	-	MFA	yes
+POST	/oauth2/mfa/verify	-	-	MFA	no
+POST	/oauth2/register	-	-	Dynamic Registration,OAuth2	yes
+POST	/oauth2/revoke	200,400,401	application/json	OAuth2,Token	yes
+POST	/oauth2/token	200,400,401	application/json	OAuth2,Token	no
+GET	/oauth2/userinfo	200,400,401,404	application/json	OAuth2,User	yes
+GET	/oauth2/webauthn/credentials	-	-	WebAuthn	yes
+POST	/oauth2/webauthn/login/begin	-	-	WebAuthn	no
+POST	/oauth2/webauthn/login/finish	-	-	WebAuthn	no
+POST	/oauth2/webauthn/register/begin	-	-	WebAuthn	yes
+POST	/oauth2/webauthn/register/finish	-	-	WebAuthn	yes

@@ -1,0 +1,129 @@
+chromium > api-docs.spec.ts:9:3 > API Documentation (Swagger UI) > should load Swagger UI successfully	LISTED
+chromium > api-docs.spec.ts:28:5 > API Documentation (Swagger UI) > should execute /.well-known/openid-configuration via Try it out	LISTED
+chromium > api-docs.spec.ts:28:5 > API Documentation (Swagger UI) > should execute /api/me via Try it out	LISTED
+chromium > api-docs.spec.ts:28:5 > API Documentation (Swagger UI) > should execute /health via Try it out	LISTED
+chromium > api-docs.spec.ts:66:3 > API Documentation (Swagger UI) > should list all major tags (System, OAuth2, Admin, User Profile, etc.)	LISTED
+chromium > api-docs.spec.ts:75:3 > API Documentation (Swagger UI) > should find /oauth2/token endpoint and show its parameters	LISTED
+chromium > application-detail.spec.ts:16:3 > Application Detail Page > displays application title and back link	LISTED
+chromium > application-detail.spec.ts:21:3 > Application Detail Page > shows all tabs	LISTED
+chromium > application-detail.spec.ts:28:3 > Application Detail Page > Info tab shows client details	LISTED
+chromium > application-detail.spec.ts:36:3 > Application Detail Page > Info tab has copy button for client_id	LISTED
+chromium > application-detail.spec.ts:40:3 > Application Detail Page > Auth Config tab shows redirect URIs and grant types	LISTED
+chromium > application-detail.spec.ts:47:3 > Application Detail Page > Scopes tab shows available scopes with checkboxes	LISTED
+chromium > application-detail.spec.ts:57:3 > Application Detail Page > Scopes tab saves scope changes	LISTED
+chromium > application-detail.spec.ts:63:3 > Application Detail Page > Credentials tab shows reset button for confidential client	LISTED
+chromium > application-detail.spec.ts:91:3 > Application Detail Page > Save Changes button visible on Info tab	LISTED
+chromium > application-detail.spec.ts:95:3 > Application Detail Page > Save Changes works on Info tab	LISTED
+chromium > application-detail.spec.ts:101:3 > Application Detail Page > back link navigates to applications list	LISTED
+chromium > applications.spec.ts:12:3 > Applications Management > displays applications list with correct columns	LISTED
+chromium > applications.spec.ts:20:3 > Applications Management > shows all registered clients	LISTED
+chromium > applications.spec.ts:27:3 > Applications Management > displays client type badges correctly	LISTED
+chromium > applications.spec.ts:32:3 > Applications Management > opens create application modal	LISTED
+chromium > applications.spec.ts:44:3 > Applications Management > creates a new application and shows secret	LISTED
+chromium > applications.spec.ts:63:3 > Applications Management > closes secret modal with Done button	LISTED
+chromium > applications.spec.ts:73:3 > Applications Management > cancel button closes create modal	LISTED
+chromium > applications.spec.ts:80:3 > Applications Management > delete client with confirmation	LISTED
+chromium > applications.spec.ts:89:3 > Applications Management > reset secret for confidential client	LISTED
+chromium > applications.spec.ts:99:3 > Applications Management > shows empty state when no clients exist	LISTED
+chromium > auth.spec.ts:9:3 > Authentication > redirects to login when not authenticated	LISTED
+chromium > auth.spec.ts:14:3 > Authentication > shows login form with correct elements	LISTED
+chromium > auth.spec.ts:22:3 > Authentication > successful login navigates to dashboard	LISTED
+chromium > auth.spec.ts:28:3 > Authentication > shows error on login failure	LISTED
+chromium > auth.spec.ts:47:3 > Authentication > denies access for non-admin users	LISTED
+chromium > auth.spec.ts:71:3 > Authentication > handles MFA required response	LISTED
+chromium > dashboard.spec.ts:10:3 > Dashboard > displays stats cards with real data	LISTED
+chromium > dashboard.spec.ts:20:3 > Dashboard > displays system health status	LISTED
+chromium > dashboard.spec.ts:25:3 > Dashboard > shows database connection status	LISTED
+chromium > dashboard.spec.ts:30:3 > Dashboard > shows Redis connection status	LISTED
+chromium > dashboard.spec.ts:34:3 > Dashboard > displays quick action links	LISTED
+chromium > dashboard.spec.ts:43:3 > Dashboard > quick action links navigate correctly	LISTED
+chromium > dashboard.spec.ts:62:3 > Dashboard - unhealthy state > shows unhealthy status when backend is down	LISTED
+chromium > logs.spec.ts:12:3 > Audit Logs > displays audit logs page title	LISTED
+chromium > logs.spec.ts:16:3 > Audit Logs > shows log entries with correct columns	LISTED
+chromium > logs.spec.ts:24:3 > Audit Logs > displays log actions	LISTED
+chromium > logs.spec.ts:30:3 > Audit Logs > shows outcome badges with correct colors	LISTED
+chromium > logs.spec.ts:40:3 > Audit Logs > displays IP addresses	LISTED
+chromium > logs.spec.ts:45:3 > Audit Logs > shows pagination controls	LISTED
+chromium > logs.spec.ts:51:3 > Audit Logs > previous button is disabled on first page	LISTED
+chromium > logs.spec.ts:57:3 > Audit Logs > next button disabled when fewer than 50 results	LISTED
+chromium > logs.spec.ts:63:3 > Audit Logs > shows empty state when no logs	LISTED
+chromium > logs.spec.ts:79:3 > Audit Logs > pagination sends correct page parameter	LISTED
+chromium > navigation.spec.ts:10:3 > Navigation & Layout > sidebar shows all navigation items	LISTED
+chromium > navigation.spec.ts:21:3 > Navigation & Layout > sidebar navigation works for all pages	LISTED
+chromium > navigation.spec.ts:58:3 > Navigation & Layout > top bar shows user info	LISTED
+chromium > navigation.spec.ts:63:3 > Navigation & Layout > logout clears session and redirects to login	LISTED
+chromium > navigation.spec.ts:71:3 > Navigation & Layout > active nav item is highlighted	LISTED
+chromium > roles.spec.ts:12:3 > Roles Page > displays roles list	LISTED
+chromium > roles.spec.ts:18:3 > Roles Page > shows built-in badge for system roles	LISTED
+chromium > roles.spec.ts:22:3 > Roles Page > shows user count for each role	LISTED
+chromium > roles.spec.ts:27:3 > Roles Page > shows Edit button for all roles	LISTED
+chromium > roles.spec.ts:32:3 > Roles Page > Delete button not shown for built-in roles	LISTED
+chromium > roles.spec.ts:39:3 > Roles Page > can open Create Role modal	LISTED
+chromium > roles.spec.ts:45:3 > Roles Page > can create a new role	LISTED
+chromium > roles.spec.ts:53:3 > Roles Page > Create button disabled when name is empty	LISTED
+chromium > roles.spec.ts:59:3 > Roles Page > can cancel Create Role modal	LISTED
+chromium > roles.spec.ts:65:3 > Roles Page > can open Edit Role modal	LISTED
+chromium > roles.spec.ts:70:3 > Roles Page > can save role description	LISTED
+chromium > roles.spec.ts:107:3 > Roles Page - Custom Role > shows Delete button for custom roles	LISTED
+chromium > roles.spec.ts:112:3 > Roles Page - Custom Role > can delete a custom role with confirmation	LISTED
+chromium > scopes-management.spec.ts:12:3 > Scopes Management Page > displays scopes list	LISTED
+chromium > scopes-management.spec.ts:19:3 > Scopes Management Page > shows built-in badge for system scopes	LISTED
+chromium > scopes-management.spec.ts:23:3 > Scopes Management Page > shows flags for scopes	LISTED
+chromium > scopes-management.spec.ts:30:3 > Scopes Management Page > shows Edit button for all scopes	LISTED
+chromium > scopes-management.spec.ts:34:3 > Scopes Management Page > Delete button not shown for built-in scopes	LISTED
+chromium > scopes-management.spec.ts:39:3 > Scopes Management Page > can open Create Scope modal	LISTED
+chromium > scopes-management.spec.ts:45:3 > Scopes Management Page > can create a new scope	LISTED
+chromium > scopes-management.spec.ts:53:3 > Scopes Management Page > Create button disabled when name is empty	LISTED
+chromium > scopes-management.spec.ts:59:3 > Scopes Management Page > can cancel Create Scope modal	LISTED
+chromium > scopes-management.spec.ts:65:3 > Scopes Management Page > can open Edit Scope modal	LISTED
+chromium > scopes-management.spec.ts:70:3 > Scopes Management Page > can save scope changes	LISTED
+chromium > scopes-management.spec.ts:80:3 > Scopes Management Page > edit modal shows checkboxes for flags	LISTED
+chromium > scopes-management.spec.ts:114:3 > Scopes Management - Custom Scope > shows Delete button for custom scopes	LISTED
+chromium > scopes-management.spec.ts:119:3 > Scopes Management - Custom Scope > can delete a custom scope with confirmation	LISTED
+chromium > settings.spec.ts:12:3 > Settings & Scopes > displays settings page title	LISTED
+chromium > settings.spec.ts:16:3 > Settings & Scopes > shows OAuth2 Scopes section	LISTED
+chromium > settings.spec.ts:20:3 > Settings & Scopes > displays scope table with correct columns	LISTED
+chromium > settings.spec.ts:28:3 > Settings & Scopes > shows all scopes with correct data	LISTED
+chromium > settings.spec.ts:34:3 > Settings & Scopes > displays scope descriptions	LISTED
+chromium > settings.spec.ts:40:3 > Settings & Scopes > shows default scope indicators	LISTED
+chromium > settings.spec.ts:46:3 > Settings & Scopes > shows admin-only scope indicators	LISTED
+chromium > settings.spec.ts:52:3 > Settings & Scopes > shows mapped role for admin scope	LISTED
+chromium > settings.spec.ts:58:3 > Settings & Scopes > shows OIDC Signing Keys section	LISTED
+chromium > settings.spec.ts:62:3 > Settings & Scopes > displays key metadata	LISTED
+chromium > settings.spec.ts:71:3 > Settings & Scopes > displays JWKS and Discovery URLs	LISTED
+chromium > settings.spec.ts:78:3 > Settings & Scopes > shows key status badge	LISTED
+chromium > settings.spec.ts:82:3 > Settings & Scopes > shows key rotation note	LISTED
+chromium > settings.spec.ts:86:3 > Settings & Scopes > has copy buttons for URLs	LISTED
+chromium > tokens.spec.ts:12:3 > Token Management > displays tokens page title	LISTED
+chromium > tokens.spec.ts:16:3 > Token Management > shows token table with correct columns	LISTED
+chromium > tokens.spec.ts:26:3 > Token Management > displays token prefixes in monospace	LISTED
+chromium > tokens.spec.ts:32:3 > Token Management > shows client IDs for tokens	LISTED
+chromium > tokens.spec.ts:37:3 > Token Management > shows filter bar with inputs	LISTED
+chromium > tokens.spec.ts:44:3 > Token Management > shows Revoke button for each token	LISTED
+chromium > tokens.spec.ts:51:3 > Token Management > revoke token shows confirmation dialog	LISTED
+chromium > tokens.spec.ts:58:3 > Token Management > cancel confirmation closes dialog	LISTED
+chromium > tokens.spec.ts:65:3 > Token Management > confirm revocation calls API	LISTED
+chromium > tokens.spec.ts:72:3 > Token Management > shows Revoke All by App dropdown	LISTED
+chromium > tokens.spec.ts:79:3 > Token Management > shows pagination info	LISTED
+chromium > tokens.spec.ts:84:3 > Token Management > shows empty state when no tokens	LISTED
+chromium > tokens.spec.ts:103:3 > Token Management > Revoke All for User button appears when user filter is set	LISTED
+chromium > user-detail.spec.ts:14:3 > User Detail Page > displays user detail page with correct info	LISTED
+chromium > user-detail.spec.ts:19:3 > User Detail Page > shows status badges	LISTED
+chromium > user-detail.spec.ts:25:3 > User Detail Page > shows Info tab with editable fields	LISTED
+chromium > user-detail.spec.ts:30:3 > User Detail Page > can switch to Security tab	LISTED
+chromium > user-detail.spec.ts:37:3 > User Detail Page > can switch to Roles tab	LISTED
+chromium > user-detail.spec.ts:44:3 > User Detail Page > can save info changes	LISTED
+chromium > user-detail.spec.ts:50:3 > User Detail Page > can save role changes	LISTED
+chromium > user-detail.spec.ts:79:3 > User Detail Page > disable account button is visible	LISTED
+chromium > user-detail.spec.ts:83:3 > User Detail Page > back to users link works	LISTED
+chromium > user-detail.spec.ts:120:3 > User Detail - Locked Account > shows Locked badge for locked account	LISTED
+chromium > user-detail.spec.ts:124:3 > User Detail - Locked Account > shows Enable Account button for locked user	LISTED
+chromium > user-detail.spec.ts:128:3 > User Detail - Locked Account > security tab shows lock info	LISTED
+chromium > users.spec.ts:12:3 > User Management > displays users list with correct columns	LISTED
+chromium > users.spec.ts:21:3 > User Management > shows all users with correct data	LISTED
+chromium > users.spec.ts:28:3 > User Management > displays email verification status badges	LISTED
+chromium > users.spec.ts:33:3 > User Management > displays MFA status badges	LISTED
+chromium > users.spec.ts:38:3 > User Management > opens role assignment modal	LISTED
+chromium > users.spec.ts:44:3 > User Management > role modal shows selected username	LISTED
+chromium > users.spec.ts:50:3 > User Management > assigns roles successfully	LISTED
+chromium > users.spec.ts:71:3 > User Management > cancel closes role modal	LISTED

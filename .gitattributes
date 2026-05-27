@@ -1,3 +1,13 @@
 # Force Linux line endings for shell scripts
 *.sh text eol=lf
 docker-quick-verify-debug.sh text eol=lf
+
+# Refactor baseline tooling and snapshots: deterministic LF so the
+# cross-platform diff against the P0 baseline does not pick up CRLF noise.
+# (See .kiro/specs/repo-structure-refactor/design.md §12.6 / Property 2.)
+tools/refactor-baseline/**/*.txt text eol=lf
+tools/refactor-baseline/**/*.json text eol=lf
+tools/refactor-baseline/**/*.yaml text eol=lf
+tools/refactor-baseline/**/*.py text eol=lf
+tools/diff-endpoint-baseline.py text eol=lf
+tools/check-orm-exempt.sh text eol=lf

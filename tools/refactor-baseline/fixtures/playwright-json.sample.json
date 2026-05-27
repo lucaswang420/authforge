@@ -1,0 +1,74 @@
+{
+  "config": { "rootDir": "/repo/OAuth2Admin" },
+  "suites": [
+    {
+      "title": "auth.spec.ts",
+      "file": "auth.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication",
+          "specs": [
+            {
+              "title": "redirects to login when not authenticated",
+              "file": "auth.spec.ts",
+              "line": 9,
+              "column": 3,
+              "tests": [
+                { "projectName": "chromium", "results": [{ "status": "passed" }] }
+              ]
+            },
+            {
+              "title": "shows login form with correct elements",
+              "file": "auth.spec.ts",
+              "line": 14,
+              "column": 3,
+              "tests": [
+                { "projectName": "chromium", "results": [{ "status": "passed" }] }
+              ]
+            },
+            {
+              "title": "successful login navigates to dashboard",
+              "file": "auth.spec.ts",
+              "line": 22,
+              "column": 3,
+              "tests": [
+                { "projectName": "chromium", "results": [{ "status": "passed" }] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "navigation.spec.ts",
+      "file": "navigation.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "Navigation",
+          "specs": [
+            {
+              "title": "top bar shows brand",
+              "file": "navigation.spec.ts",
+              "line": 5,
+              "column": 3,
+              "tests": [
+                { "projectName": "chromium", "results": [{ "status": "passed" }] }
+              ]
+            },
+            {
+              "title": "clicking logo returns home",
+              "file": "navigation.spec.ts",
+              "line": 10,
+              "column": 3,
+              "tests": [
+                { "projectName": "chromium", "results": [{ "status": "skipped" }] }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

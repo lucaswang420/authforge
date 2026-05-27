@@ -1,0 +1,4 @@
+GET	/.well-known/openid-configuration	200	application/json	OpenID Connect	no
+GET	/api/admin/clients	200	-	Admin	yes
+POST	/api/admin/clients	201	-	Admin	yes
+POST	/oauth2/token	200,400	application/json	OAuth2	yes

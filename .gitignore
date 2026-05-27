@@ -64,3 +64,7 @@ reports/
 build/
 CMakeUserPresets.json
 OAuth2Plugin/models_backup/
+
+# Kiro spec workflow scratch (commit messages, probes, etc.). Spec files
+# under .kiro/specs/ remain tracked.
+.kiro/tmp/

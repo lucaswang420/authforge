@@ -1,0 +1,12 @@
+# tools/refactor-baseline/
+
+P0 phase baseline snapshot directory (see .kiro/specs/repo-structure-refactor/tasks.md task 1.x).
+
+This directory is created by `capture.sh` / `capture.ps1` and contains:
+
+- `ctest/<os>-<cfg>.txt`           — ctest test names + PASS list per (os, config)
+- `playwright/{admin,frontend}.txt` — Playwright e2e PASS list per app
+- `endpoints/<endpoint>.json`       — captured (method, path, status, headers, body-shape) per endpoint
+
+Generated artifacts inside subdirectories are committed to lock the pre-refactor
+baseline. Do not modify them by hand; re-run `capture.{sh,ps1}` when refreshing.

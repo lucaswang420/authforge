@@ -1,0 +1,13 @@
+Test project D:/work/development/Repos/backend/drogon-plugin/OAuth2-plugin-example/build/OAuth2Server
+  Test #1: AuthServiceGetUserInfoTest
+  Test #2: ErrorHandlerTest
+  Test #3: OpenApiGeneratorTest
+  Test #4: OpenApiGeneratorParameterTypesTest
+  Test #5: ConfigManagerLoadTest
+  Test #6: TokenServiceIssueTest
+  Test #7: TokenServiceIntrospectTest
+  Test #8: ClientServiceCreateTest
+  Test #9: ClientServiceUpdateTest
+  Test #10: ValidatorClientIdTest
+
+Total Tests: 10

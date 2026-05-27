@@ -1,0 +1,48 @@
+chromium > account.spec.ts:10:3 > Dashboard > displays welcome message	LISTED
+chromium > account.spec.ts:14:3 > Dashboard > shows quick links	LISTED
+chromium > account.spec.ts:20:3 > Dashboard > quick links navigate correctly	LISTED
+chromium > account.spec.ts:34:3 > Profile > displays profile page	LISTED
+chromium > account.spec.ts:38:3 > Profile > shows user info	LISTED
+chromium > account.spec.ts:43:3 > Profile > shows email verification status	LISTED
+chromium > account.spec.ts:56:3 > Security > displays security page sections	LISTED
+chromium > account.spec.ts:61:3 > Security > can change password	LISTED
+chromium > account.spec.ts:70:3 > Security > shows MFA enable button when disabled	LISTED
+chromium > account.spec.ts:74:3 > Security > can start MFA setup	LISTED
+chromium > account.spec.ts:79:3 > Security > shows Danger Zone with delete account	LISTED
+chromium > account.spec.ts:84:3 > Security > delete account button is disabled until username matches	LISTED
+chromium > account.spec.ts:89:3 > Security > shows WebAuthn section if supported	LISTED
+chromium > account.spec.ts:103:3 > Authorized Apps > displays authorized apps	LISTED
+chromium > account.spec.ts:108:3 > Authorized Apps > shows revoke buttons	LISTED
+chromium > account.spec.ts:113:3 > Authorized Apps > can revoke an app	LISTED
+chromium > auth.spec.ts:9:3 > Login > displays login form	LISTED
+chromium > auth.spec.ts:17:3 > Login > successful login redirects to dashboard	LISTED
+chromium > auth.spec.ts:26:3 > Login > shows error on invalid credentials	LISTED
+chromium > auth.spec.ts:34:3 > Login > shows MFA challenge when required	LISTED
+chromium > auth.spec.ts:46:3 > Login > MFA verification completes login	LISTED
+chromium > auth.spec.ts:62:3 > Login > forgot password link navigates correctly	LISTED
+chromium > auth.spec.ts:68:3 > Login > register link navigates correctly	LISTED
+chromium > auth.spec.ts:80:3 > Register > displays registration form	LISTED
+chromium > auth.spec.ts:85:3 > Register > successful registration shows success message	LISTED
+chromium > auth.spec.ts:102:3 > Forgot Password > displays forgot password form	LISTED
+chromium > auth.spec.ts:107:3 > Forgot Password > shows success message after submission	LISTED
+chromium > auth.spec.ts:120:3 > Email Verification > shows success on valid token	LISTED
+chromium > auth.spec.ts:125:3 > Email Verification > shows error when token is missing	LISTED
+chromium > auth.spec.ts:136:3 > GitHub Login > shows GitHub login button on login page	LISTED
+chromium > auth.spec.ts:141:3 > GitHub Login > GitHub button links to GitHub OAuth	LISTED
+chromium > navigation.spec.ts:9:3 > Navigation & Route Guards > unauthenticated user is redirected to login	LISTED
+chromium > navigation.spec.ts:14:3 > Navigation & Route Guards > unauthenticated user can access login page	LISTED
+chromium > navigation.spec.ts:19:3 > Navigation & Route Guards > unauthenticated user can access register page	LISTED
+chromium > navigation.spec.ts:24:3 > Navigation & Route Guards > authenticated user is redirected from login to dashboard	LISTED
+chromium > navigation.spec.ts:30:3 > Navigation & Route Guards > top navigation shows all links when authenticated	LISTED
+chromium > navigation.spec.ts:38:3 > Navigation & Route Guards > navigation links work correctly	LISTED
+chromium > navigation.spec.ts:54:3 > Navigation & Route Guards > sign out clears session and redirects to login	LISTED
+chromium > navigation.spec.ts:64:3 > Navigation & Route Guards > after sign out, protected routes redirect to login	LISTED
+chromium > oauth.spec.ts:10:3 > OAuth2 Consent Page > displays consent page with client info	LISTED
+chromium > oauth.spec.ts:16:3 > OAuth2 Consent Page > shows requested scopes	LISTED
+chromium > oauth.spec.ts:23:3 > OAuth2 Consent Page > has approve and deny buttons	LISTED
+chromium > oauth.spec.ts:35:3 > Device Verification Page > displays device code input	LISTED
+chromium > oauth.spec.ts:41:3 > Device Verification Page > pre-fills code from URL	LISTED
+chromium > oauth.spec.ts:46:3 > Device Verification Page > shows success after verification	LISTED
+chromium > oauth.spec.ts:59:3 > Callback Page > exchanges code for token and redirects	LISTED
+chromium > oauth.spec.ts:65:3 > Callback Page > shows error when error param present	LISTED
+chromium > oauth.spec.ts:70:3 > Callback Page > shows error when no code present	LISTED
