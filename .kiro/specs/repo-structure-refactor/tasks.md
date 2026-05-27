@@ -55,7 +55,7 @@ graph LR
 
 ## Tasks
 
-- [ ] 1. P0 — Baseline 快照与回归基准 / Baseline snapshot
+- [x] 1. P0 — Baseline 快照与回归基准 / Baseline snapshot
   - [x] 1.1 创建 `tools/refactor-baseline/` 目录与基线收集脚本
     - 在仓库根新增 `tools/refactor-baseline/` 占位 `.gitkeep`，并新增 `tools/refactor-baseline/capture.{sh,ps1}` 用来在 P0 一次性收集所有基线。
     - _Design: §2.8 P0, §12.6_
@@ -80,12 +80,14 @@ graph LR
     - **P7 backfill**：`diff-endpoint-baseline.py` 增 `--live <captured-snapshot>` 模式，对比真实 status/headers/JSON shape。
     - _Design: Property 1, Property 2, §12.7_
     - _Requirements: 1.10, 15.9_
-  - [ ] 1.6 推送 git tag `refactor-baseline`
+  - [x] 1.6 推送 git tag `refactor-baseline`
     - `git tag -a refactor-baseline -m "P0 baseline before repo-structure-refactor" && git push origin refactor-baseline`。
+    - **本次落地（A.1 路径）**：先建 `refactor/p0-baseline` 分支从 master HEAD `028718c` 切出；提交 1（`de8ca3f`）含 spec 文档（design / requirements / tasks），提交 2（`ce00ca3`）含 P0 工具链 + `.gitattributes` 锁 LF + `.gitignore` 忽略 `.kiro/tmp/`。本地打 annotated tag `refactor-baseline` → `ce00ca3`，**未 push 远端**（保留对 P1 实施过程中的逃生选项）。后续 push 时机由人工决定。
     - _Design: §2.8 P0_
     - _Requirements: 14.1_
-  - [ ] 1.7 P0 验收门 / Phase Gate
+  - [x] 1.7 P0 验收门 / Phase Gate
     - 校验 `tools/refactor-baseline/` 各子目录非空；`git tag --list refactor-baseline` 命中；`tools/check-orm-exempt.sh` 在当前仓库 exit 0。
+    - **本次落地结果**：`capture.{ps1,sh} verify` exit 0（3 子目录 OK + 73 ORM 断言 + 68 endpoint signatures match）；`git tag --list refactor-baseline` 命中并指向 `ce00ca3`；`refactor/p0-baseline` 分支有 2 commit（`de8ca3f` spec + `ce00ca3` tooling），working tree 仅含 tasks.md 的勾选差异。
     - _Design: §12.6 P0, §0.3_
     - _Requirements: 14.1, 1.10_
 
