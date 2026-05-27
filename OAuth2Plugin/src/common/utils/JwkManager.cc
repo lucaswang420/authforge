@@ -50,7 +50,8 @@ bool JwkManager::init(const Json::Value &config)
             {
                 kid_ = config.get("kid", "key-1").asString();
                 initialized_ = true;
-                LOG_INFO << "JwkManager: Loaded signing key from OAUTH2_JWT_KEY_PATH=" << keyPathEnv;
+                LOG_INFO << "JwkManager: Loaded signing key from OAUTH2_JWT_KEY_PATH="
+                         << keyPathEnv;
                 return true;
             }
         }

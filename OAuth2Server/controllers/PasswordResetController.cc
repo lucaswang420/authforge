@@ -12,9 +12,12 @@
 using namespace drogon;
 using namespace drogon::orm;
 
-namespace {
-struct PasswordResetControllerDocs {
-    PasswordResetControllerDocs() {
+namespace
+{
+struct PasswordResetControllerDocs
+{
+    PasswordResetControllerDocs()
+    {
         common::documentation::EndpointInfo requestDocs;
         requestDocs.path = "/api/password-reset/request";
         requestDocs.method = "POST";

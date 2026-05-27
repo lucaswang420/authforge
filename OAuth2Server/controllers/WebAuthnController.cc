@@ -9,9 +9,12 @@
 using namespace drogon;
 using namespace drogon::orm;
 
-namespace {
-struct WebAuthnControllerDocs {
-    WebAuthnControllerDocs() {
+namespace
+{
+struct WebAuthnControllerDocs
+{
+    WebAuthnControllerDocs()
+    {
         common::documentation::EndpointInfo regBeginDocs;
         regBeginDocs.path = "/oauth2/webauthn/register/begin";
         regBeginDocs.method = "POST";

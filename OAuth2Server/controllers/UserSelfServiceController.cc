@@ -9,9 +9,12 @@
 using namespace drogon;
 using namespace drogon::orm;
 
-namespace {
-struct UserSelfServiceControllerDocs {
-    UserSelfServiceControllerDocs() {
+namespace
+{
+struct UserSelfServiceControllerDocs
+{
+    UserSelfServiceControllerDocs()
+    {
         common::documentation::EndpointInfo getProfile;
         getProfile.path = "/api/me";
         getProfile.method = "GET";
@@ -52,7 +55,8 @@ struct UserSelfServiceControllerDocs {
         revokeApp.path = "/api/me/authorized-apps/{clientId}";
         revokeApp.method = "DELETE";
         revokeApp.summary = "Revoke App Authorization";
-        revokeApp.description = "Revoke the current user's authorization for a specific OAuth2 client.";
+        revokeApp.description =
+          "Revoke the current user's authorization for a specific OAuth2 client.";
         revokeApp.tags = {"User Profile"};
         revokeApp.requiresAuth = true;
         common::documentation::OpenApiGenerator::addEndpoint(revokeApp);

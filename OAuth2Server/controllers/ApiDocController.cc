@@ -7,14 +7,18 @@
 
 using namespace api;
 
-namespace {
-struct ApiDocControllerDocs {
-    ApiDocControllerDocs() {
+namespace
+{
+struct ApiDocControllerDocs
+{
+    ApiDocControllerDocs()
+    {
         common::documentation::EndpointInfo spec;
         spec.path = "/docs/api/openapi.json";
         spec.method = "GET";
         spec.summary = "Get OpenAPI Specification";
-        spec.description = "Returns the dynamically generated OpenAPI 3.0 specification in JSON format.";
+        spec.description =
+          "Returns the dynamically generated OpenAPI 3.0 specification in JSON format.";
         spec.tags = {"Documentation"};
         spec.requiresAuth = false;
         common::documentation::OpenApiGenerator::addEndpoint(spec);
@@ -29,8 +33,9 @@ struct ApiDocControllerDocs {
         common::documentation::OpenApiGenerator::addEndpoint(ui);
     }
 };
+
 ApiDocControllerDocs docs_;
-}
+}  // namespace
 
 void ApiDocController::openApiSpec(
   const drogon::HttpRequestPtr &req,

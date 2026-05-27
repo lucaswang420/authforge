@@ -8,9 +8,12 @@
 using namespace drogon;
 using namespace drogon::orm;
 
-namespace {
-struct EmailVerificationControllerDocs {
-    EmailVerificationControllerDocs() {
+namespace
+{
+struct EmailVerificationControllerDocs
+{
+    EmailVerificationControllerDocs()
+    {
         common::documentation::EndpointInfo verifyEmail;
         verifyEmail.path = "/api/verify-email";
         verifyEmail.method = "GET";

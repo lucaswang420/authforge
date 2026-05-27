@@ -4,9 +4,12 @@
 #include <drogon/drogon.h>
 #include <regex>
 
-namespace {
-struct OrganizationControllerDocs {
-    OrganizationControllerDocs() {
+namespace
+{
+struct OrganizationControllerDocs
+{
+    OrganizationControllerDocs()
+    {
         common::documentation::EndpointInfo getOrgsDocs;
         getOrgsDocs.path = "/api/orgs";
         getOrgsDocs.method = "GET";

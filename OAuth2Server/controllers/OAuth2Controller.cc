@@ -47,7 +47,7 @@ struct OAuth2ControllerDocs
             Json::Value successExample;
             successExample["status"] = "ok";
             successExample["version"] = "1.0.0";
-            
+
             common::documentation::EndpointInfo healthEndpoint;
             healthEndpoint.path = "/health";
             healthEndpoint.method = "GET";
@@ -66,10 +66,10 @@ struct OAuth2ControllerDocs
             Json::Value successExample;
             successExample["status"] = "success";
             successExample["redirect_uri"] = "http://127.0.0.1:5173/callback?code=xyz123";
-            
+
             Json::Value errorExample;
             errorExample["error"] = "invalid_client";
-            
+
             common::documentation::EndpointInfo loginEndpoint;
             loginEndpoint.path = "/oauth2/login";
             loginEndpoint.method = "POST";
@@ -78,7 +78,7 @@ struct OAuth2ControllerDocs
               "Authenticates user credentials and generates an authorization code. "
               "Usually called by the frontend login page during the authorization code flow.";
             loginEndpoint.tags = {"OAuth2", "Authentication"};
-            
+
             common::documentation::ParameterInfo usernameParam;
             usernameParam.name = "username";
             usernameParam.description = "User's account username (required)";
@@ -121,7 +121,9 @@ struct OAuth2ControllerDocs
             stateParam.location = common::documentation::ParameterLocation::QUERY;
             stateParam.required = false;
 
-            loginEndpoint.parameters = {usernameParam, passwordParam, clientIdParam, redirectUriParam, scopeParam, stateParam};
+            loginEndpoint.parameters = {
+              usernameParam, passwordParam, clientIdParam, redirectUriParam, scopeParam, stateParam
+            };
             loginEndpoint.responses =
               {{200, "Authentication successful (JSON with redirect_uri)"},
                {302, "Redirect with authorization code (if requested via browser)"},
@@ -136,14 +138,14 @@ struct OAuth2ControllerDocs
             Json::Value successExample;
             successExample["status"] = "success";
             successExample["message"] = "User registered successfully";
-            
+
             common::documentation::EndpointInfo registerEndpoint;
             registerEndpoint.path = "/api/register";
             registerEndpoint.method = "POST";
             registerEndpoint.summary = "Register new user";
             registerEndpoint.description = "Registers a new user account into the system.";
             registerEndpoint.tags = {"User", "Registration"};
-            
+
             common::documentation::ParameterInfo usernameParam;
             usernameParam.name = "username";
             usernameParam.description = "Desired username (required)";
@@ -179,9 +181,10 @@ struct OAuth2ControllerDocs
             consentEndpoint.path = "/oauth2/consent";
             consentEndpoint.method = "POST";
             consentEndpoint.summary = "Submit user consent";
-            consentEndpoint.description = "Submit user consent for requested scopes. Redirects back to client.";
+            consentEndpoint.description =
+              "Submit user consent for requested scopes. Redirects back to client.";
             consentEndpoint.tags = {"OAuth2", "Consent"};
-            
+
             common::documentation::ParameterInfo clientIdParam;
             clientIdParam.name = "client_id";
             clientIdParam.description = "Client identifier (required)";
@@ -225,7 +228,8 @@ struct OAuth2ControllerDocs
             actionParam.required = true;
             actionParam.enumValues = "approve,deny";
 
-            consentEndpoint.parameters = {clientIdParam, userIdParam, scopeParam, redirectUriParam, stateParam, actionParam};
+            consentEndpoint.parameters =
+              {clientIdParam, userIdParam, scopeParam, redirectUriParam, stateParam, actionParam};
             consentEndpoint.responses = {
               {302, "Redirect to client with authorization code or error"}
             };
