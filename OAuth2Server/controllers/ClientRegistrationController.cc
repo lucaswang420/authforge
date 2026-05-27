@@ -5,9 +5,12 @@
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 
-namespace {
-struct ClientRegistrationControllerDocs {
-    ClientRegistrationControllerDocs() {
+namespace
+{
+struct ClientRegistrationControllerDocs
+{
+    ClientRegistrationControllerDocs()
+    {
         common::documentation::EndpointInfo regDocs;
         regDocs.path = "/oauth2/register";
         regDocs.method = "POST";

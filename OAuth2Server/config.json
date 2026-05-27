@@ -153,7 +153,7 @@
                     "vue-client": {
                         "client_type": "PUBLIC",
                         "secret": "123456",
-                        "redirect_uri": "http://localhost:5173/callback",
+                        "redirect_uri": "http://localhost:5173/callback,http://localhost:8080/callback",
                         "allowed_scopes": ["openid", "profile", "email"]
                     }
                 },
@@ -184,6 +184,8 @@
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
                 "http://localhost:5174",
+                "http://localhost:8080",
+                "http://localhost:8081",
                 "https://editor.swagger.io"
             ]
         },

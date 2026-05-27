@@ -6,9 +6,12 @@
 #include <atomic>
 #include <mutex>
 
-namespace {
-struct AdminApiControllerDocs {
-    AdminApiControllerDocs() {
+namespace
+{
+struct AdminApiControllerDocs
+{
+    AdminApiControllerDocs()
+    {
         common::documentation::EndpointInfo listClients;
         listClients.path = "/api/admin/clients";
         listClients.method = "GET";
@@ -176,7 +179,8 @@ struct AdminApiControllerDocs {
         getUser.path = "/api/admin/users/{userId}";
         getUser.method = "GET";
         getUser.summary = "Get User Detail";
-        getUser.description = "Get detailed information about a specific user including roles and account status.";
+        getUser.description =
+          "Get detailed information about a specific user including roles and account status.";
         getUser.tags = {"Admin", "Users"};
         getUser.requiresAuth = true;
         common::documentation::OpenApiGenerator::addEndpoint(getUser);
@@ -275,14 +279,17 @@ struct AdminApiControllerDocs {
         getDashboardStats.path = "/api/admin/dashboard/stats";
         getDashboardStats.method = "GET";
         getDashboardStats.summary = "Get Dashboard Stats";
-        getDashboardStats.description = "Get dashboard statistics including user count, client count, active tokens, and failure metrics.";
+        getDashboardStats.description =
+          "Get dashboard statistics including user count, client count, active tokens, and failure "
+          "metrics.";
         getDashboardStats.tags = {"Admin", "Dashboard"};
         getDashboardStats.requiresAuth = true;
         common::documentation::OpenApiGenerator::addEndpoint(getDashboardStats);
     }
 };
+
 AdminApiControllerDocs docs_;
-} // namespace
+}  // namespace
 
 void AdminApiController::listClients(
   const HttpRequestPtr &req,
@@ -2191,13 +2198,17 @@ void AdminApiController::getUser(
               json["created_at"] =
                 row["created_at"].isNull() ? "" : row["created_at"].as<std::string>();
               // Parse roles JSON array from aggregation
-              std::string rolesStr =
-                row["roles"].isNull() ? "[]" : row["roles"].as<std::string>();
+              std::string rolesStr = row["roles"].isNull() ? "[]" : row["roles"].as<std::string>();
               Json::Value rolesJson;
               Json::CharReaderBuilder builder;
               std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
               std::string parseErrors;
-              if (reader->parse(rolesStr.c_str(), rolesStr.c_str() + rolesStr.size(), &rolesJson, &parseErrors) && rolesJson.isArray())
+              if (
+                reader->parse(
+                  rolesStr.c_str(), rolesStr.c_str() + rolesStr.size(), &rolesJson, &parseErrors
+                ) &&
+                rolesJson.isArray()
+              )
               {
                   json["roles"] = rolesJson;
               }
@@ -2291,7 +2302,8 @@ void AdminApiController::updateUser(
     std::string query = "UPDATE users SET ";
     for (size_t i = 0; i < setClauses.size(); ++i)
     {
-        if (i > 0) query += ", ";
+        if (i > 0)
+            query += ", ";
         query += setClauses[i];
     }
     query += " WHERE id = $" + std::to_string(paramIdx);
@@ -2731,7 +2743,8 @@ void AdminApiController::updateRole(
     std::string query = "UPDATE roles SET ";
     for (size_t i = 0; i < setClauses.size(); ++i)
     {
-        if (i > 0) query += ", ";
+        if (i > 0)
+            query += ", ";
         query += setClauses[i];
     }
     query += " WHERE id = $" + std::to_string(paramIdx);
@@ -3027,7 +3040,8 @@ void AdminApiController::updateScope(
     std::string query = "UPDATE oauth2_scopes SET ";
     for (size_t i = 0; i < setClauses.size(); ++i)
     {
-        if (i > 0) query += ", ";
+        if (i > 0)
+            query += ", ";
         query += setClauses[i];
     }
     query += " WHERE id = $" + std::to_string(paramIdx);

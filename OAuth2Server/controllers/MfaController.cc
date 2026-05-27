@@ -10,9 +10,12 @@
 using namespace drogon;
 using namespace drogon::orm;
 
-namespace {
-struct MfaControllerDocs {
-    MfaControllerDocs() {
+namespace
+{
+struct MfaControllerDocs
+{
+    MfaControllerDocs()
+    {
         common::documentation::EndpointInfo setupDocs;
         setupDocs.path = "/oauth2/mfa/setup";
         setupDocs.method = "POST";

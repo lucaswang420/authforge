@@ -31,11 +31,14 @@ drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
     return drogon::k400BadRequest;  // 400
 }
 
-struct OAuth2StandardControllerDocs {
-    OAuth2StandardControllerDocs() {
+struct OAuth2StandardControllerDocs
+{
+    OAuth2StandardControllerDocs()
+    {
         OAuth2StandardController::initApiDocs();
     }
 };
+
 OAuth2StandardControllerDocs docs_;
 }  // namespace
 
@@ -52,7 +55,7 @@ void OAuth2StandardController::initApiDocs()
         successExample["expires_in"] = 3600;
         successExample["refresh_token"] = "ref_123456789";
         successExample["scope"] = "openid profile";
-        
+
         Json::Value errorExample;
         errorExample["error"] = "invalid_grant";
         errorExample["error_description"] = "Invalid authorization code";
@@ -65,7 +68,7 @@ void OAuth2StandardController::initApiDocs()
           "OAuth2 token endpoint - exchanges authorization "
           "code or refresh token for access token.";
         tokenEndpoint.tags = {"OAuth2", "Token"};
-        
+
         common::documentation::ParameterInfo grantTypeParam;
         grantTypeParam.name = "grant_type";
         grantTypeParam.description = "Type of grant being requested";
@@ -73,7 +76,7 @@ void OAuth2StandardController::initApiDocs()
         grantTypeParam.location = common::documentation::ParameterLocation::QUERY;
         grantTypeParam.required = true;
         grantTypeParam.enumValues = "authorization_code,refresh_token,client_credentials";
-        
+
         common::documentation::ParameterInfo codeParam;
         codeParam.name = "code";
         codeParam.description = "Authorization code (required for grant_type=authorization_code)";
@@ -109,7 +112,13 @@ void OAuth2StandardController::initApiDocs()
         redirectUriParam.location = common::documentation::ParameterLocation::QUERY;
         redirectUriParam.required = false;
 
-        tokenEndpoint.parameters = {grantTypeParam, codeParam, refreshParam, clientIdParam, clientSecretParam, redirectUriParam};
+        tokenEndpoint.parameters =
+          {grantTypeParam,
+           codeParam,
+           refreshParam,
+           clientIdParam,
+           clientSecretParam,
+           redirectUriParam};
         tokenEndpoint.responses =
           {{200, "Token response with access_token and refresh_token"},
            {400, "Invalid request"},
@@ -206,9 +215,10 @@ void OAuth2StandardController::initApiDocs()
         introspectEndpoint.path = "/oauth2/introspect";
         introspectEndpoint.method = "POST";
         introspectEndpoint.summary = "Introspect token";
-        introspectEndpoint.description = "RFC 7662 OAuth 2.0 Token Introspection. Returns information about a token.";
+        introspectEndpoint.description =
+          "RFC 7662 OAuth 2.0 Token Introspection. Returns information about a token.";
         introspectEndpoint.tags = {"OAuth2", "Token"};
-        
+
         common::documentation::ParameterInfo tokenParam;
         tokenParam.name = "token";
         tokenParam.description = "The string value of the token (required)";
@@ -217,9 +227,12 @@ void OAuth2StandardController::initApiDocs()
         tokenParam.required = true;
 
         introspectEndpoint.parameters = {tokenParam};
-        introspectEndpoint.responses = {{200, "Token status and metadata"}, {400, "Invalid request"}, {401, "Authentication failed"}};
+        introspectEndpoint.responses =
+          {{200, "Token status and metadata"},
+           {400, "Invalid request"},
+           {401, "Authentication failed"}};
         introspectEndpoint.responseExamples = {{200, successExample}};
-        introspectEndpoint.requiresAuth = true; // Requires client credentials
+        introspectEndpoint.requiresAuth = true;  // Requires client credentials
         OpenApiGenerator::addEndpoint(introspectEndpoint);
     }
 
@@ -229,9 +242,10 @@ void OAuth2StandardController::initApiDocs()
         revokeEndpoint.path = "/oauth2/revoke";
         revokeEndpoint.method = "POST";
         revokeEndpoint.summary = "Revoke token";
-        revokeEndpoint.description = "RFC 7009 OAuth 2.0 Token Revocation. Revokes an access or refresh token.";
+        revokeEndpoint.description =
+          "RFC 7009 OAuth 2.0 Token Revocation. Revokes an access or refresh token.";
         revokeEndpoint.tags = {"OAuth2", "Token"};
-        
+
         common::documentation::ParameterInfo tokenParam;
         tokenParam.name = "token";
         tokenParam.description = "The token that the client wants to get revoked (required)";
@@ -240,8 +254,11 @@ void OAuth2StandardController::initApiDocs()
         tokenParam.required = true;
 
         revokeEndpoint.parameters = {tokenParam};
-        revokeEndpoint.responses = {{200, "Token revoked successfully or token did not exist"}, {400, "Invalid request"}, {401, "Authentication failed"}};
-        revokeEndpoint.requiresAuth = true; // Requires client credentials
+        revokeEndpoint.responses =
+          {{200, "Token revoked successfully or token did not exist"},
+           {400, "Invalid request"},
+           {401, "Authentication failed"}};
+        revokeEndpoint.requiresAuth = true;  // Requires client credentials
         OpenApiGenerator::addEndpoint(revokeEndpoint);
     }
 
@@ -251,7 +268,8 @@ void OAuth2StandardController::initApiDocs()
         discoveryEndpoint.path = "/.well-known/openid-configuration";
         discoveryEndpoint.method = "GET";
         discoveryEndpoint.summary = "OpenID Connect Discovery";
-        discoveryEndpoint.description = "Returns OIDC discovery metadata including endpoints and supported scopes.";
+        discoveryEndpoint.description =
+          "Returns OIDC discovery metadata including endpoints and supported scopes.";
         discoveryEndpoint.tags = {"OpenID Connect"};
         discoveryEndpoint.parameters = {};
         discoveryEndpoint.responses = {{200, "OIDC Provider Metadata"}};

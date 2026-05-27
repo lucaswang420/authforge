@@ -9,8 +9,10 @@
 
 namespace
 {
-struct DeviceAuthControllerDocs {
-    DeviceAuthControllerDocs() {
+struct DeviceAuthControllerDocs
+{
+    DeviceAuthControllerDocs()
+    {
         common::documentation::EndpointInfo authDocs;
         authDocs.path = "/oauth2/device_authorization";
         authDocs.method = "POST";
