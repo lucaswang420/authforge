@@ -1,4 +1,5 @@
 #include <oauth2/EmailService.h>
+#include <oauth2/ConfigManager.h>
 #include <drogon/drogon.h>
 #include <drogon/HttpClient.h>
 #include <sstream>
@@ -111,9 +112,10 @@ IEmailService &getEmailService()
     static std::once_flag initFlag;
 
     std::call_once(initFlag, []() {
-        const char *smtpHost = std::getenv("OAUTH2_SMTP_HOST");
-        const char *smtpUser = std::getenv("OAUTH2_SMTP_USER");
-        const char *smtpPass = std::getenv("OAUTH2_SMTP_PASSWORD");
+        using common::config::ConfigManager;
+        const char *smtpHost = ConfigManager::getEnv("OAUTH2_SMTP_HOST");
+        const char *smtpUser = ConfigManager::getEnv("OAUTH2_SMTP_USER");
+        const char *smtpPass = ConfigManager::getEnv("OAUTH2_SMTP_PASSWORD");
 
         if (smtpHost && smtpUser && smtpPass &&
             std::strlen(smtpHost) > 0 && std::strlen(smtpUser) > 0 && std::strlen(smtpPass) > 0)
@@ -123,13 +125,13 @@ IEmailService &getEmailService()
             config.username = smtpUser;
             config.password = smtpPass;
 
-            const char *smtpPort = std::getenv("OAUTH2_SMTP_PORT");
+            const char *smtpPort = ConfigManager::getEnv("OAUTH2_SMTP_PORT");
             if (smtpPort) config.port = std::atoi(smtpPort);
 
-            const char *smtpFrom = std::getenv("OAUTH2_SMTP_FROM_NAME");
+            const char *smtpFrom = ConfigManager::getEnv("OAUTH2_SMTP_FROM_NAME");
             if (smtpFrom) config.fromName = smtpFrom;
 
-            const char *smtpSsl = std::getenv("OAUTH2_SMTP_SSL");
+            const char *smtpSsl = ConfigManager::getEnv("OAUTH2_SMTP_SSL");
             if (smtpSsl && std::string(smtpSsl) == "false") config.useSsl = false;
 
             LOG_INFO << "Email service: SMTP (" << config.host << ":" << config.port << ")";

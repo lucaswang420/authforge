@@ -24,6 +24,13 @@ class ConfigManager
     // Apply environment variable overrides
     static void applyEnvOverrides(Json::Value &config, const std::vector<EnvOverride> &rules);
 
+    /**
+     * @brief Get environment variable with .env file priority
+     * Searches .env file first, then system environment.
+     * @return value string or nullptr if not found
+     */
+    static const char *getEnv(const char *name);
+
   private:
     // Parse JSON path and return pointer to node
     static Json::Value *getJsonPointer(Json::Value &root, const std::string &path);

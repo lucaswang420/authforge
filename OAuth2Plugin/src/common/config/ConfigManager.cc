@@ -5,9 +5,116 @@
 #include <cstdlib>
 #include <sstream>
 #include <algorithm>
+#include <unordered_map>
+#include <filesystem>
 
 namespace common::config
 {
+
+// .env file contents (loaded once)
+static std::unordered_map<std::string, std::string> dotEnvVars_;
+static bool dotEnvLoaded_ = false;
+
+/**
+ * @brief Load .env file into memory
+ * Searches for .env in current directory and parent directories.
+ * Format: KEY=VALUE (one per line, # comments, empty lines ignored)
+ */
+static void loadDotEnv()
+{
+    if (dotEnvLoaded_)
+        return;
+    dotEnvLoaded_ = true;
+
+    // Search paths for .env file
+    std::vector<std::string> searchPaths = {
+      ".env",
+      "../.env",
+      "../../.env",
+    };
+
+    std::string envPath;
+    for (const auto &path : searchPaths)
+    {
+        if (std::filesystem::exists(path))
+        {
+            envPath = path;
+            break;
+        }
+    }
+
+    if (envPath.empty())
+        return;
+
+    std::ifstream file(envPath);
+    if (!file.is_open())
+        return;
+
+    LOG_INFO << "Loading .env file: " << std::filesystem::absolute(envPath).string();
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        // Trim whitespace
+        while (!line.empty() && (line.front() == ' ' || line.front() == '\t'))
+            line.erase(line.begin());
+        while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r'))
+            line.pop_back();
+
+        // Skip empty lines and comments
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        // Parse KEY=VALUE
+        auto eqPos = line.find('=');
+        if (eqPos == std::string::npos)
+            continue;
+
+        std::string key = line.substr(0, eqPos);
+        std::string value = line.substr(eqPos + 1);
+
+        // Trim key
+        while (!key.empty() && (key.back() == ' ' || key.back() == '\t'))
+            key.pop_back();
+
+        // Trim value (remove surrounding quotes if present)
+        while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+            value.erase(value.begin());
+        if (value.size() >= 2 &&
+            ((value.front() == '"' && value.back() == '"') ||
+             (value.front() == '\'' && value.back() == '\'')))
+        {
+            value = value.substr(1, value.size() - 2);
+        }
+
+        if (!key.empty())
+        {
+            dotEnvVars_[key] = value;
+        }
+    }
+
+    if (!dotEnvVars_.empty())
+    {
+        LOG_INFO << "Loaded " << dotEnvVars_.size() << " variables from .env file";
+    }
+}
+
+/**
+ * @brief Get environment variable value
+ * Priority: .env file > system environment variable
+ */
+static const char *getEnvValue(const char *name)
+{
+    // Priority 1: .env file
+    auto it = dotEnvVars_.find(name);
+    if (it != dotEnvVars_.end() && !it->second.empty())
+    {
+        return it->second.c_str();
+    }
+
+    // Priority 2: system environment variable
+    return std::getenv(name);
+}
 
 bool ConfigManager::load(const std::string &configPath, Json::Value &config)
 {
@@ -26,7 +133,10 @@ bool ConfigManager::load(const std::string &configPath, Json::Value &config)
         return false;
     }
 
-    // Apply environment variable overrides
+    // Load .env file first (before applying overrides)
+    loadDotEnv();
+
+    // Apply environment variable overrides (.env takes priority over system env)
     applyEnvOverrides(config, OAUTH2_ENV_OVERRIDES);
 
     return true;
@@ -36,7 +146,8 @@ void ConfigManager::applyEnvOverrides(Json::Value &config, const std::vector<Env
 {
     for (const auto &rule : rules)
     {
-        if (const char *envValue = std::getenv(rule.envVar))
+        const char *envValue = getEnvValue(rule.envVar);
+        if (envValue)
         {
             Json::Value *ptr = getJsonPointer(config, rule.configPath);
             if (ptr)
@@ -114,16 +225,14 @@ int ConfigManager::parseInt(const std::string &str)
 
 bool ConfigManager::validate(const Json::Value &config, std::string &errorMessage)
 {
-    // Check db_clients section exists and is an array (can be empty for memory
-    // storage)
+    // Check db_clients section exists and is an array
     if (!config.isMember("db_clients") || !config["db_clients"].isArray())
     {
         errorMessage = "Missing or invalid 'db_clients' configuration";
         return false;
     }
 
-    // Check redis_clients section exists and is an array (can be empty for
-    // memory storage)
+    // Check redis_clients section exists and is an array
     if (!config.isMember("redis_clients") || !config["redis_clients"].isArray())
     {
         errorMessage = "Missing or invalid 'redis_clients' configuration";
@@ -153,7 +262,7 @@ bool ConfigManager::validate(const Json::Value &config, std::string &errorMessag
     }
 
     // Production-mode validation
-    const char *env = std::getenv("OAUTH2_ENV");
+    const char *env = getEnvValue("OAUTH2_ENV");
     bool isProd = (env && std::string(env) == "production");
 
     if (isProd)
@@ -203,6 +312,12 @@ bool ConfigManager::validate(const Json::Value &config, std::string &errorMessag
     }
 
     return true;
+}
+
+const char *ConfigManager::getEnv(const char *name)
+{
+    loadDotEnv();
+    return getEnvValue(name);
 }
 
 }  // namespace common::config
