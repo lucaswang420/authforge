@@ -1,7 +1,7 @@
-#include "MemoryOAuth2Storage.h"
+﻿#include <oauth2/storage/MemoryOAuth2Storage.h>
 #include <chrono>
 #include <drogon/drogon.h>
-#include <oauth2/OAuth2Types.h>
+#include <oauth2/types/OAuth2Types.h>
 
 namespace
 {

@@ -1,7 +1,7 @@
 #include "GitHubController.h"
 #include <drogon/HttpClient.h>
 #include <drogon/drogon.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/OAuth2Plugin.h>
 #include <oauth2/CryptoUtils.h>
 
@@ -21,7 +21,7 @@ struct GitHubControllerDocs
 {
     GitHubControllerDocs()
     {
-        common::documentation::EndpointInfo ep;
+        oauth2::observability::openapi::EndpointInfo ep;
         ep.path = "/api/github/login";
         ep.method = "POST";
         ep.summary = "GitHub OAuth2 Login";
@@ -29,11 +29,11 @@ struct GitHubControllerDocs
         ep.tags = {"External Auth", "GitHub"};
         ep.requiresAuth = false;
 
-        common::documentation::ParameterInfo codeParam;
+        oauth2::observability::openapi::ParameterInfo codeParam;
         codeParam.name = "code";
         codeParam.description = "Authorization code from GitHub OAuth2 callback";
-        codeParam.type = common::documentation::ParameterType::STRING;
-        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        codeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         codeParam.required = true;
         ep.parameters = {codeParam};
 
@@ -42,7 +42,7 @@ struct GitHubControllerDocs
            {400, "Invalid request (missing or invalid code)"},
            {502, "Failed to contact GitHub API"}};
 
-        common::documentation::OpenApiGenerator::addEndpoint(ep);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(ep);
     }
 };
 

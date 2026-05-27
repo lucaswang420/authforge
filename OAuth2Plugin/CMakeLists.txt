@@ -18,10 +18,13 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/storage
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/models
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/services
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+        # ORM-generated model .cc files emit quote-includes of sibling
+        # model headers (e.g. `#include "Oauth2Clients.h"` from
+        # `Oauth2AccessTokens.cc`). Per spec §0 the generator output is
+        # exempt from rewrite, so we keep this PRIVATE include path
+        # rather than mutating the .cc files. (design §7.4 mentioned
+        # removing this entry; the actual implementation must keep it
+        # because ORM generator quote-include style is non-negotiable.)
         ${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/models
 )
 
@@ -37,12 +40,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC Drogon::Drogon OpenSSL::Crypto)
 
 # Compiler Specific Options
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/types/orm_compat.h")
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
     # Silence C++17 codecvt deprecation warning for Drogon ORM generated code
     target_compile_definitions(${PROJECT_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/include/oauth2/types/orm_compat.h")
 endif()
 
 # Views (if any core views exist, but currently they are in Server)

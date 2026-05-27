@@ -1,7 +1,7 @@
 #include "WebAuthnController.h"
 #include <oauth2/CryptoUtils.h>
-#include <oauth2/AuditLogger.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -15,50 +15,50 @@ struct WebAuthnControllerDocs
 {
     WebAuthnControllerDocs()
     {
-        common::documentation::EndpointInfo regBeginDocs;
+        oauth2::observability::openapi::EndpointInfo regBeginDocs;
         regBeginDocs.path = "/oauth2/webauthn/register/begin";
         regBeginDocs.method = "POST";
         regBeginDocs.summary = "WebAuthn Register Begin";
         regBeginDocs.description = "Start WebAuthn registration.";
         regBeginDocs.tags = {"WebAuthn"};
         regBeginDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(regBeginDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(regBeginDocs);
 
-        common::documentation::EndpointInfo regFinishDocs;
+        oauth2::observability::openapi::EndpointInfo regFinishDocs;
         regFinishDocs.path = "/oauth2/webauthn/register/finish";
         regFinishDocs.method = "POST";
         regFinishDocs.summary = "WebAuthn Register Finish";
         regFinishDocs.description = "Finish WebAuthn registration.";
         regFinishDocs.tags = {"WebAuthn"};
         regFinishDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(regFinishDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(regFinishDocs);
 
-        common::documentation::EndpointInfo loginBeginDocs;
+        oauth2::observability::openapi::EndpointInfo loginBeginDocs;
         loginBeginDocs.path = "/oauth2/webauthn/login/begin";
         loginBeginDocs.method = "POST";
         loginBeginDocs.summary = "WebAuthn Login Begin";
         loginBeginDocs.description = "Start WebAuthn login.";
         loginBeginDocs.tags = {"WebAuthn"};
         loginBeginDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(loginBeginDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(loginBeginDocs);
 
-        common::documentation::EndpointInfo loginFinishDocs;
+        oauth2::observability::openapi::EndpointInfo loginFinishDocs;
         loginFinishDocs.path = "/oauth2/webauthn/login/finish";
         loginFinishDocs.method = "POST";
         loginFinishDocs.summary = "WebAuthn Login Finish";
         loginFinishDocs.description = "Finish WebAuthn login.";
         loginFinishDocs.tags = {"WebAuthn"};
         loginFinishDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(loginFinishDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(loginFinishDocs);
 
-        common::documentation::EndpointInfo credentialsDocs;
+        oauth2::observability::openapi::EndpointInfo credentialsDocs;
         credentialsDocs.path = "/oauth2/webauthn/credentials";
         credentialsDocs.method = "GET";
         credentialsDocs.summary = "List WebAuthn Credentials";
         credentialsDocs.description = "List registered WebAuthn credentials.";
         credentialsDocs.tags = {"WebAuthn"};
         credentialsDocs.requiresAuth = true;
-        common::documentation::OpenApiGenerator::addEndpoint(credentialsDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(credentialsDocs);
     }
 };
 
@@ -187,7 +187,7 @@ void WebAuthnController::registerFinish(
       "INSERT INTO webauthn_credentials (user_id, credential_id, public_key, name) "
       "VALUES ((SELECT id FROM users WHERE public_sub::text = $1::text), $2, $3, $4)",
       [sharedCb, credentialId, req, userId](const Result &) {
-          oauth2::AuditLogger::log(
+          oauth2::observability::AuditLogger::log(
             "webauthn_registered", "success", req, userId, "credential", credentialId
           );
           Json::Value json;
@@ -306,7 +306,7 @@ void WebAuthnController::authenticateFinish(
             credentialId
           );
 
-          oauth2::AuditLogger::log(
+          oauth2::observability::AuditLogger::log(
             "webauthn_authenticated", "success", req, publicSub, "credential", credentialId
           );
 

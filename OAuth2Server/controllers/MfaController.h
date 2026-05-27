@@ -13,21 +13,21 @@ class MfaController : public drogon::HttpController<MfaController>
       MfaController::setup,
       "/api/me/mfa/setup",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Confirm MFA setup with TOTP code
     ADD_METHOD_TO(
       MfaController::verifySetup,
       "/api/me/mfa/verify",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Disable MFA (requires auth + password)
     ADD_METHOD_TO(
       MfaController::disable,
       "/api/me/mfa/disable",
       Post,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Verify TOTP during login (second factor)
     ADD_METHOD_TO(MfaController::verifyLogin, "/oauth2/mfa/verify", Post);

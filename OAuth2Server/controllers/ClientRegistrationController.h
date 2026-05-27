@@ -20,7 +20,7 @@ class ClientRegistrationController : public drogon::HttpController<ClientRegistr
       ClientRegistrationController::registerClient,
       "/oauth2/register",
       Post,
-      "AuthorizationFilter"
+      "oauth2::filters::AuthorizationFilter"
     );
     METHOD_LIST_END
 

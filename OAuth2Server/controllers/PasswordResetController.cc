@@ -3,8 +3,8 @@
 #include <oauth2/PasswordHasher.h>
 #include <oauth2/EmailService.h>
 #include <oauth2/OAuth2Plugin.h>
-#include <oauth2/AuditLogger.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -18,23 +18,23 @@ struct PasswordResetControllerDocs
 {
     PasswordResetControllerDocs()
     {
-        common::documentation::EndpointInfo requestDocs;
+        oauth2::observability::openapi::EndpointInfo requestDocs;
         requestDocs.path = "/api/password-reset/request";
         requestDocs.method = "POST";
         requestDocs.summary = "Request Password Reset";
         requestDocs.description = "Request a password reset link to be sent via email.";
         requestDocs.tags = {"User Verification"};
         requestDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(requestDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(requestDocs);
 
-        common::documentation::EndpointInfo confirmDocs;
+        oauth2::observability::openapi::EndpointInfo confirmDocs;
         confirmDocs.path = "/api/password-reset/confirm";
         confirmDocs.method = "POST";
         confirmDocs.summary = "Confirm Password Reset";
         confirmDocs.description = "Confirm a password reset using the token sent via email.";
         confirmDocs.tags = {"User Verification"};
         confirmDocs.requiresAuth = false;
-        common::documentation::OpenApiGenerator::addEndpoint(confirmDocs);
+        oauth2::observability::openapi::OpenApiGenerator::addEndpoint(confirmDocs);
     }
 };
 
@@ -253,7 +253,7 @@ void PasswordResetController::confirm(
                       db->execSqlAsync(
                         "UPDATE oauth2_refresh_tokens SET revoked = true WHERE user_id = $1",
                         [sharedCb, userId, req](const Result &) {
-                            oauth2::AuditLogger::log(
+                            oauth2::observability::AuditLogger::log(
                               "password_reset",
                               "success",
                               req,
@@ -268,7 +268,7 @@ void PasswordResetController::confirm(
                             (*sharedCb)(resp);
                         },
                         [sharedCb, userId, req](const DrogonDbException &) {
-                            oauth2::AuditLogger::log(
+                            oauth2::observability::AuditLogger::log(
                               "password_reset",
                               "success",
                               req,
@@ -285,7 +285,7 @@ void PasswordResetController::confirm(
                       );
                   },
                   [sharedCb, userId, req](const DrogonDbException &) {
-                      oauth2::AuditLogger::log(
+                      oauth2::observability::AuditLogger::log(
                         "password_reset",
                         "success",
                         req,

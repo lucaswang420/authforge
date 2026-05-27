@@ -4,7 +4,7 @@
 #include <drogon/utils/Utilities.h>
 #include <drogon/Cookie.h>
 #include <oauth2/OAuth2Plugin.h>
-#include "../controllers/OAuth2Controller.h"
+#include "../controllers/SessionController.h"
 #include <oauth2/controllers/OAuth2StandardController.h>
 #include <future>
 #include <iostream>
@@ -30,7 +30,7 @@ DROGON_TEST(E2E_P0_OAuth2Flow_AuthCode_Works)
         return;
     }
 
-    auto ctrl = std::make_shared<OAuth2Controller>();
+    auto ctrl = std::make_shared<SessionController>();
     auto stdCtrl = std::make_shared<oauth2::controllers::OAuth2StandardController>();
 
     std::string testUserId = "e2e_user_" + utils::getUuid().substr(0, 8);
@@ -264,7 +264,7 @@ DROGON_TEST(Integration_P0_Session_Management_Works)
         return;
     }
 
-    auto ctrl = std::make_shared<OAuth2Controller>();
+    auto ctrl = std::make_shared<SessionController>();
     auto stdCtrl = std::make_shared<oauth2::controllers::OAuth2StandardController>();
 
     // Test: Session Creation
@@ -325,7 +325,7 @@ DROGON_TEST(Integration_P0_Client_Authentication_Works)
         return;
     }
 
-    auto ctrl = std::make_shared<OAuth2Controller>();
+    auto ctrl = std::make_shared<SessionController>();
     auto stdCtrl = std::make_shared<oauth2::controllers::OAuth2StandardController>();
 
     // Test: Public Client
@@ -431,7 +431,7 @@ DROGON_TEST(Integration_P1_RedirectUri_Validation_Works)
         return;
     }
 
-    auto ctrl = std::make_shared<OAuth2Controller>();
+    auto ctrl = std::make_shared<SessionController>();
     auto stdCtrl = std::make_shared<oauth2::controllers::OAuth2StandardController>();
 
     // Test: Valid Redirect URI

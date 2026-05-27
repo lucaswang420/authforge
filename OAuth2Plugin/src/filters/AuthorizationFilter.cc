@@ -1,6 +1,9 @@
 #include <oauth2/filters/AuthorizationFilter.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 #include <drogon/drogon.h>
+
+
+namespace oauth2::filters {
 
 using namespace drogon;
 
@@ -169,3 +172,5 @@ bool AuthorizationFilter::checkAccess(
     // DEFAULT DENY: no rule matched and not in public_paths
     return false;
 }
+
+}  // namespace oauth2::filters

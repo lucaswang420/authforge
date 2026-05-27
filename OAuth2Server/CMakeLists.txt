@@ -36,12 +36,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Compiler Specific Options
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/types/orm_compat.h")
     target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
     # Silence C++17 codecvt deprecation warning for Drogon ORM generated code
     target_compile_definitions(${PROJECT_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/orm_compat.h")
+    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../OAuth2Plugin/include/oauth2/types/orm_compat.h")
 endif()
 
 # Copy Swagger UI to build directory

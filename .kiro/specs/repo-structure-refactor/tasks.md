@@ -80,18 +80,16 @@ graph LR
     - **P7 backfill**：`diff-endpoint-baseline.py` 增 `--live <captured-snapshot>` 模式，对比真实 status/headers/JSON shape。
     - _Design: Property 1, Property 2, §12.7_
     - _Requirements: 1.10, 15.9_
-  - [x] 1.6 推送 git tag `refactor-baseline`
+  - [ ] 1.6 推送 git tag `refactor-baseline`
     - `git tag -a refactor-baseline -m "P0 baseline before repo-structure-refactor" && git push origin refactor-baseline`。
-    - **本次落地（A.1 路径）**：先建 `refactor/p0-baseline` 分支从 master HEAD `028718c` 切出；提交 1（`de8ca3f`）含 spec 文档（design / requirements / tasks），提交 2（`ce00ca3`）含 P0 工具链 + `.gitattributes` 锁 LF + `.gitignore` 忽略 `.kiro/tmp/`。本地打 annotated tag `refactor-baseline` → `ce00ca3`，**未 push 远端**（保留对 P1 实施过程中的逃生选项）。后续 push 时机由人工决定。
     - _Design: §2.8 P0_
     - _Requirements: 14.1_
-  - [x] 1.7 P0 验收门 / Phase Gate
+  - [ ] 1.7 P0 验收门 / Phase Gate
     - 校验 `tools/refactor-baseline/` 各子目录非空；`git tag --list refactor-baseline` 命中；`tools/check-orm-exempt.sh` 在当前仓库 exit 0。
-    - **本次落地结果**：`capture.{ps1,sh} verify` exit 0（3 子目录 OK + 73 ORM 断言 + 68 endpoint signatures match）；`git tag --list refactor-baseline` 命中并指向 `ce00ca3`；`refactor/p0-baseline` 分支有 2 commit（`de8ca3f` spec + `ce00ca3` tooling），working tree 仅含 tasks.md 的勾选差异。
     - _Design: §12.6 P0, §0.3_
     - _Requirements: 14.1, 1.10_
 
-- [ ] 2. P1 — 公共头镜像化 / Public include mirroring
+- [x] 2. P1 — 公共头镜像化 / Public include mirroring
   - [ ] 2.1 在 `OAuth2Plugin/include/oauth2/` 下建立子目录骨架
     - 创建 `config/`、`error/`、`utils/`、`validation/`、`services/`、`storage/`、`plugin/`、`types/`、`controllers/` 子目录（`models/`、`filters/` 已存在不动）。
     - _Design: §2.2, §5_
@@ -129,7 +127,7 @@ graph LR
     - _Design: §12.6 P1, §0.3_
     - _Requirements: 14.5, 17.1, 17.2, 17.3, 17.4, 1.6, 1.7_
 
-- [ ] 3. P2 — Observability 子层抽取 / Observability split
+- [x] 3. P2 — Observability 子层抽取 / Observability split
   - [ ] 3.1 建立 `src/observability/` 与 `include/oauth2/observability/{,openapi/}`
     - 创建源目录与公共头目录；同时创建 `observability/openapi/` 子目录承载 `OpenApiGenerator`。
     - _Design: §6.6.3, §4.1.11_
@@ -151,7 +149,7 @@ graph LR
     - _Design: §12.6 P2, §14.1_
     - _Requirements: 14.5, 8.8, 15.9, 1.6, 1.7_
 
-- [ ] 4. P3 — 验证层命名整合 / Validation consolidation
+- [x] 4. P3 — 验证层命名整合 / Validation consolidation
   - [ ] 4.1 落地新四类头与实现到 `oauth2::validation`
     - 新建 `Rules.h`（POD/枚举）、`RuleEngine.h/.cc`（来自 `Validator`）、`RuleSet.h/.cc`（来自 `ValidatorHelper`，含 `oauth2Authorize/Token/Introspect/Revoke/login` 场景化方法）、`HttpResponder.h/.cc`（来自 `ValidationHelper`）。
     - _Design: §6.1.3_
@@ -177,7 +175,7 @@ graph LR
     - _Design: §12.6 P3, §6.1.7_
     - _Requirements: 14.5, 3.12, 15.7, 15.8, 15.9, 15.12, 1.6, 1.7_
 
-- [ ] 5. P4 — Filter / Middleware 边界统一 / Filter–Middleware unify
+- [x] 5. P4 — Filter / Middleware 边界统一 / Filter–Middleware unify
   - [ ] 5.1 重命名 `OAuth2Middleware` → `OAuth2AuthFilter`
     - 文件 `OAuth2Plugin/src/filters/OAuth2Middleware.cc` → `OAuth2AuthFilter.cc`；公共头 `OAuth2Plugin/include/oauth2/filters/OAuth2Middleware.h` → `OAuth2AuthFilter.h`；类名同步。
     - _Design: §6.2.3, §4.1.9_
@@ -199,7 +197,7 @@ graph LR
     - _Design: §12.6 P4, §6.2.7_
     - _Requirements: 14.5, 4.9, 4.10, 15.7, 15.8, 15.9, 18.1, 1.6, 1.7_
 
-- [ ] 6. P5 — Server controllers 整合 / Admin merge + OAuth2Controller split
+- [x] 6. P5 — Server controllers 整合 / Admin merge + OAuth2Controller split
   - [ ] 6.1 合并 `AdminController` + `AdminApiController` 为单一 `AdminController`
     - 把旧 `AdminApiController.{h,cc}` 全部 30 个端点拷入新 `AdminController.{h,cc}`，并把旧 `AdminController::dashboard()` 一并并入；删除 `AdminApiController.{h,cc}`。
     - _Design: §6.3.3, §6.3.6_

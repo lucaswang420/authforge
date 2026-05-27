@@ -27,7 +27,7 @@ class DeviceAuthController : public drogon::HttpController<DeviceAuthController>
       DeviceAuthController::approveDevice,
       "/oauth2/device/approve",
       Post,
-      "AuthorizationFilter"
+      "oauth2::filters::AuthorizationFilter"
     );
     METHOD_LIST_END
 

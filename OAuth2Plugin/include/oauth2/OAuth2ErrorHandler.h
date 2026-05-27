@@ -1,36 +1,13 @@
+// Forwarding shim header for OAuth2 plugin public API.
+//
+// This header was relocated to <oauth2/error/OAuth2ErrorHandler.h> in spec
+// repo-structure-refactor phase P1 (see design.md ?4.1, ?6.6.4). It
+// remains here only so existing #include <oauth2/OAuth2ErrorHandler.h> callers
+// keep compiling during P1..P10. P11 removes the shim entirely.
+//
+// _Design: ?2.8 P1, ?6.6.4_
+// _Requirements: 2.5, 14.3_
+
 #pragma once
 
-#include <drogon/HttpResponse.h>
-#include <string>
-#include <functional>
-
-namespace common::error
-{
-
-/**
- * @brief Handles OAuth2.0 standardized error responses (RFC 6749 Section 5.2)
- */
-class OAuth2ErrorHandler
-{
-  public:
-    static void sendErrorResponse(
-      std::function<void(const drogon::HttpResponsePtr &)> &&callback,
-      const std::string &errorCode,
-      const std::string &description = "",
-      const std::string &errorUri = ""
-    );
-
-    static drogon::HttpStatusCode getHttpStatusCode(const std::string &errorCode);
-
-    // Standard OAuth2 Error Codes
-    static constexpr const char *INVALID_REQUEST = "invalid_request";
-    static constexpr const char *INVALID_CLIENT = "invalid_client";
-    static constexpr const char *INVALID_GRANT = "invalid_grant";
-    static constexpr const char *UNAUTHORIZED_CLIENT = "unauthorized_client";
-    static constexpr const char *UNSUPPORTED_GRANT_TYPE = "unsupported_grant_type";
-    static constexpr const char *INVALID_SCOPE = "invalid_scope";
-    static constexpr const char *SERVER_ERROR = "server_error";
-    static constexpr const char *TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
-};
-
-}  // namespace common::error
+#include <oauth2/error/OAuth2ErrorHandler.h>

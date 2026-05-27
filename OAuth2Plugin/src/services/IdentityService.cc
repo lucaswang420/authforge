@@ -1,5 +1,5 @@
-#include <oauth2/IdentityService.h>
-#include <oauth2/SubjectGenerator.h>
+﻿#include <oauth2/services/IdentityService.h>
+#include <oauth2/utils/SubjectGenerator.h>
 #include <drogon/drogon.h>
 
 namespace oauth2

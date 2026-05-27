@@ -1,29 +1,13 @@
+// Forwarding shim header for OAuth2 plugin public API.
+//
+// This header was relocated to <oauth2/plugin/OAuth2CleanupService.h> in spec
+// repo-structure-refactor phase P1 (see design.md ?4.1, ?6.6.4). It
+// remains here only so existing #include <oauth2/OAuth2CleanupService.h> callers
+// keep compiling during P1..P10. P11 removes the shim entirely.
+//
+// _Design: ?2.8 P1, ?6.6.4_
+// _Requirements: 2.5, 14.3_
+
 #pragma once
 
-#include <drogon/drogon.h>
-#include <memory>
-#include "IOAuth2Storage.h"
-
-namespace oauth2
-{
-
-class OAuth2CleanupService : public std::enable_shared_from_this<OAuth2CleanupService>
-{
-  public:
-    OAuth2CleanupService(IOAuth2Storage *storage);
-    ~OAuth2CleanupService();
-
-    void start(double intervalSeconds);
-    void stop();
-
-  private:
-    IOAuth2Storage *storage_;
-    uint64_t timerId_ = 0;
-    bool running_ = false;
-    bool stopped_ = false;  // Track if stop() has been called
-    double interval_ = 3600;
-
-    void runCleanup();
-};
-
-}  // namespace oauth2
+#include <oauth2/plugin/OAuth2CleanupService.h>

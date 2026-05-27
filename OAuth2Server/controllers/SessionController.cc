@@ -1,0 +1,811 @@
+﻿#include "SessionController.h"
+
+#include "../AuthService.h"
+#include "EmailVerificationController.h"
+#include <drogon/drogon.h>
+#include <drogon/HttpClient.h>
+#include <oauth2/observability/OAuth2Metrics.h>
+#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/JwkManager.h>
+#include <oauth2/observability/AuditLogger.h>
+#include <drogon/utils/Utilities.h>
+#include <algorithm>
+#include <functional>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/validation/RuleSet.h>
+#include <oauth2/validation/HttpResponder.h>
+#include <oauth2/OAuth2Types.h>
+#include <oauth2/IOAuth2Storage.h>
+
+using namespace oauth2;
+using namespace services;
+using namespace oauth2::observability::openapi;
+
+namespace
+{
+/**
+ * @brief Get HTTP status code for OAuth2 error
+ */
+drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
+{
+    if (errorCode == "invalid_client" || errorCode == "unauthorized_client")
+    {
+        return drogon::k401Unauthorized;  // 401
+    }
+    return drogon::k400BadRequest;  // 400
+}
+}  // namespace
+
+static void sendBackchannelLogoutNotifications(const std::string &) {
+    LOG_DEBUG << "sendBackchannelLogoutNotifications: stub";
+}
+
+// API documentation initialization
+namespace
+{
+struct OAuth2ControllerDocs
+{
+    OAuth2ControllerDocs()
+    {
+        // Health endpoint
+        {
+            Json::Value successExample;
+            successExample["status"] = "ok";
+            successExample["version"] = "1.0.0";
+
+            oauth2::observability::openapi::EndpointInfo healthEndpoint;
+            healthEndpoint.path = "/health";
+            healthEndpoint.method = "GET";
+            healthEndpoint.summary = "Health check";
+            healthEndpoint.description = "Returns the health status of the service.";
+            healthEndpoint.tags = {"System"};
+            healthEndpoint.parameters = {};
+            healthEndpoint.responses = {{200, "Service is healthy"}};
+            healthEndpoint.responseExamples = {{200, successExample}};
+            healthEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(healthEndpoint);
+        }
+
+        // Login endpoint
+        {
+            Json::Value successExample;
+            successExample["status"] = "success";
+            successExample["redirect_uri"] = "http://127.0.0.1:5173/callback?code=xyz123";
+
+            Json::Value errorExample;
+            errorExample["error"] = "invalid_client";
+
+            oauth2::observability::openapi::EndpointInfo loginEndpoint;
+            loginEndpoint.path = "/oauth2/login";
+            loginEndpoint.method = "POST";
+            loginEndpoint.summary = "Authenticate user";
+            loginEndpoint.description =
+              "Authenticates user credentials and generates an authorization code. "
+              "Usually called by the frontend login page during the authorization code flow.";
+            loginEndpoint.tags = {"OAuth2", "Authentication"};
+
+            oauth2::observability::openapi::ParameterInfo usernameParam;
+            usernameParam.name = "username";
+            usernameParam.description = "User's account username (required)";
+            usernameParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            usernameParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            usernameParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo passwordParam;
+            passwordParam.name = "password";
+            passwordParam.description = "User's password (required)";
+            passwordParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            passwordParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            passwordParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo clientIdParam;
+            clientIdParam.name = "client_id";
+            clientIdParam.description = "Client identifier matches the requesting app (required)";
+            clientIdParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            clientIdParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            clientIdParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo redirectUriParam;
+            redirectUriParam.name = "redirect_uri";
+            redirectUriParam.description = "Redirect URI matching the registered client (required)";
+            redirectUriParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            redirectUriParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            redirectUriParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo scopeParam;
+            scopeParam.name = "scope";
+            scopeParam.description = "Requested scope, space-separated (optional)";
+            scopeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            scopeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            scopeParam.required = false;
+
+            oauth2::observability::openapi::ParameterInfo stateParam;
+            stateParam.name = "state";
+            stateParam.description = "Opaque value to maintain state (recommended)";
+            stateParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            stateParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            stateParam.required = false;
+
+            loginEndpoint.parameters = {
+              usernameParam, passwordParam, clientIdParam, redirectUriParam, scopeParam, stateParam
+            };
+            loginEndpoint.responses =
+              {{200, "Authentication successful (JSON with redirect_uri)"},
+               {302, "Redirect with authorization code (if requested via browser)"},
+               {401, "Authentication failed"}};
+            loginEndpoint.responseExamples = {{200, successExample}, {401, errorExample}};
+            loginEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(loginEndpoint);
+        }
+
+        // Register endpoint
+        {
+            Json::Value successExample;
+            successExample["status"] = "success";
+            successExample["message"] = "User registered successfully";
+
+            oauth2::observability::openapi::EndpointInfo registerEndpoint;
+            registerEndpoint.path = "/api/register";
+            registerEndpoint.method = "POST";
+            registerEndpoint.summary = "Register new user";
+            registerEndpoint.description = "Registers a new user account into the system.";
+            registerEndpoint.tags = {"User", "Registration"};
+
+            oauth2::observability::openapi::ParameterInfo usernameParam;
+            usernameParam.name = "username";
+            usernameParam.description = "Desired username (required)";
+            usernameParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            usernameParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            usernameParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo passwordParam;
+            passwordParam.name = "password";
+            passwordParam.description = "Strong password (required)";
+            passwordParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            passwordParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            passwordParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo emailParam;
+            emailParam.name = "email";
+            emailParam.description = "Email address (optional)";
+            emailParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            emailParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            emailParam.required = false;
+
+            registerEndpoint.parameters = {usernameParam, passwordParam, emailParam};
+            registerEndpoint.responses =
+              {{200, "User registered successfully"}, {400, "Invalid registration data"}};
+            registerEndpoint.responseExamples = {{200, successExample}};
+            registerEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(registerEndpoint);
+        }
+
+        // Consent endpoint
+        {
+            oauth2::observability::openapi::EndpointInfo consentEndpoint;
+            consentEndpoint.path = "/oauth2/consent";
+            consentEndpoint.method = "POST";
+            consentEndpoint.summary = "Submit user consent";
+            consentEndpoint.description =
+              "Submit user consent for requested scopes. Redirects back to client.";
+            consentEndpoint.tags = {"OAuth2", "Consent"};
+
+            oauth2::observability::openapi::ParameterInfo clientIdParam;
+            clientIdParam.name = "client_id";
+            clientIdParam.description = "Client identifier (required)";
+            clientIdParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            clientIdParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            clientIdParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo userIdParam;
+            userIdParam.name = "user_id";
+            userIdParam.description = "User identifier (required)";
+            userIdParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            userIdParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            userIdParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo scopeParam;
+            scopeParam.name = "scope";
+            scopeParam.description = "Requested scope to consent (required)";
+            scopeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            scopeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            scopeParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo redirectUriParam;
+            redirectUriParam.name = "redirect_uri";
+            redirectUriParam.description = "Redirect URI (required)";
+            redirectUriParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            redirectUriParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            redirectUriParam.required = true;
+
+            oauth2::observability::openapi::ParameterInfo stateParam;
+            stateParam.name = "state";
+            stateParam.description = "Opaque value to maintain state";
+            stateParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            stateParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            stateParam.required = false;
+
+            oauth2::observability::openapi::ParameterInfo actionParam;
+            actionParam.name = "action";
+            actionParam.description = "Action to perform: 'approve' or 'deny' (required)";
+            actionParam.type = oauth2::observability::openapi::ParameterType::STRING;
+            actionParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
+            actionParam.required = true;
+            actionParam.enumValues = "approve,deny";
+
+            consentEndpoint.parameters =
+              {clientIdParam, userIdParam, scopeParam, redirectUriParam, stateParam, actionParam};
+            consentEndpoint.responses = {
+              {302, "Redirect to client with authorization code or error"}
+            };
+            consentEndpoint.requiresAuth = false;
+            OpenApiGenerator::addEndpoint(consentEndpoint);
+        }
+    }
+};
+
+OAuth2ControllerDocs docs_;
+}  // namespace
+
+
+
+void SessionController::showLoginPage(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    // Get OAuth2 parameters from URL
+    auto params = req->getParameters();
+    std::string clientId = params["client_id"];
+    std::string redirectUri = params["redirect_uri"];
+    std::string scope = params["scope"];
+    std::string state = params["state"];
+    std::string responseType = params["response_type"];
+    std::string codeChallenge = params["code_challenge"];
+    std::string codeChallengeMethod = params["code_challenge_method"];
+
+    LOG_INFO << "Showing login page with OAuth2 parameters: client_id=" << clientId
+             << ", code_challenge=" << (codeChallenge.empty() ? "not provided" : "provided");
+
+    // Build frontend register URL from config
+    std::string frontendRegisterUrl;
+    auto customConfig = drogon::app().getCustomConfig();
+    if (customConfig.isMember("frontend"))
+    {
+        const auto &frontend = customConfig["frontend"];
+        std::string baseUrl = frontend.get("url", "http://localhost:5173").asString();
+        std::string registerPath = frontend.get("register_path", "/register").asString();
+        frontendRegisterUrl = baseUrl + registerPath;
+    }
+    else
+    {
+        frontendRegisterUrl = "http://localhost:5173/register";
+    }
+
+    // Create template data
+    DrTemplateData data;
+    data["client_id"] = clientId;
+    data["redirect_uri"] = redirectUri;
+    data["scope"] = scope;
+    data["state"] = state;
+    data["response_type"] = responseType;
+    data["code_challenge"] = codeChallenge;
+    data["code_challenge_method"] = codeChallengeMethod.empty() ? "plain" : codeChallengeMethod;
+    data["frontend_register_url"] = frontendRegisterUrl;
+
+    // Render login.csp template
+    try
+    {
+        auto resp = HttpResponse::newHttpViewResponse("login", data);
+        callback(resp);
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "Failed to render login page: " << e.what();
+        Json::Value jsonErr;
+        jsonErr["error"] = "server_error";
+        jsonErr["error_description"] = "Failed to render login page";
+        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+    }
+}
+
+void SessionController::login(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    // Use ValidatorHelper for consistent validation
+    auto errors = oauth2::validation::RuleSet::login(req);
+
+    // Return validation errors if any
+    if (
+      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
+    )
+    {
+        Metrics::incLoginFailure("validation_failed");
+        return;
+    }
+
+    // Prefer POST body (JSON or form data) over URL parameters for security
+    std::string username, password;
+    std::string clientId, redirectUri, scope, state;
+    std::string codeChallenge, codeChallengeMethod;
+    std::string nonce;
+
+    // Try JSON body first
+    if (req->contentType() == CT_APPLICATION_JSON)
+    {
+        auto json = req->getJsonObject();
+        if (json)
+        {
+            username = json->get("username", "").asString();
+            password = json->get("password", "").asString();
+            clientId = json->get("client_id", "").asString();
+            redirectUri = json->get("redirect_uri", "").asString();
+            scope = json->get("scope", "").asString();
+            state = json->get("state", "").asString();
+            codeChallenge = json->get("code_challenge", "").asString();
+            codeChallengeMethod = json->get("code_challenge_method", "").asString();
+            nonce = json->get("nonce", "").asString();
+        }
+    }
+    // Fallback to form data (Drogon automatically parses form-urlencoded)
+    else
+    {
+        auto params = req->getParameters();
+        username = params["username"];
+        password = params["password"];
+        clientId = params["client_id"];
+        redirectUri = params["redirect_uri"];
+        scope = params["scope"];
+        state = params["state"];
+        codeChallenge = params["code_challenge"];
+        codeChallengeMethod = params["code_challenge_method"];
+        nonce = params["nonce"];
+    }
+
+    AuthService::validateUser(
+      username,
+      password,
+      [req,
+       username,
+       clientId,
+       scope,
+       redirectUri,
+       state,
+       nonce,
+       codeChallenge,
+       codeChallengeMethod,
+       callback = std::move(callback)](std::optional<services::AuthResult> authResult) mutable {
+          if (authResult)
+          {
+              req->session()->insert("userId", std::to_string(authResult->internalId));
+
+              // Audit: login success
+              oauth2::observability::AuditLogger::log(
+                "login_success",
+                "success",
+                req,
+                authResult->publicSub,
+                "user",
+                authResult->publicSub
+              );
+
+              // === CHECK 1: Email verification enforcement ===
+              auto customCfg = drogon::app().getCustomConfig();
+              bool requireEmailVerification = false;
+              if (
+                customCfg.isMember("auth") &&
+                customCfg["auth"].isMember("require_email_verification")
+              )
+              {
+                  requireEmailVerification =
+                    customCfg["auth"]["require_email_verification"].asBool();
+              }
+              if (requireEmailVerification && !authResult->emailVerified)
+              {
+                  Json::Value err;
+                  err["error"] = "email_not_verified";
+                  err["error_description"] = "Please verify your email address before logging in";
+                  auto resp = HttpResponse::newHttpJsonResponse(err);
+                  resp->setStatusCode(k403Forbidden);
+                  callback(resp);
+                  return;
+              }
+
+              // === CHECK 2: MFA enforcement ===
+              if (authResult->mfaEnabled)
+              {
+                  // MFA is enabled - don't issue auth code yet
+                  // Return mfa_required response with a temporary token
+                  Json::Value mfaResp;
+                  mfaResp["mfa_required"] = true;
+                  mfaResp["mfa_token"] = std::to_string(authResult->internalId);
+                  mfaResp["message"] =
+                    "MFA verification required. Submit TOTP code to /oauth2/mfa/verify";
+                  auto resp = HttpResponse::newHttpJsonResponse(mfaResp);
+                  resp->setStatusCode(k200OK);
+                  callback(resp);
+                  return;
+              }
+
+              // === CHECK 3: PKCE enforcement for PUBLIC clients ===
+              bool requirePkce = false;
+              if (
+                customCfg.isMember("auth") && customCfg["auth"].isMember("require_pkce_for_public")
+              )
+              {
+                  requirePkce = customCfg["auth"]["require_pkce_for_public"].asBool();
+              }
+              if (requirePkce && codeChallenge.empty())
+              {
+                  // Check will be done after getClient - for now log warning
+                  LOG_WARN << "[SECURITY] PUBLIC client " << clientId
+                           << " login without PKCE (enforcement enabled)";
+                  Json::Value err;
+                  err["error"] = "invalid_request";
+                  err["error_description"] =
+                    "PKCE (code_challenge) is required for public clients. Use "
+                    "code_challenge_method=S256.";
+                  auto resp = HttpResponse::newHttpJsonResponse(err);
+                  resp->setStatusCode(k400BadRequest);
+                  callback(resp);
+                  return;
+              }
+
+              auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+              if (!plugin)
+              {
+                  LOG_ERROR << "OAuth2 Plugin not loaded during login";
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody("Internal Server Error: Plugin not loaded");
+                  callback(resp);
+                  return;
+              }
+
+              plugin->generateAuthorizationCode(
+                clientId,
+                authResult->publicSub,
+                scope,
+                redirectUri,
+                codeChallenge,
+                codeChallengeMethod,
+                nonce,
+                [req,
+                 redirectUri,
+                 state,
+                 codeChallenge,
+                 codeChallengeMethod,
+                 callback =
+                   std::move(callback)](bool success, std::string code, std::string error) mutable {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                        return;
+                    }
+
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    if (req->getParameter("json") == "true")
+                    {
+                        Json::Value ret;
+                        ret["code"] = code;
+                        ret["location"] = location;
+                        auto resp = HttpResponse::newHttpJsonResponse(ret);
+                        callback(resp);
+                        return;
+                    }
+                    auto resp = HttpResponse::newRedirectionResponse(location);
+                    callback(resp);
+                }
+              );
+          }
+          else
+          {
+              // Fail (Bad Password or User Not Found)
+              Metrics::incLoginFailure("bad_credentials");
+
+              // Audit: login failure
+              oauth2::observability::AuditLogger::log("login_failure", "failure", req, username, "user", username);
+
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k401Unauthorized);
+              resp->setBody("Login Failed: Invalid Credentials");
+              callback(resp);
+          }
+      }
+    );
+}
+
+
+void SessionController::consent(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    // P0-2: Handle user consent approval
+    auto params = req->getParameters();
+    std::string clientId = params["client_id"];
+    std::string userId = params["user_id"];
+    std::string scope = params["scope"];
+    std::string redirectUri = params["redirect_uri"];
+    std::string state = params["state"];
+    std::string action = params["action"];  // "approve" or "deny"
+    std::string codeChallenge = params["code_challenge"];
+    std::string codeChallengeMethod = params["code_challenge_method"];
+    std::string nonce = params["nonce"];
+
+    if (action == "deny")
+    {
+        // User denied consent, redirect back with error
+        std::string location =
+          redirectUri + "?error=access_denied&error_description=User+denied+consent";
+        if (!state.empty())
+            location += "&state=" + state;
+        auto resp = HttpResponse::newRedirectionResponse(location);
+        callback(resp);
+        return;
+    }
+
+    // User approved consent, save it and proceed with authorization
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("OAuth2 Plugin not loaded");
+        callback(resp);
+        return;
+    }
+
+    // Get internal user ID
+    plugin->getInternalUserId(
+      userId,
+      [plugin,
+       clientId,
+       userId,
+       scope,
+       redirectUri,
+       state,
+       codeChallenge,
+       codeChallengeMethod,
+       nonce,
+       callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
+          if (!internalUserId)
+          {
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k500InternalServerError);
+              resp->setBody("Failed to get user mapping");
+              callback(resp);
+              return;
+          }
+
+          // Parse scopes and save consent for each
+          std::vector<std::string> scopes;
+          std::stringstream ss(scope);
+          std::string scopeItem;
+          while (std::getline(ss, scopeItem, ' '))
+          {
+              if (!scopeItem.empty())
+              {
+                  scopes.push_back(scopeItem);
+              }
+          }
+
+          // Save consent for all scopes (use first scope as callback trigger)
+          if (!scopes.empty())
+          {
+              std::string firstScope = scopes[0];
+              int32_t uid = *internalUserId;
+              plugin->saveUserConsent(
+                uid,
+                clientId,
+                firstScope,
+                [plugin,
+                 uid,
+                 clientId,
+                 userId,
+                 scope,
+                 redirectUri,
+                 state,
+                 codeChallenge,
+                 codeChallengeMethod,
+                 nonce,
+                 firstScope,
+                 scopes,
+                 callback = std::move(callback)](bool success) mutable {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to save user consent for scope: " << firstScope;
+                        auto resp = HttpResponse::newHttpResponse();
+                        resp->setStatusCode(k500InternalServerError);
+                        resp->setBody("Failed to save consent");
+                        callback(resp);
+                        return;
+                    }
+
+                    // Save consent for remaining scopes (fire and forget
+                    // for simplicity)
+                    for (size_t i = 1; i < scopes.size(); ++i)
+                    {
+                        plugin->saveUserConsent(uid, clientId, scopes[i], [](bool) {});
+                    }
+
+                    // Proceed with authorization code generation
+                    plugin->generateAuthorizationCode(
+                      clientId,
+                      userId,
+                      scope,
+                      redirectUri,
+                      codeChallenge,
+                      codeChallengeMethod,
+                      nonce,
+                      [clientId, redirectUri, state, callback = std::move(callback)](
+                        bool success, std::string code, std::string error
+                      ) mutable {
+                          if (!success)
+                          {
+                              LOG_ERROR << "Failed to generate "
+                                           "authorization code: "
+                                        << error;
+                              Json::Value jsonErr;
+                              jsonErr["error"] = "server_error";
+                              jsonErr["error_description"] =
+                                "Failed to generate authorization code";
+                              auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                              resp->setStatusCode(k500InternalServerError);
+                              callback(resp);
+                              return;
+                          }
+
+                          std::string location = redirectUri + "?code=" + code;
+                          if (!state.empty())
+                              location += "&state=" + state;
+                          auto resp = HttpResponse::newRedirectionResponse(location);
+                          Metrics::incRequest("authorize", 302);
+                          callback(resp);
+                      }
+                    );
+                }
+              );
+          }
+          else
+          {
+              // No scopes to save consent for, proceed directly
+              plugin->generateAuthorizationCode(
+                clientId,
+                userId,
+                scope,
+                redirectUri,
+                codeChallenge,
+                codeChallengeMethod,
+                nonce,
+                [clientId, redirectUri, state, callback = std::move(callback)](
+                  bool success, std::string code, std::string error
+                ) mutable {
+                    if (!success)
+                    {
+                        LOG_ERROR << "Failed to generate authorization code: " << error;
+                        Json::Value jsonErr;
+                        jsonErr["error"] = "server_error";
+                        jsonErr["error_description"] = "Failed to generate authorization code";
+                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                        return;
+                    }
+
+                    std::string location = redirectUri + "?code=" + code;
+                    if (!state.empty())
+                        location += "&state=" + state;
+                    auto resp = HttpResponse::newRedirectionResponse(location);
+                    Metrics::incRequest("authorize", 302);
+                    callback(resp);
+                }
+              );
+          }
+      }
+    );
+}
+
+
+void SessionController::logout(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    // Check Authorization header (OAuth2Middleware normally handles this,
+    // but direct calls in tests may bypass the filter)
+    auto authHeader = req->getHeader("Authorization");
+    if (authHeader.empty() || authHeader.length() < 8 || authHeader.substr(0, 7) != "Bearer ")
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k401Unauthorized);
+        resp->setBody("Missing or invalid Authorization header");
+        callback(resp);
+        return;
+    }
+
+    // The OAuth2Middleware filter has already validated the token and set attributes
+    auto attrs = req->getAttributes();
+    std::string userId = attrs->get<std::string>("userId");
+    std::string clientId = attrs->get<std::string>("clientId");
+
+    std::string token = authHeader.substr(7);  // Remove "Bearer "
+
+    auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
+    if (!plugin)
+    {
+        LOG_ERROR << "OAuth2 Plugin not loaded during logout";
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("Internal Server Error: Plugin not loaded");
+        callback(resp);
+        return;
+    }
+
+    // Revoke the access token
+    plugin->revokeAccessToken(token, clientId, [userId, callback = std::move(callback)]() mutable {
+        LOG_INFO << "Logout: Token revoked for user " << userId;
+
+        // Send backchannel logout notifications (fire-and-forget)
+        sendBackchannelLogoutNotifications(userId);
+
+        // Respond immediately without waiting for backchannel notifications
+        Json::Value json;
+        json["message"] = "Logged out successfully";
+        auto resp = HttpResponse::newHttpJsonResponse(json);
+        resp->setStatusCode(k200OK);
+        callback(resp);
+    });
+}
+
+
+
+void SessionController::registerUser(
+  const HttpRequestPtr &req,
+  std::function<void(const HttpResponsePtr &)> &&callback
+)
+{
+    auto errors = oauth2::validation::RuleSet::login(req);
+    if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
+        return;
+
+    auto params = req->getParameters();
+    std::string username = params["username"];
+    std::string password = params["password"];
+    std::string email = params["email"];
+
+    AuthService::registerUser(
+      username, password, email, [callback, email](const std::string &error) {
+          if (error.empty())
+          {
+              Json::Value json;
+              json["message"] = "User registered successfully";
+              if (!email.empty())
+                  json["note"] = "Please check your email to verify your account";
+              auto resp = HttpResponse::newHttpJsonResponse(json);
+              callback(resp);
+          }
+          else
+          {
+              Json::Value errJson;
+              errJson["error"] = "registration_failed";
+              errJson["error_description"] = error;
+              auto resp = HttpResponse::newHttpJsonResponse(errJson);
+              resp->setStatusCode(k400BadRequest);
+              callback(resp);
+          }
+      }
+    );
+}

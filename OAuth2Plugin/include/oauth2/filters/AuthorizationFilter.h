@@ -8,6 +8,8 @@
 
 using namespace drogon;
 
+namespace oauth2::filters {
+
 class AuthorizationFilter : public HttpFilter<AuthorizationFilter>
 {
   public:
@@ -33,3 +35,5 @@ class AuthorizationFilter : public HttpFilter<AuthorizationFilter>
     void loadConfig();
     bool checkAccess(const std::vector<std::string> &userRoles, const std::string &path);
 };
+
+}  // namespace oauth2::filters

@@ -1,12 +1,12 @@
-﻿#include <oauth2/controllers/OAuth2StandardController.h>
-#include <oauth2/OAuth2Plugin.h>
-#include <oauth2/OAuth2Metrics.h>
-#include <oauth2/ValidatorHelper.h>
-#include <oauth2/ValidationHelper.h>
-#include <oauth2/OAuth2ErrorHandler.h>
-#include <oauth2/OpenApiGenerator.h>
-#include <oauth2/CryptoUtils.h>
-#include <oauth2/AuditLogger.h>
+#include <oauth2/controllers/OAuth2StandardController.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/observability/OAuth2Metrics.h>
+#include <oauth2/validation/RuleSet.h>
+#include <oauth2/validation/HttpResponder.h>
+#include <oauth2/error/OAuth2ErrorHandler.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/observability/AuditLogger.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
@@ -15,7 +15,7 @@
 
 using namespace oauth2;
 using namespace oauth2::controllers;
-using namespace common::documentation;
+using namespace oauth2::observability::openapi;
 
 namespace
 {
@@ -60,7 +60,7 @@ void OAuth2StandardController::initApiDocs()
         errorExample["error"] = "invalid_grant";
         errorExample["error_description"] = "Invalid authorization code";
 
-        common::documentation::EndpointInfo tokenEndpoint;
+        oauth2::observability::openapi::EndpointInfo tokenEndpoint;
         tokenEndpoint.path = "/oauth2/token";
         tokenEndpoint.method = "POST";
         tokenEndpoint.summary = "Exchange authorization code for access token";
@@ -69,47 +69,47 @@ void OAuth2StandardController::initApiDocs()
           "code or refresh token for access token.";
         tokenEndpoint.tags = {"OAuth2", "Token"};
 
-        common::documentation::ParameterInfo grantTypeParam;
+        oauth2::observability::openapi::ParameterInfo grantTypeParam;
         grantTypeParam.name = "grant_type";
         grantTypeParam.description = "Type of grant being requested";
-        grantTypeParam.type = common::documentation::ParameterType::STRING;
-        grantTypeParam.location = common::documentation::ParameterLocation::QUERY;
+        grantTypeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        grantTypeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         grantTypeParam.required = true;
         grantTypeParam.enumValues = "authorization_code,refresh_token,client_credentials";
 
-        common::documentation::ParameterInfo codeParam;
+        oauth2::observability::openapi::ParameterInfo codeParam;
         codeParam.name = "code";
         codeParam.description = "Authorization code (required for grant_type=authorization_code)";
-        codeParam.type = common::documentation::ParameterType::STRING;
-        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        codeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         codeParam.required = false;
 
-        common::documentation::ParameterInfo refreshParam;
+        oauth2::observability::openapi::ParameterInfo refreshParam;
         refreshParam.name = "refresh_token";
         refreshParam.description = "Refresh token (required for grant_type=refresh_token)";
-        refreshParam.type = common::documentation::ParameterType::STRING;
-        refreshParam.location = common::documentation::ParameterLocation::QUERY;
+        refreshParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        refreshParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         refreshParam.required = false;
 
-        common::documentation::ParameterInfo clientIdParam;
+        oauth2::observability::openapi::ParameterInfo clientIdParam;
         clientIdParam.name = "client_id";
         clientIdParam.description = "Client identifier (required)";
-        clientIdParam.type = common::documentation::ParameterType::STRING;
-        clientIdParam.location = common::documentation::ParameterLocation::QUERY;
+        clientIdParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        clientIdParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         clientIdParam.required = true;
 
-        common::documentation::ParameterInfo clientSecretParam;
+        oauth2::observability::openapi::ParameterInfo clientSecretParam;
         clientSecretParam.name = "client_secret";
         clientSecretParam.description = "Client secret (required for confidential clients)";
-        clientSecretParam.type = common::documentation::ParameterType::STRING;
-        clientSecretParam.location = common::documentation::ParameterLocation::QUERY;
+        clientSecretParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        clientSecretParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         clientSecretParam.required = true;
 
-        common::documentation::ParameterInfo redirectUriParam;
+        oauth2::observability::openapi::ParameterInfo redirectUriParam;
         redirectUriParam.name = "redirect_uri";
         redirectUriParam.description = "Redirect URI (required for authorization_code grant)";
-        redirectUriParam.type = common::documentation::ParameterType::STRING;
-        redirectUriParam.location = common::documentation::ParameterLocation::QUERY;
+        redirectUriParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        redirectUriParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         redirectUriParam.required = false;
 
         tokenEndpoint.parameters =
@@ -129,7 +129,7 @@ void OAuth2StandardController::initApiDocs()
     }
 
     // Authorize endpoint
-    common::documentation::EndpointInfo authorizeEndpoint;
+    oauth2::observability::openapi::EndpointInfo authorizeEndpoint;
     authorizeEndpoint.path = "/oauth2/authorize";
     authorizeEndpoint.method = "GET";
     authorizeEndpoint.summary = "Request authorization";
@@ -138,29 +138,29 @@ void OAuth2StandardController::initApiDocs()
     authorizeEndpoint.parameters =
       {{"client_id",
         "Client identifier (required)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
+        oauth2::observability::openapi::ParameterType::STRING,
+        oauth2::observability::openapi::ParameterLocation::QUERY,
         true},
        {"redirect_uri",
         "Redirect URI (required)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
+        oauth2::observability::openapi::ParameterType::STRING,
+        oauth2::observability::openapi::ParameterLocation::QUERY,
         true},
        {"response_type",
         "Response type, must be 'code' (required)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
+        oauth2::observability::openapi::ParameterType::STRING,
+        oauth2::observability::openapi::ParameterLocation::QUERY,
         true},
        {"scope",
         "Requested scope (optional)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
+        oauth2::observability::openapi::ParameterType::STRING,
+        oauth2::observability::openapi::ParameterLocation::QUERY,
         false},
        {"state",
         "Opaque value to maintain state between request and callback "
         "(recommended)",
-        common::documentation::ParameterType::STRING,
-        common::documentation::ParameterLocation::QUERY,
+        oauth2::observability::openapi::ParameterType::STRING,
+        oauth2::observability::openapi::ParameterLocation::QUERY,
         false}};
     authorizeEndpoint
       .responses = {{302, "Redirect to client with authorization code"}, {400, "Invalid request"}};
@@ -180,7 +180,7 @@ void OAuth2StandardController::initApiDocs()
         Json::Value errorExample;
         errorExample["error"] = "User not found";
 
-        common::documentation::EndpointInfo userInfoEndpoint;
+        oauth2::observability::openapi::EndpointInfo userInfoEndpoint;
         userInfoEndpoint.path = "/oauth2/userinfo";
         userInfoEndpoint.method = "GET";
         userInfoEndpoint.summary = "Get user information";
@@ -211,7 +211,7 @@ void OAuth2StandardController::initApiDocs()
         successExample["sub"] = "user_456";
         successExample["scope"] = "read write";
 
-        common::documentation::EndpointInfo introspectEndpoint;
+        oauth2::observability::openapi::EndpointInfo introspectEndpoint;
         introspectEndpoint.path = "/oauth2/introspect";
         introspectEndpoint.method = "POST";
         introspectEndpoint.summary = "Introspect token";
@@ -219,11 +219,11 @@ void OAuth2StandardController::initApiDocs()
           "RFC 7662 OAuth 2.0 Token Introspection. Returns information about a token.";
         introspectEndpoint.tags = {"OAuth2", "Token"};
 
-        common::documentation::ParameterInfo tokenParam;
+        oauth2::observability::openapi::ParameterInfo tokenParam;
         tokenParam.name = "token";
         tokenParam.description = "The string value of the token (required)";
-        tokenParam.type = common::documentation::ParameterType::STRING;
-        tokenParam.location = common::documentation::ParameterLocation::QUERY;
+        tokenParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        tokenParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         tokenParam.required = true;
 
         introspectEndpoint.parameters = {tokenParam};
@@ -238,7 +238,7 @@ void OAuth2StandardController::initApiDocs()
 
     // Revoke endpoint
     {
-        common::documentation::EndpointInfo revokeEndpoint;
+        oauth2::observability::openapi::EndpointInfo revokeEndpoint;
         revokeEndpoint.path = "/oauth2/revoke";
         revokeEndpoint.method = "POST";
         revokeEndpoint.summary = "Revoke token";
@@ -246,11 +246,11 @@ void OAuth2StandardController::initApiDocs()
           "RFC 7009 OAuth 2.0 Token Revocation. Revokes an access or refresh token.";
         revokeEndpoint.tags = {"OAuth2", "Token"};
 
-        common::documentation::ParameterInfo tokenParam;
+        oauth2::observability::openapi::ParameterInfo tokenParam;
         tokenParam.name = "token";
         tokenParam.description = "The token that the client wants to get revoked (required)";
-        tokenParam.type = common::documentation::ParameterType::STRING;
-        tokenParam.location = common::documentation::ParameterLocation::QUERY;
+        tokenParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        tokenParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         tokenParam.required = true;
 
         revokeEndpoint.parameters = {tokenParam};
@@ -264,7 +264,7 @@ void OAuth2StandardController::initApiDocs()
 
     // OIDC Discovery endpoint
     {
-        common::documentation::EndpointInfo discoveryEndpoint;
+        oauth2::observability::openapi::EndpointInfo discoveryEndpoint;
         discoveryEndpoint.path = "/.well-known/openid-configuration";
         discoveryEndpoint.method = "GET";
         discoveryEndpoint.summary = "OpenID Connect Discovery";
@@ -279,7 +279,7 @@ void OAuth2StandardController::initApiDocs()
 
     // JWKS endpoint
     {
-        common::documentation::EndpointInfo jwksEndpoint;
+        oauth2::observability::openapi::EndpointInfo jwksEndpoint;
         jwksEndpoint.path = "/.well-known/jwks.json";
         jwksEndpoint.method = "GET";
         jwksEndpoint.summary = "JSON Web Key Set";
@@ -367,7 +367,7 @@ void OAuth2StandardController::introspect(
 
     // Validate request parameters
     auto validationErrors =
-      common::validation::ValidatorHelper::validateOAuth2IntrospectParams(req);
+      oauth2::validation::RuleSet::oauth2Introspect(req);
     if (!validationErrors.empty())
     {
         common::error::OAuth2ErrorHandler::sendErrorResponse(
@@ -489,7 +489,7 @@ void OAuth2StandardController::revoke(
     }
 
     // Validate request parameters
-    auto validationErrors = common::validation::ValidatorHelper::validateOAuth2RevokeParams(req);
+    auto validationErrors = oauth2::validation::RuleSet::oauth2Revoke(req);
     if (!validationErrors.empty())
     {
         common::error::OAuth2ErrorHandler::sendErrorResponse(
@@ -545,7 +545,7 @@ void OAuth2StandardController::revoke(
                 // Has permission, execute revocation
                 plugin->revokeAccessToken(
                   token, clientId, [clientId, callback = std::move(callback), token]() mutable {
-                      oauth2::AuditLogger::log(
+                      oauth2::observability::AuditLogger::log(
                         "token_revoked", "success", nullptr, clientId, "token", token
                       );
                       oauth2::Metrics::incrementRevocationRequests(clientId);
@@ -754,11 +754,11 @@ void OAuth2StandardController::authorize(
 )
 {
     // Use ValidatorHelper for consistent validation
-    auto errors = common::validation::ValidatorHelper::validateOAuth2AuthorizeParams(req);
+    auto errors = oauth2::validation::RuleSet::oauth2Authorize(req);
 
     // Return validation errors if any
     if (
-      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
     )
     {
         Metrics::incRequest("authorize", 400);
@@ -1074,11 +1074,11 @@ void OAuth2StandardController::token(
 )
 {
     // Use ValidatorHelper for consistent validation
-    auto errors = common::validation::ValidatorHelper::validateOAuth2TokenParams(req);
+    auto errors = oauth2::validation::RuleSet::oauth2Token(req);
 
     // Return validation errors if any
     if (
-      common::validation::ValidationHelper::returnValidationErrorsIfAny(errors, std::move(callback))
+      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
     )
     {
         Metrics::incRequest("token", 400);

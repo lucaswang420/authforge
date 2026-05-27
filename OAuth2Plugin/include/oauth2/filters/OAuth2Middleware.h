@@ -1,25 +1,9 @@
+// Forwarding shim — OAuth2Middleware renamed to OAuth2AuthFilter in P4.
+// See design §6.2.6. Removed in P11.
 #pragma once
+#include <oauth2/filters/OAuth2AuthFilter.h>
 
-#include <drogon/HttpFilter.h>
-#include <oauth2/OAuth2Plugin.h>
-
-using namespace drogon;
-
-namespace oauth2::filters
-{
-
-class OAuth2Middleware : public drogon::HttpFilter<OAuth2Middleware>
-{
-  public:
-    OAuth2Middleware()
-    {
-    }
-
-    void doFilter(
-      const HttpRequestPtr &req,
-      FilterCallback &&fcb,
-      FilterChainCallback &&fccb
-    ) override;
-};
-
-}  // namespace oauth2::filters
+// Deprecated typedef for source-level compat (P4..P10).
+namespace oauth2::filters {
+    using OAuth2Middleware [[deprecated("Use OAuth2AuthFilter")]] = OAuth2AuthFilter;
+}

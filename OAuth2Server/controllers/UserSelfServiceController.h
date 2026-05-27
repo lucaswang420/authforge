@@ -13,35 +13,35 @@ class UserSelfServiceController : public drogon::HttpController<UserSelfServiceC
       UserSelfServiceController::getProfile,
       "/api/me",
       Get,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Change password
     ADD_METHOD_TO(
       UserSelfServiceController::changePassword,
       "/api/me/password",
       Put,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // List authorized OAuth2 clients
     ADD_METHOD_TO(
       UserSelfServiceController::listAuthorizedApps,
       "/api/me/authorized-apps",
       Get,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Revoke authorization for a specific client
     ADD_METHOD_TO(
       UserSelfServiceController::revokeAuthorizedApp,
       "/api/me/authorized-apps/{clientId}",
       Delete,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     // Delete account (soft-delete)
     ADD_METHOD_TO(
       UserSelfServiceController::deleteAccount,
       "/api/me",
       Delete,
-      "oauth2::filters::OAuth2Middleware"
+      "oauth2::filters::OAuth2AuthFilter"
     );
     METHOD_LIST_END
 

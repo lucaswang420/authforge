@@ -1,76 +1,13 @@
+// Forwarding shim header for OAuth2 plugin public API.
+//
+// This header was relocated to <oauth2/utils/EmailService.h> in spec
+// repo-structure-refactor phase P1 (see design.md ?4.1, ?6.6.4). It
+// remains here only so existing #include <oauth2/EmailService.h> callers
+// keep compiling during P1..P10. P11 removes the shim entirely.
+//
+// _Design: ?2.8 P1, ?6.6.4_
+// _Requirements: 2.5, 14.3_
+
 #pragma once
 
-#include <string>
-#include <functional>
-
-namespace oauth2
-{
-
-/**
- * @brief Abstract email service interface
- */
-class IEmailService
-{
-  public:
-    virtual ~IEmailService() = default;
-
-    virtual void sendEmail(
-      const std::string &to,
-      const std::string &subject,
-      const std::string &body,
-      std::function<void(bool)> &&callback
-    ) = 0;
-};
-
-/**
- * @brief Console email service for development/testing
- * Logs emails to console instead of sending them
- */
-class ConsoleEmailService : public IEmailService
-{
-  public:
-    void sendEmail(
-      const std::string &to,
-      const std::string &subject,
-      const std::string &body,
-      std::function<void(bool)> &&callback
-    ) override;
-};
-
-/**
- * @brief SMTP email service for production
- * Sends real emails via SMTP (163, Gmail, SendGrid, etc.)
- */
-class SmtpEmailService : public IEmailService
-{
-  public:
-    struct Config
-    {
-        std::string host = "smtp.163.com";
-        int port = 465;
-        std::string username;  // full email: xxx@163.com
-        std::string password;  // authorization code
-        std::string fromName = "OAuth2 Platform";
-        bool useSsl = true;
-    };
-
-    explicit SmtpEmailService(const Config &config) : config_(config) {}
-
-    void sendEmail(
-      const std::string &to,
-      const std::string &subject,
-      const std::string &body,
-      std::function<void(bool)> &&callback
-    ) override;
-
-  private:
-    Config config_;
-};
-
-/**
- * @brief Get the global email service instance
- * Returns SmtpEmailService if configured, otherwise ConsoleEmailService
- */
-IEmailService &getEmailService();
-
-}  // namespace oauth2
+#include <oauth2/utils/EmailService.h>

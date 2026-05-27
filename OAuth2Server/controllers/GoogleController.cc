@@ -1,6 +1,6 @@
 #include "GoogleController.h"
 #include <drogon/HttpClient.h>
-#include <oauth2/OpenApiGenerator.h>
+#include <oauth2/observability/openapi/OpenApiGenerator.h>
 
 // TODO: REPLACE WITH YOUR REAL GOOGLE CREDENTIALS
 const std::string GOOGLE_CLIENT_ID_KEY = "client_id";
@@ -24,7 +24,7 @@ struct GoogleControllerDocs
 {
     GoogleControllerDocs()
     {
-        using namespace common::documentation;
+        using namespace oauth2::observability::openapi;
 
         Json::Value successExample;
         successExample["sub"] = "123456789012345678901";
@@ -36,7 +36,7 @@ struct GoogleControllerDocs
         errorExample["error"] = "Missing code parameter";
 
         // C++17 compatible initialization (avoid designated initializers)
-        common::documentation::EndpointInfo googleEndpoint;
+        oauth2::observability::openapi::EndpointInfo googleEndpoint;
         googleEndpoint.path = "/api/google/login";
         googleEndpoint.method = "POST";
         googleEndpoint.summary = "Google OAuth2 Login";
@@ -48,11 +48,11 @@ struct GoogleControllerDocs
         googleEndpoint.tags = {"External Auth", "Google"};
 
         // Initialize parameters
-        common::documentation::ParameterInfo codeParam;
+        oauth2::observability::openapi::ParameterInfo codeParam;
         codeParam.name = "code";
         codeParam.description = "Authorization code from Google OAuth2 callback (required)";
-        codeParam.type = common::documentation::ParameterType::STRING;
-        codeParam.location = common::documentation::ParameterLocation::QUERY;
+        codeParam.type = oauth2::observability::openapi::ParameterType::STRING;
+        codeParam.location = oauth2::observability::openapi::ParameterLocation::QUERY;
         codeParam.required = true;
         googleEndpoint.parameters = {codeParam};
 

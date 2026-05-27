@@ -4,7 +4,7 @@
 #include <drogon/utils/Utilities.h>
 #include <drogon/Cookie.h>
 #include <oauth2/OAuth2Plugin.h>
-#include "../controllers/OAuth2Controller.h"
+#include "../controllers/SessionController.h"
 #include <future>
 #include <iostream>
 #include <map>
@@ -43,7 +43,7 @@ DROGON_TEST(E2E_P0_Integration_General_Works)
 
     // Direct Controller Integration Testing
     // Bypasses HTTP Routing to avoid static registration linker issues.
-    auto ctrl = std::make_shared<OAuth2Controller>();
+    auto ctrl = std::make_shared<SessionController>();
 
     // Helper for async controller calls (Form Data)
     auto callCtrlForm =
@@ -80,10 +80,10 @@ DROGON_TEST(E2E_P0_Integration_General_Works)
         params["password"] = "password123";
         params["email"] = userId + "@example.com";
 
-        // Bind method: OAuth2Controller::registerUser
+        // Bind method: SessionController::registerUser
         // Since it's a member function, we bind 'this' to 'ctrl'.
         auto method = std::bind(
-          &OAuth2Controller::registerUser, ctrl, std::placeholders::_1, std::placeholders::_2
+          &SessionController::registerUser, ctrl, std::placeholders::_1, std::placeholders::_2
         );
 
         auto resp = callCtrlForm(method, params);
@@ -107,7 +107,7 @@ DROGON_TEST(E2E_P0_Integration_General_Works)
 
     // 2. Login (POST /oauth2/login)
     // Controller logic for internal login assumes Form Data usually?
-    // Let's check OAuth2Controller::login implementation in source if needed.
+    // Let's check SessionController::login implementation in source if needed.
     // Assuming JSON or Form.
     // Let's skip Login for now and focus on Token Exchange if we can get a
     // Code? But Code generation requires Authorize endpoint which checks
