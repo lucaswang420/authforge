@@ -130,8 +130,14 @@ jobs:
 
       - name: Check Test Naming Conventions
         run: |
-          chmod +x OAuth2Server/test/scripts/naming_validator.sh
-          ./OAuth2Server/test/scripts/naming_validator.sh
+          chmod +x tools/test/scripts/naming_validator.sh
+          ./tools/test/scripts/naming_validator.sh
+
+      - name: Check manage.sh / manage.ps1 command parity
+        run: |
+          chmod +x tools/manage-parity-check.sh
+          ./tools/manage-parity-check.sh
+
       - name: Test
         working-directory: ${{github.workspace}}/build
         env:
