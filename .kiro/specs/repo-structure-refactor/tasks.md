@@ -261,7 +261,7 @@ graph LR
     - _Design: §12.6 P6, §7.8_
     - _Requirements: 14.5, 9.8, 9.9, 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8, 1.6, 1.7_
 
-- [ ] 8. P7 — 部署文件集中化 / Deploy reorg
+- [x] 8. P7 — 部署文件集中化 / Deploy reorg
   - [ ] 8.1 建立 `deploy/{docker,observability,env}/` 目录骨架
     - `deploy/nginx/` 与 `deploy/keys/` 已存在，仅新增前三者。
     - _Design: §2.6_
