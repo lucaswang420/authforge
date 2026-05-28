@@ -16,7 +16,7 @@ services:
   oauth2-frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: deploy/docker/Dockerfile
       target: frontend-runtime
     container_name: oauth2-frontend
     restart: always
@@ -30,7 +30,7 @@ services:
   oauth2-backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: deploy/docker/Dockerfile
       target: backend-runtime
     container_name: oauth2-backend
     restart: always
@@ -97,7 +97,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ../observability/../../deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - promdata:/prometheus
     networks:
       - oauth2-net
