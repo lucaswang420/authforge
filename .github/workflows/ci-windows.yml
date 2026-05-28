@@ -161,6 +161,11 @@ jobs:
           mv OAuth2Server/config.json.backup OAuth2Server/config.json
         shell: bash
 
+      - name: Check manage.sh / manage.ps1 command parity
+        run: |
+          bash tools/manage-parity-check.sh
+        shell: bash
+
       # --- Upload logs on failure for debugging ---
       - name: Upload test logs on failure
         if: failure()

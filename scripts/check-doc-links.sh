@@ -26,6 +26,7 @@ while IFS= read -r -d '' mdfile; do
     # Extract markdown links outside of fenced code blocks.
     # awk skips lines inside ``` fences, then grep extracts link targets.
     awk '
+        { sub(/\r$/, "") }
         /^[[:space:]]*```/ { in_fence = !in_fence; next }
         !in_fence { print }
     ' "$mdfile" | grep -oP '\[(?:[^\]]*)\]\(\K[^)]+' 2>/dev/null | while IFS= read -r link; do
