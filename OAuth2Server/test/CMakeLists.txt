@@ -13,9 +13,7 @@ file(GLOB MODEL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/models/*
 file(GLOB PLUGIN_CTL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/controllers/*.cc")
 file(GLOB PLUGIN_FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/filters/*.cc")
 file(GLOB COMMON_SRC 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/*.cc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/validation/*.cc" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/common/documentation/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/validation/*.cc"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/config/*.cc"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/error/*.cc"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/src/utils/*.cc"
