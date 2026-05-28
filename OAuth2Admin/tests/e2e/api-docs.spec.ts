@@ -2,9 +2,32 @@ import { test, expect } from '@playwright/test';
 
 test.describe('API Documentation (Swagger UI)', () => {
   const API_DOCS_URL = 'http://localhost:5555/docs/api/';
+  const BACKEND_URL = 'http://localhost:5555/health';
 
   // Swagger UI is stateful, run tests sequentially to avoid interference
   test.describe.configure({ mode: 'serial' });
+
+  // Skip all tests in this suite if backend is not running
+  test.beforeAll(async () => {
+    try {
+      const response = await fetch(BACKEND_URL, { signal: AbortSignal.timeout(3000) });
+      if (!response.ok) {
+        test.skip(true, 'Backend server is not running (unhealthy). Start OAuth2Server first.');
+      }
+    } catch {
+      test.skip(true, 'Backend server is not reachable at localhost:5555. Start OAuth2Server first.');
+    }
+  });
+
+  // Skip all tests in this suite if backend is not running
+  test.beforeAll(async () => {
+    try {
+      const res = await fetch('http://localhost:5555/health');
+      if (!res.ok) test.skip(true, 'Backend not reachable (non-200 from /health)');
+    } catch {
+      test.skip(true, 'Backend not running on localhost:5555 — skipping Swagger UI tests');
+    }
+  });
 
   test('should load Swagger UI successfully', async ({ page }) => {
     await page.goto(API_DOCS_URL);
