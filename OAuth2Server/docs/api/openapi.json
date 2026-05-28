@@ -297,27 +297,6 @@
         ]
       }
     },
-    "/api/admin/dashboard" : 
-    {
-      "get" : 
-      {
-        "description" : "Get summary data for the admin dashboard. Requires admin permissions.",
-        "operationId" : "get_api_admin_dashboard",
-        "responses" : null,
-        "security" : 
-        {
-          "bearerAuth" : 
-          [
-            "bearerAuth"
-          ]
-        },
-        "summary" : "Admin Dashboard Data",
-        "tags" : 
-        [
-          "Admin"
-        ]
-      }
-    },
     "/api/admin/dashboard/stats" : 
     {
       "get" : 
