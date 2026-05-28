@@ -88,19 +88,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 find_package(OpenSSL REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon OpenSSL::Crypto)
 
-# Platform specific options
+# Platform compatibility (shared module)
+oauth2_apply_compat(${PROJECT_NAME})
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /FI"${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/types/orm_compat.h")
-    target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-        _CRT_SECURE_NO_WARNINGS
-    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 elseif(APPLE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -include "${CMAKE_CURRENT_SOURCE_DIR}/../../OAuth2Plugin/include/oauth2/types/orm_compat.h")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 endif()
 
 # Coverage support
