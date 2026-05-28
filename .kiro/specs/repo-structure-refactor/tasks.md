@@ -329,7 +329,7 @@ graph LR
     - _Design: §12.6 P8, §8.5_
     - _Requirements: 14.5, 11.8, 11.10, 11.11, 15.10, 16.1, 16.7, 16.8, 16.16, 1.6, 1.7_
 
-- [ ] 10. P9 — 文档重组 + 引用修复 / Doc reorg
+- [x] 10. P9 — 文档重组 + 引用修复 / Doc reorg
   - [ ] 10.1 建立 `docs/{backend,admin,frontend,ops,design}/` 子目录
     - 子目录化 + 新增 `docs/README.md` 索引指向各子目录。
     - _Design: §10.1_
@@ -416,6 +416,18 @@ graph LR
     - _Requirements: 14.5, 2.6, 2.7, 3.10, 3.11, 4.7, 4.8, 8.6, 15.7, 15.8, 15.9, 15.13, 15.14, 15.15, 18.1, 18.2, 1.6, 1.7, 1.10, 12.9, 20.10_
 
 - [ ] 13. P12 — 最终 sub-agent 复审 / Final review
+  - [ ] 13.0 P8 脚本功能集成测试（P12 复审前置）
+    - 在完整环境下（PostgreSQL + Redis + 编译产物 + Docker）依次验证：
+      1. `manage.sh build-backend` exit 0
+      2. `manage.sh test-backend` exit 0
+      3. `manage.sh run-backend` + `curl /health/ready` → 200
+      4. `manage.sh test-admin-endpoints` exit 0（37 tests）
+      5. `manage.sh test-oauth2-endpoints` exit 0（17 tests）
+      6. `manage.sh docker-up` + 健康检查全 200 + `manage.sh docker-down`
+      7. `scripts/smoke-parity.sh` 完整 5 步 exit 0
+    - 发现的脚本 bug 就地修复后重跑直到全过
+    - _Design: §12.4, §12.5, §8.4, §8.5_
+    - _Requirements: 11.10, 11.11, 15.7, 15.8, 16.1–16.14_
   - [ ] 13.1 把最终仓库状态送 reviewer agent
     - 用 `code-reviewer` 子代理（备选 `compliance-checker`），输入：design.md 绝对路径 + tasks.md 绝对路径 + requirements.md 绝对路径 + design §13.3 checklist；要求首行 `APPROVED` 或 `REJECTED`。
     - _Design: §13.2, §13.3, §13.4_
