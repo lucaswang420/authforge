@@ -1,6 +1,6 @@
 #include "UserSelfServiceController.h"
-#include <oauth2/PasswordHasher.h>
-#include <oauth2/CryptoUtils.h>
+#include <oauth2/utils/PasswordHasher.h>
+#include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>

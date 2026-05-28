@@ -2,7 +2,7 @@
 #include <drogon/drogon.h>
 #include <drogon/HttpClient.h>
 #include <json/json.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -38,7 +38,7 @@ DROGON_TEST(Unit_P1_Utils_RateLimiter_Works)
             if (response && result == ReqResult::Ok)
             {
                 serverReady = true;
-                LOG_INFO << "ï¿½?Server is ready for testing";
+                LOG_INFO << "ï¿?Server is ready for testing";
                 break;
             }
         }
@@ -51,7 +51,7 @@ DROGON_TEST(Unit_P1_Utils_RateLimiter_Works)
 
     if (!serverReady)
     {
-        LOG_ERROR << "ï¿½?Server is not running, skipping rate limiter tests";
+        LOG_ERROR << "ï¿?Server is not running, skipping rate limiter tests";
         LOG_ERROR << "Please start OAuth2Server.exe before running tests";
         CHECK(false);  // Fail the test
         return;
@@ -183,7 +183,7 @@ DROGON_TEST(Unit_P1_Utils_RateLimiter_Works)
 
     if (tokenRateLimitedCount > 0)
     {
-        LOG_INFO << "ï¿½?Token endpoint rate limiting working";
+        LOG_INFO << "ï¿?Token endpoint rate limiting working";
         CHECK(tokenSuccessCount <= 10);
     }
     else
@@ -239,7 +239,7 @@ DROGON_TEST(Unit_P1_Utils_RateLimiter_Works)
 
     if (registerRateLimitedCount > 0)
     {
-        LOG_INFO << "ï¿½?Register endpoint rate limiting working";
+        LOG_INFO << "ï¿?Register endpoint rate limiting working";
         CHECK(registerSuccessCount <= 5);
     }
     else

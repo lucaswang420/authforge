@@ -4,7 +4,7 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
-#include <oauth2/SubjectGenerator.h>
+#include <oauth2/utils/SubjectGenerator.h>
 
 using namespace oauth2::utils;
 

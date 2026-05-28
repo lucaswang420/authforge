@@ -1,6 +1,6 @@
-﻿#include <drogon/drogon_test.h>
+#include <drogon/drogon_test.h>
 #include <drogon/drogon.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/storage/MemoryOAuth2Storage.h>
 #include <future>
 

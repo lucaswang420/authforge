@@ -1,8 +1,8 @@
 #include <drogon/drogon_test.h>
 #include <drogon/drogon.h>
 #include <filesystem>
-#include <oauth2/ConfigManager.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/config/ConfigManager.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 
 #ifdef _WIN32
 #define setenv(name, value, overwrite) _putenv_s(name, value)

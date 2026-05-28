@@ -62,6 +62,3 @@ class OperationTimer
 
 }  // namespace oauth2
 
-// Backward-compat: expose OperationTimer in oauth2:: for callers that
-// have not yet migrated to oauth2::observability:: (removed in P11).
-namespace oauth2 { using oauth2::observability::OperationTimer; using oauth2::observability::Metrics; }

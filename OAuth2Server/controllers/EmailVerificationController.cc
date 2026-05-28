@@ -1,6 +1,6 @@
 #include "EmailVerificationController.h"
-#include <oauth2/CryptoUtils.h>
-#include <oauth2/EmailService.h>
+#include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/utils/EmailService.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <chrono>
@@ -37,7 +37,7 @@ struct EmailVerificationControllerDocs
 EmailVerificationControllerDocs docs_;
 }  // namespace
 
-// Lazy accessor â€” avoids static init order crash (see P5 bugfix).
+// Lazy accessor â€?avoids static init order crash (see P5 bugfix).
 static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
 
 void EmailVerificationController::sendVerificationEmail(int userId, const std::string &email)

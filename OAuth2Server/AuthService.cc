@@ -2,7 +2,7 @@
 #include <oauth2/models/Users.h>
 #include <oauth2/models/Roles.h>
 #include <oauth2/models/UserRoles.h>
-#include <oauth2/PasswordHasher.h>
+#include <oauth2/utils/PasswordHasher.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
 

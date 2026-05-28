@@ -1,7 +1,7 @@
 #include "AdminController.h"
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
-#include <oauth2/CryptoUtils.h>
+#include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <atomic>
 #include <mutex>

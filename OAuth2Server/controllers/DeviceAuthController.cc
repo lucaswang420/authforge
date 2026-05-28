@@ -1,7 +1,7 @@
 #include "DeviceAuthController.h"
-#include <oauth2/CryptoUtils.h>
-#include <oauth2/OAuth2Plugin.h>
-#include <oauth2/OAuth2ErrorHandler.h>
+#include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/error/OAuth2ErrorHandler.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>

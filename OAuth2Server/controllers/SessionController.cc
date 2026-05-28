@@ -1,12 +1,12 @@
-﻿#include "SessionController.h"
+#include "SessionController.h"
 
 #include "../AuthService.h"
 #include "EmailVerificationController.h"
 #include <drogon/drogon.h>
 #include <drogon/HttpClient.h>
 #include <oauth2/observability/OAuth2Metrics.h>
-#include <oauth2/OAuth2Plugin.h>
-#include <oauth2/JwkManager.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/utils/JwkManager.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
@@ -14,8 +14,8 @@
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/validation/RuleSet.h>
 #include <oauth2/validation/HttpResponder.h>
-#include <oauth2/OAuth2Types.h>
-#include <oauth2/IOAuth2Storage.h>
+#include <oauth2/types/OAuth2Types.h>
+#include <oauth2/storage/IOAuth2Storage.h>
 
 using namespace oauth2;
 using namespace services;
@@ -324,7 +324,7 @@ void SessionController::login(
       oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
     )
     {
-        Metrics::incLoginFailure("validation_failed");
+        oauth2::observability::Metrics::incLoginFailure("validation_failed");
         return;
     }
 
@@ -513,7 +513,7 @@ void SessionController::login(
           else
           {
               // Fail (Bad Password or User Not Found)
-              Metrics::incLoginFailure("bad_credentials");
+              oauth2::observability::Metrics::incLoginFailure("bad_credentials");
 
               // Audit: login failure
               oauth2::observability::AuditLogger::log("login_failure", "failure", req, username, "user", username);
@@ -672,7 +672,7 @@ void SessionController::consent(
                           if (!state.empty())
                               location += "&state=" + state;
                           auto resp = HttpResponse::newRedirectionResponse(location);
-                          Metrics::incRequest("authorize", 302);
+                          oauth2::observability::Metrics::incRequest("authorize", 302);
                           callback(resp);
                       }
                     );
@@ -709,7 +709,7 @@ void SessionController::consent(
                     if (!state.empty())
                         location += "&state=" + state;
                     auto resp = HttpResponse::newRedirectionResponse(location);
-                    Metrics::incRequest("authorize", 302);
+                    oauth2::observability::Metrics::incRequest("authorize", 302);
                     callback(resp);
                 }
               );

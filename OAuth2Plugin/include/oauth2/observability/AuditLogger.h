@@ -53,5 +53,3 @@ class AuditLogger
 
 }  // namespace oauth2
 
-// Backward-compat: expose AuditLogger in oauth2:: (removed in P11).
-namespace oauth2 { using oauth2::observability::AuditLogger; }

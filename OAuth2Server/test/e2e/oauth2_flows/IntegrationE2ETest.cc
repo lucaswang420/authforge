@@ -3,7 +3,7 @@
 #include <drogon/HttpClient.h>
 #include <drogon/utils/Utilities.h>
 #include <drogon/Cookie.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 #include "../controllers/SessionController.h"
 #include <future>
 #include <iostream>

@@ -2,8 +2,8 @@
 #include <drogon/HttpClient.h>
 #include <drogon/drogon.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
-#include <oauth2/OAuth2Plugin.h>
-#include <oauth2/CryptoUtils.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/utils/CryptoUtils.h>
 
 static std::string getGitHubConfig(const std::string &key)
 {
@@ -261,7 +261,7 @@ void GitHubController::login(
 
                     if (!mappingResult.empty())
                     {
-                        // Existing linked account â€” issue tokens
+                        // Existing linked account â€?issue tokens
                         int userId = mappingResult[0]["internal_user_id"].as<int>();
                         // Get username
                         db->execSqlAsync(
@@ -283,7 +283,7 @@ void GitHubController::login(
                     }
                     else
                     {
-                        // New GitHub user â€” create local account + link
+                        // New GitHub user â€?create local account + link
                         std::string username = "gh_" + githubLogin;
                         std::string passwordHash =
                           oauth2::utils::generateSecureToken();  // random, user can't login with

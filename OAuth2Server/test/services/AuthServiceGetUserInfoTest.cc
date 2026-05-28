@@ -3,7 +3,7 @@
 #include <json/json.h>
 #include <future>
 #include "services/AuthService.h"
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 
 using namespace services;
 
