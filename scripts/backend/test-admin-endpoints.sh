@@ -1,0 +1,461 @@
+#!/usr/bin/env bash
+# test-admin-endpoints.sh - Admin API endpoint tests (Linux/macOS)
+# Equivalent of test-admin-endpoints.ps1
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common-test-functions.sh"
+
+BASE_URL="${1:-http://127.0.0.1:5555}"
+ACCESS_TOKEN=""
+
+TOTAL=37
+
+echo "========================================"
+echo "Pre-test Setup"
+echo "========================================"
+reset_admin_account
+echo ""
+
+echo "========================================"
+echo "Admin API Endpoints Tests ($TOTAL tests)"
+echo "========================================"
+echo "Base URL: $BASE_URL"
+echo ""
+
+# Helper: get auth headers for curl
+auth_header() {
+    echo "Authorization: Bearer $ACCESS_TOKEN"
+}
+
+# Setup: Admin Login + Token
+test_setup_login() {
+    local login_resp
+    login_resp=$(curl -s -X POST "$BASE_URL/oauth2/login" \
+        -d "username=admin&password=admin&client_id=admin-console&redirect_uri=http://localhost:5174/admin/callback&scope=openid+profile+admin&state=admin-test-state&json=true")
+    local code
+    code=$(echo "$login_resp" | jq -r '.code')
+    [ -n "$code" ] && [ "$code" != "null" ] || { echo "    no auth code from login"; return 1; }
+
+    local tok_resp
+    tok_resp=$(curl -s -X POST "$BASE_URL/oauth2/token" \
+        -d "grant_type=authorization_code&code=$code&redirect_uri=http://localhost:5174/admin/callback&client_id=admin-console&client_secret=")
+    ACCESS_TOKEN=$(echo "$tok_resp" | jq -r '.access_token')
+    [ -n "$ACCESS_TOKEN" ] && [ "$ACCESS_TOKEN" != "null" ] || { echo "    no access_token"; return 1; }
+    echo "    Token: ${ACCESS_TOKEN:0:16}..."
+}
+run_test "Setup: Admin Login + Token" test_setup_login
+
+# Test 1: Dashboard Stats
+test_1() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/dashboard/stats")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_exists "$r" "total_users" || return 1
+    assert_json_exists "$r" "total_clients" || return 1
+}
+run_test "Test 1: GET /api/admin/dashboard/stats" test_1
+
+# Test 2: Client Detail
+test_2() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/clients/vue-client")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_field "$r" "client_id" "vue-client" || return 1
+}
+run_test "Test 2: GET /api/admin/clients/:id - Client Detail" test_2
+
+# Test 3: Client Not Found
+test_3() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "$(auth_header)" "$BASE_URL/api/admin/clients/nonexistent-xyz")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly returned 404"
+}
+run_test "Test 3: GET /api/admin/clients/:id - Not Found (404)" test_3
+
+# Test 4: Update Client
+test_4() {
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"name":"Vue Frontend Updated"}' "$BASE_URL/api/admin/clients/vue-client")
+    assert_json_field "$r" "status" "success" || return 1
+    # Restore
+    curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"name":"Vue Frontend"}' "$BASE_URL/api/admin/clients/vue-client" >/dev/null
+}
+run_test "Test 4: PUT /api/admin/clients/:id - Update Client" test_4
+
+# Test 5: Client Scopes
+test_5() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/clients/vue-client/scopes")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_exists "$r" "scopes" || return 1
+}
+run_test "Test 5: GET /api/admin/clients/:id/scopes" test_5
+
+# Test 6: Update Client Scopes
+test_6() {
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"scopes":["openid","profile","email"]}' "$BASE_URL/api/admin/clients/vue-client/scopes")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 6: PUT /api/admin/clients/:id/scopes - Update" test_6
+
+# Test 7: Token List
+test_7() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/tokens?page=1&per_page=10")
+    assert_json_exists "$r" "tokens" || return 1
+    assert_json_exists "$r" "total" || return 1
+}
+run_test "Test 7: GET /api/admin/tokens - Token List" test_7
+
+# Test 8: Tokens Filter
+test_8() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/tokens?client_id=admin-console&page=1&per_page=50")
+    assert_json_exists "$r" "tokens" || return 1
+}
+run_test "Test 8: GET /api/admin/tokens - Filter by client_id" test_8
+
+# Test 9: Revoke by client
+test_9() {
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"client_id":"backend-svc"}' "$BASE_URL/api/admin/tokens/revoke-by-client")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 9: POST /api/admin/tokens/revoke-by-client" test_9
+
+# Test 10: Revoke by user
+test_10() {
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"user_id":"nonexistent-user-12345"}' "$BASE_URL/api/admin/tokens/revoke-by-user")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 10: POST /api/admin/tokens/revoke-by-user" test_10
+
+# Test 11: OIDC Keys
+test_11() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/oidc/keys")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_field "$r" "kty" "RSA" || return 1
+    assert_json_field "$r" "alg" "RS256" || return 1
+}
+run_test "Test 11: GET /api/admin/oidc/keys" test_11
+
+# Test 12: User List
+ADMIN_USER_ID=""
+test_12() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/users")
+    assert_json_field "$r" "status" "success" || return 1
+    ADMIN_USER_ID=$(echo "$r" | jq -r '.users[] | select(.username=="admin") | .id')
+    [ -n "$ADMIN_USER_ID" ] && [ "$ADMIN_USER_ID" != "null" ] || { echo "    admin user not found"; return 1; }
+    echo "    admin id=$ADMIN_USER_ID"
+}
+run_test "Test 12: GET /api/admin/users - List" test_12
+
+# Test 13: User Detail
+test_13() {
+    [ -n "$ADMIN_USER_ID" ] || { echo "    skipped: no user id"; return 1; }
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/users/$ADMIN_USER_ID")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_field "$r" "username" "admin" || return 1
+}
+run_test "Test 13: GET /api/admin/users/:id - Detail" test_13
+
+# Test 14: User Not Found
+test_14() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "$(auth_header)" "$BASE_URL/api/admin/users/99999999")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly returned 404"
+}
+run_test "Test 14: GET /api/admin/users/:id - Not Found" test_14
+
+# Test 15: Update User
+test_15() {
+    [ -n "$ADMIN_USER_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"email_verified":true}' "$BASE_URL/api/admin/users/$ADMIN_USER_ID")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 15: PUT /api/admin/users/:id - Update" test_15
+
+# Test 16: User Roles
+test_16() {
+    [ -n "$ADMIN_USER_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/users/$ADMIN_USER_ID/roles")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 16: GET /api/admin/users/:id/roles" test_16
+
+# Test 17: Disable/Enable User
+TEST_USER_ID=""
+test_17() {
+    local ts
+    ts=$(date +%s)
+    # Create test user
+    curl -s -X POST "$BASE_URL/api/register" \
+        -d "username=testuser_$ts&password=TestPass123&email=t_${ts}@test.com" >/dev/null
+    local users
+    users=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/users")
+    TEST_USER_ID=$(echo "$users" | jq -r ".users[] | select(.username==\"testuser_$ts\") | .id")
+    [ -n "$TEST_USER_ID" ] && [ "$TEST_USER_ID" != "null" ] || { echo "    test user not found"; return 1; }
+    # Disable
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" "$BASE_URL/api/admin/users/$TEST_USER_ID/disable")
+    assert_json_field "$r" "status" "success" || return 1
+    # Enable
+    r=$(curl -s -X POST -H "$(auth_header)" "$BASE_URL/api/admin/users/$TEST_USER_ID/enable")
+    assert_json_field "$r" "status" "success" || return 1
+    echo "    Disable/Enable cycle verified"
+}
+run_test "Test 17: Disable/Enable User" test_17
+
+# Test 18: Role List
+test_18() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/roles")
+    assert_json_field "$r" "status" "success" || return 1
+    local admin_role
+    admin_role=$(echo "$r" | jq -r '.roles[] | select(.name=="admin") | .name')
+    [ "$admin_role" = "admin" ] || { echo "    admin role not found"; return 1; }
+}
+run_test "Test 18: GET /api/admin/roles - List" test_18
+
+# Test 19: Create Role
+TEST_ROLE_ID=""
+test_19() {
+    local ts
+    ts=$(date +%s)
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d "{\"name\":\"testrole_$ts\",\"description\":\"Test role\"}" "$BASE_URL/api/admin/roles")
+    assert_json_field "$r" "status" "success" || return 1
+    TEST_ROLE_ID=$(echo "$r" | jq -r '.id')
+    echo "    Created: id=$TEST_ROLE_ID"
+}
+run_test "Test 19: POST /api/admin/roles - Create" test_19
+
+# Test 20: Duplicate Role (409)
+test_20() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        -H "Content-Type: application/json" -d '{"name":"admin"}' "$BASE_URL/api/admin/roles")
+    assert_status "$code" "409" || return 1
+    echo "    Correctly returned 409"
+}
+run_test "Test 20: POST /api/admin/roles - Duplicate (409)" test_20
+
+# Test 21: Update Role
+test_21() {
+    [ -n "$TEST_ROLE_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"description":"Updated"}' "$BASE_URL/api/admin/roles/$TEST_ROLE_ID")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 21: PUT /api/admin/roles/:id - Update" test_21
+
+# Test 22: Delete Role
+test_22() {
+    [ -n "$TEST_ROLE_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/roles/$TEST_ROLE_ID")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 22: DELETE /api/admin/roles/:id - Delete" test_22
+
+# Test 23: Cannot delete built-in role
+test_23() {
+    local roles
+    roles=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/roles")
+    local admin_role_id
+    admin_role_id=$(echo "$roles" | jq -r '.roles[] | select(.name=="admin") | .id')
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/roles/$admin_role_id")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly prevented deletion of built-in role"
+}
+run_test "Test 23: DELETE /api/admin/roles - Cannot delete built-in" test_23
+
+# Test 24: Create Scope
+TEST_SCOPE_ID=""
+test_24() {
+    local ts
+    ts=$(date +%s)
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d "{\"name\":\"testscope_$ts\",\"description\":\"Test scope\",\"mapped_role\":\"user\",\"is_default\":false,\"requires_admin_role\":false}" \
+        "$BASE_URL/api/admin/scopes")
+    assert_json_field "$r" "status" "success" || return 1
+    TEST_SCOPE_ID=$(echo "$r" | jq -r '.id')
+    echo "    Created: id=$TEST_SCOPE_ID"
+}
+run_test "Test 24: POST /api/admin/scopes - Create" test_24
+
+# Test 25: List Scopes
+test_25() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/scopes")
+    assert_json_field "$r" "status" "success" || return 1
+    local openid
+    openid=$(echo "$r" | jq -r '.scopes[] | select(.name=="openid") | .name')
+    [ "$openid" = "openid" ] || { echo "    openid scope not found"; return 1; }
+}
+run_test "Test 25: GET /api/admin/scopes - List" test_25
+
+# Test 26: Update Scope
+test_26() {
+    [ -n "$TEST_SCOPE_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"description":"Updated","is_default":true}' "$BASE_URL/api/admin/scopes/$TEST_SCOPE_ID")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 26: PUT /api/admin/scopes/:id - Update" test_26
+
+# Test 27: Delete Scope
+test_27() {
+    [ -n "$TEST_SCOPE_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/scopes/$TEST_SCOPE_ID")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 27: DELETE /api/admin/scopes/:id - Delete" test_27
+
+# Test 28: Cannot delete built-in scope
+test_28() {
+    local scopes
+    scopes=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/scopes")
+    local openid_id
+    openid_id=$(echo "$scopes" | jq -r '.scopes[] | select(.name=="openid") | .id')
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/scopes/$openid_id")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly prevented deletion of built-in scope"
+}
+run_test "Test 28: DELETE /api/admin/scopes - Cannot delete built-in" test_28
+
+# Test 29: Duplicate Scope (409)
+test_29() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        -H "Content-Type: application/json" -d '{"name":"openid"}' "$BASE_URL/api/admin/scopes")
+    assert_status "$code" "409" || return 1
+    echo "    Correctly returned 409"
+}
+run_test "Test 29: POST /api/admin/scopes - Duplicate (409)" test_29
+
+# Test 30: Unauthorized Access
+test_30() {
+    local endpoints=(
+        "$BASE_URL/api/admin/clients/vue-client"
+        "$BASE_URL/api/admin/tokens"
+        "$BASE_URL/api/admin/roles"
+        "$BASE_URL/api/admin/users/1"
+        "$BASE_URL/api/admin/dashboard/stats"
+    )
+    local all_blocked=true
+    for ep in "${endpoints[@]}"; do
+        local code
+        code=$(curl -s -o /dev/null -w '%{http_code}' "$ep")
+        if [ "$code" != "401" ] && [ "$code" != "403" ]; then
+            echo "    SECURITY: $ep returned $code without auth!"
+            all_blocked=false
+        fi
+    done
+    [ "$all_blocked" = "true" ] || { echo "    Some endpoints accessible without auth!"; return 1; }
+    echo "    All 5 endpoints correctly require authentication"
+}
+run_test "Test 30: Unauthorized Access - Endpoints require auth" test_30
+
+# Test 31: Assign Roles
+test_31() {
+    [ -n "$TEST_USER_ID" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"roles":["admin","user"]}' "$BASE_URL/api/admin/users/$TEST_USER_ID/roles")
+    assert_json_field "$r" "status" "success" || return 1
+}
+run_test "Test 31: PUT /api/admin/users/:id/roles - Assign Roles" test_31
+
+# Test 32: Audit Logs
+test_32() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/logs?page=1&per_page=10")
+    assert_json_field "$r" "status" "success" || return 1
+    assert_json_exists "$r" "logs" || return 1
+}
+run_test "Test 32: GET /api/admin/logs - Audit Logs" test_32
+
+# Test 33: Organization List
+test_33() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/organizations")
+    assert_json_exists "$r" "organizations" || return 1
+}
+run_test "Test 33: GET /api/admin/organizations - List" test_33
+
+# Test 34: Create Organization
+TEST_ORG_SLUG=""
+test_34() {
+    local ts
+    ts=$(date +%s)
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d "{\"slug\":\"test-org-$ts\",\"name\":\"Test Organization $ts\"}" "$BASE_URL/api/admin/organizations")
+    TEST_ORG_SLUG=$(echo "$r" | jq -r '.slug')
+    [ -n "$TEST_ORG_SLUG" ] && [ "$TEST_ORG_SLUG" != "null" ] || { echo "    missing slug"; return 1; }
+    echo "    Created: slug=$TEST_ORG_SLUG"
+}
+run_test "Test 34: POST /api/admin/organizations - Create" test_34
+
+# Test 35: Organization Detail
+test_35() {
+    [ -n "$TEST_ORG_SLUG" ] || { echo "    skipped"; return 1; }
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/organizations/$TEST_ORG_SLUG")
+    local slug
+    slug=$(echo "$r" | jq -r '.slug')
+    [ "$slug" = "$TEST_ORG_SLUG" ] || { echo "    slug mismatch"; return 1; }
+}
+run_test "Test 35: GET /api/admin/organizations/:slug - Detail" test_35
+
+# Test 36: Organization Not Found
+test_36() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "$(auth_header)" "$BASE_URL/api/admin/organizations/nonexistent-org-xyz")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly returned 404"
+}
+run_test "Test 36: GET /api/admin/organizations/:slug - Not Found" test_36
+
+# Test 37: Invalid slug (400)
+test_37() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        -H "Content-Type: application/json" -d '{"slug":"AB","name":"Bad"}' "$BASE_URL/api/admin/organizations")
+    assert_status "$code" "400" || return 1
+    echo "    Correctly returned 400 for invalid slug"
+}
+run_test "Test 37: POST /api/admin/organizations - Invalid slug (400)" test_37
+
+# Post-test Cleanup
+echo "========================================"
+echo "Post-test Cleanup"
+echo "========================================"
+reset_admin_account
+echo ""
+
+print_summary $TOTAL

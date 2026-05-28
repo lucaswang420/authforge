@@ -291,7 +291,7 @@ graph LR
     - _Design: §12.6 P7, §12.5_
     - _Requirements: 14.5, 10.10, 10.12, 16.8, 16.9, 16.10, 16.11, 16.12, 16.13, 16.14, 16.15, 16.16, 1.6, 1.7_
 
-- [ ] 9. P8 — 脚本对等 / Cross-platform script parity
+- [x] 9. P8 — 脚本对等 / Cross-platform script parity
   - [ ] 9.1 新增 `manage.sh` 入口
     - 实现 design §6.7.3 的 20 命令集，`case "$action" in ...; help) ...` 全覆盖；命令面与 `manage.ps1` 完全等价。
     - _Design: §6.7.3, §4.5_
