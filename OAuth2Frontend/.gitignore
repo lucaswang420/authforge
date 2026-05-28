@@ -1,6 +1,2 @@
-node_modules
-dist
-*.local
-.env
-test-results/
-playwright-report/
+# Local environment overrides (not committed)
+.env.local
