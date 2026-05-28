@@ -49,7 +49,7 @@ void RedisOAuth2Storage::getClient(const std::string &clientId, ClientCallback &
         return;
     }
     std::string cmd = "HGETALL oauth2:client:" + clientId;
-    auto timer = std::make_shared<OperationTimer>("getClient", "redis");
+    auto timer = std::make_shared<observability::OperationTimer>("getClient", "redis");
     redisClient_->execCommandAsync(
       [cb, clientId, timer](const RedisResult &result) {
           if (result.type() == RedisResultType::kNil || result.type() != RedisResultType::kArray)

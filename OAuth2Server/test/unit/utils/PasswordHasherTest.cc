@@ -1,6 +1,6 @@
 #include <drogon/drogon_test.h>
 #include <drogon/utils/Utilities.h>
-#include <oauth2/PasswordHasher.h>
+#include <oauth2/utils/PasswordHasher.h>
 
 using namespace oauth2::utils;
 

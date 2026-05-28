@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### 倉庫結構重構 (repo-structure-refactor P1–P11)
+
+- 將 OAuth2Plugin 公開標頭從扁平 `oauth2/` 目錄重新組織為語義子目錄
+  (`plugin/`, `types/`, `config/`, `error/`, `utils/`, `validation/`,
+  `services/`, `storage/`, `observability/`, `controllers/`, `filters/`)。
+- 將 `OAuth2Plugin/src/` 原始檔移入對應子目錄，保持與標頭結構一致。
+- 重新命名驗證模組: `Validator` → `RuleEngine`, `ValidatorHelper` → `RuleSet`,
+  `ValidationHelper` → `HttpResponder`, `ValidationRules` → `Rules`。
+- 更新 CMakeLists.txt 反映新目錄結構。
+- 移除全部 29 個轉發 shim 標頭與 `oauth2::` 命名空間向後相容 using 宣告。
+- OAuth2Server 全部呼叫者更新為使用新的子目錄 include 路徑。
+
+### Breaking Changes
+
+- 扁平 `#include <oauth2/Foo.h>` 路徑不再有效，必須使用子目錄路徑
+  (例如 `<oauth2/plugin/OAuth2Plugin.h>`)。
+- `oauth2::Metrics`、`oauth2::OperationTimer`、`oauth2::AuditLogger`
+  已移除，改用 `oauth2::observability::` 命名空間。
+
 ### Added
 
 #### Frontend Security Enhancements (2026-05-12)

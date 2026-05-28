@@ -1,8 +1,8 @@
 #include "PasswordResetController.h"
-#include <oauth2/CryptoUtils.h>
-#include <oauth2/PasswordHasher.h>
-#include <oauth2/EmailService.h>
-#include <oauth2/OAuth2Plugin.h>
+#include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/utils/PasswordHasher.h>
+#include <oauth2/utils/EmailService.h>
+#include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
@@ -41,7 +41,7 @@ struct PasswordResetControllerDocs
 PasswordResetControllerDocs docs_;
 }  // namespace
 
-// Lazy accessor â€” avoids static init order crash (see P5 bugfix).
+// Lazy accessor â€?avoids static init order crash (see P5 bugfix).
 static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
 
 void PasswordResetController::request(

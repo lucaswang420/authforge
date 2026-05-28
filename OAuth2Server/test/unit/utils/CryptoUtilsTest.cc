@@ -1,5 +1,5 @@
 #include <drogon/drogon_test.h>
-#include <oauth2/CryptoUtils.h>
+#include <oauth2/utils/CryptoUtils.h>
 
 using namespace oauth2::utils;
 

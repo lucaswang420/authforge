@@ -389,7 +389,7 @@ graph LR
     - _Design: §12.6 P10_
     - _Requirements: 14.5, 13.4, 13.5, 13.7, 1.6, 1.7, 1.10, 12.9, 20.10_
 
-- [ ] 12. P11 — Forwarding shim 移除 / Final shim removal
+- [x] 12. P11 — Forwarding shim 移除 / Final shim removal
   - [ ] 12.1 删除 P1 / P2 落地的 forwarding shim 头
     - 删除 `OAuth2Plugin/include/oauth2/{ConfigManager,ConfigTypes,ErrorHandler,OAuth2ErrorHandler,ErrorTypes,Crypto/Email/Jwk/PasswordHasher/SubjectGenerator/TotpUtils,Client/Identity/TokenService,IOAuth2Storage,OAuth2Plugin,OAuth2CleanupService,OAuth2Types,orm_compat,Validator,ValidationHelper,ValidatorHelper,ValidationRules,AuditLogger,OAuth2Metrics,OpenApiGenerator}.h` 全部扁平 shim 头。
     - _Design: §2.8 P11, §6.6.4_

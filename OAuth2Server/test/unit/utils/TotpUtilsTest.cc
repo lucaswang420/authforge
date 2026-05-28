@@ -1,5 +1,5 @@
 #include <drogon/drogon_test.h>
-#include <oauth2/TotpUtils.h>
+#include <oauth2/utils/TotpUtils.h>
 
 using namespace oauth2::utils;
 

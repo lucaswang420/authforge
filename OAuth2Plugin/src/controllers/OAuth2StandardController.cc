@@ -386,7 +386,7 @@ void OAuth2StandardController::introspect(
       [plugin, token, clientId, callback = std::move(callback)](bool valid) mutable {
           if (!valid)
           {
-              oauth2::Metrics::incrementIntrospectErrors(clientId, "invalid_client");
+              oauth2::observability::Metrics::incrementIntrospectErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
                 std::move(callback), "invalid_client", "Client authentication failed"
               );
@@ -402,7 +402,7 @@ void OAuth2StandardController::introspect(
                 if (!introspection)
                 {
                     // Token not found or invalid
-                    oauth2::Metrics::incrementIntrospectRequests(clientId);
+                    oauth2::observability::Metrics::incrementIntrospectRequests(clientId);
 
                     Json::Value response;
                     response["active"] = false;
@@ -413,7 +413,7 @@ void OAuth2StandardController::introspect(
                 }
 
                 // Token is active, return full metadata
-                oauth2::Metrics::incrementIntrospectRequests(clientId);
+                oauth2::observability::Metrics::incrementIntrospectRequests(clientId);
 
                 Json::Value response;
                 response["active"] = introspection->active;
@@ -508,7 +508,7 @@ void OAuth2StandardController::revoke(
       [plugin, token, clientId, callback = std::move(callback)](bool valid) mutable {
           if (!valid)
           {
-              oauth2::Metrics::incrementRevocationErrors(clientId, "invalid_client");
+              oauth2::observability::Metrics::incrementRevocationErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
                 std::move(callback), "invalid_client", "Client authentication failed"
               );
@@ -525,7 +525,7 @@ void OAuth2StandardController::revoke(
                 {
                     // Token doesn't exist or inactive - return success per RFC 7009
                     // (prevents token probing attacks)
-                    oauth2::Metrics::incrementRevocationRequests(clientId);
+                    oauth2::observability::Metrics::incrementRevocationRequests(clientId);
                     callback(createSuccessResponse());
                     return;
                 }
@@ -533,7 +533,7 @@ void OAuth2StandardController::revoke(
                 // Check permission: only token owner can revoke
                 if (introspection->clientId != clientId)
                 {
-                    oauth2::Metrics::incrementRevocationErrors(clientId, "unauthorized_client");
+                    oauth2::observability::Metrics::incrementRevocationErrors(clientId, "unauthorized_client");
                     common::error::OAuth2ErrorHandler::sendErrorResponse(
                       std::move(callback),
                       "unauthorized_client",
@@ -548,7 +548,7 @@ void OAuth2StandardController::revoke(
                       oauth2::observability::AuditLogger::log(
                         "token_revoked", "success", nullptr, clientId, "token", token
                       );
-                      oauth2::Metrics::incrementRevocationRequests(clientId);
+                      oauth2::observability::Metrics::incrementRevocationRequests(clientId);
                       callback(createSuccessResponse());
                   }
                 );
@@ -761,7 +761,7 @@ void OAuth2StandardController::authorize(
       oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
     )
     {
-        Metrics::incRequest("authorize", 400);
+        observability::Metrics::incRequest("authorize", 400);
         return;
     }
 
@@ -778,8 +778,8 @@ void OAuth2StandardController::authorize(
         LOG_WARN
           << "Authorization request missing state parameter (CSRF vulnerability) for client: "
           << clientId;
-        Metrics::incRequest("authorize", 400);
-        Metrics::incLoginFailure("missing_state_parameter");
+        observability::Metrics::incRequest("authorize", 400);
+        observability::Metrics::incLoginFailure("missing_state_parameter");
 
         auto resp = drogon::HttpResponse::newHttpResponse();
         resp->setStatusCode(drogon::k400BadRequest);
@@ -796,8 +796,8 @@ void OAuth2StandardController::authorize(
         LOG_WARN << "Authorization request has invalid state parameter length (must be 8-512 "
                     "chars) for client: "
                  << clientId << ", state length: " << state.length();
-        Metrics::incRequest("authorize", 400);
-        Metrics::incLoginFailure("invalid_state_parameter");
+        observability::Metrics::incRequest("authorize", 400);
+        observability::Metrics::incLoginFailure("invalid_state_parameter");
 
         auto resp = drogon::HttpResponse::newHttpResponse();
         resp->setStatusCode(drogon::k400BadRequest);
@@ -814,8 +814,8 @@ void OAuth2StandardController::authorize(
         LOG_WARN << "Authorization request has potentially malicious state parameter (contains URL "
                     "delimiters) for client: "
                  << clientId << ", state: " << state.substr(0, 20) << "...";
-        Metrics::incRequest("authorize", 400);
-        Metrics::incLoginFailure("suspicious_state_parameter");
+        observability::Metrics::incRequest("authorize", 400);
+        observability::Metrics::incLoginFailure("suspicious_state_parameter");
 
         auto resp = drogon::HttpResponse::newHttpResponse();
         resp->setStatusCode(drogon::k400BadRequest);
@@ -852,8 +852,8 @@ void OAuth2StandardController::authorize(
        callback = std::move(callback)](bool validClient) mutable {
           if (!validClient)
           {
-              Metrics::incRequest("authorize", 400);
-              Metrics::incLoginFailure("invalid_client_id");
+              observability::Metrics::incRequest("authorize", 400);
+              observability::Metrics::incLoginFailure("invalid_client_id");
 
               auto resp = drogon::HttpResponse::newHttpResponse();
               resp->setStatusCode(drogon::k400BadRequest);
@@ -1016,7 +1016,7 @@ void OAuth2StandardController::authorize(
                                                   drogon::HttpResponse::newRedirectionResponse(
                                                     location
                                                   );
-                                                Metrics::incRequest("authorize", 302);
+                                                observability::Metrics::incRequest("authorize", 302);
                                                 callback(resp);
                                             }
                                           );
@@ -1081,7 +1081,7 @@ void OAuth2StandardController::token(
       oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
     )
     {
-        Metrics::incRequest("token", 400);
+        observability::Metrics::incRequest("token", 400);
         return;
     }
 
@@ -1165,14 +1165,14 @@ void OAuth2StandardController::token(
                   std::string errorCode = result.get("error", "").asString();
                   drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
                   resp->setStatusCode(statusCode);
-                  Metrics::incRequest("token", static_cast<int>(statusCode));
+                  observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);
                   return;
               }
 
               auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
-              Metrics::incRequest("token", 200);
-              Metrics::updateActiveTokens(1);
+              observability::Metrics::incRequest("token", 200);
+              observability::Metrics::updateActiveTokens(1);
               callback(resp);
           }
         );
@@ -1188,13 +1188,13 @@ void OAuth2StandardController::token(
                   std::string errorCode = result.get("error", "").asString();
                   drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
                   resp->setStatusCode(statusCode);
-                  Metrics::incRequest("token", static_cast<int>(statusCode));
+                  observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);
                   return;
               }
 
               auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
-              Metrics::incRequest("token", 200);
+              observability::Metrics::incRequest("token", 200);
               callback(resp);
           }
         );
@@ -1286,7 +1286,7 @@ void OAuth2StandardController::token(
                         json["scope"] = grantedScope;
                         // No refresh_token for client_credentials
                         auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
-                        Metrics::incRequest("token", 200);
+                        observability::Metrics::incRequest("token", 200);
                         (*sharedCb)(resp);
                     });
                 }
@@ -1309,7 +1309,7 @@ void OAuth2StandardController::token(
             error["error_description"] = "device_code and client_id are required";
             auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(drogon::k400BadRequest);
-            Metrics::incRequest("token", 400);
+            observability::Metrics::incRequest("token", 400);
             callback(resp);
             return;
         }
@@ -1344,7 +1344,7 @@ void OAuth2StandardController::token(
                   error["error_description"] = "Invalid device_code";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
@@ -1364,7 +1364,7 @@ void OAuth2StandardController::token(
                   error["error_description"] = "client_id mismatch";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
@@ -1381,7 +1381,7 @@ void OAuth2StandardController::token(
                   error["error_description"] = "The device_code has expired";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
@@ -1394,7 +1394,7 @@ void OAuth2StandardController::token(
                   error["error_description"] = "The authorization request is still pending";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
@@ -1406,7 +1406,7 @@ void OAuth2StandardController::token(
                   error["error_description"] = "The user denied the authorization request";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
@@ -1418,12 +1418,12 @@ void OAuth2StandardController::token(
                   error["error_description"] = "Invalid device code status";
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
                   resp->setStatusCode(drogon::k400BadRequest);
-                  Metrics::incRequest("token", 400);
+                  observability::Metrics::incRequest("token", 400);
                   (*sharedCb)(resp);
                   return;
               }
 
-              // Status is "approved" éˆ¥?issue tokens
+              // Status is "approved" éˆ?issue tokens
               auto accessTokenStr = oauth2::utils::generateSecureToken();
               auto refreshTokenStr = oauth2::utils::generateSecureToken();
               std::string familyId = oauth2::utils::generateSecureToken(16);
@@ -1473,8 +1473,8 @@ void OAuth2StandardController::token(
                     }
 
                     auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
-                    Metrics::incRequest("token", 200);
-                    Metrics::updateActiveTokens(1);
+                    observability::Metrics::incRequest("token", 200);
+                    observability::Metrics::updateActiveTokens(1);
                     (*sharedCb)(resp);
                 }
               );
@@ -1500,7 +1500,7 @@ void OAuth2StandardController::token(
           "urn:ietf:params:oauth:grant-type:device_code";
         auto resp = drogon::HttpResponse::newHttpJsonResponse(error);
         resp->setStatusCode(drogon::k400BadRequest);
-        Metrics::incRequest("token", 400);
+        observability::Metrics::incRequest("token", 400);
         callback(resp);
     }
 }
@@ -1624,7 +1624,7 @@ void OAuth2StandardController::checkUserConsentAndProceed(
               if (!state.empty())
                   location += "&state=" + state;
               auto resp = drogon::HttpResponse::newRedirectionResponse(location);
-              Metrics::incRequest("authorize", 302);
+              observability::Metrics::incRequest("authorize", 302);
               callback(resp);
           }
         );

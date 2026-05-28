@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <json/json.h>
 #include <sstream>
-#include <oauth2/ConfigManager.h>
+#include <oauth2/config/ConfigManager.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/controllers/OAuth2StandardController.h>
 #include <oauth2/filters/OAuth2AuthFilter.h>
