@@ -103,11 +103,11 @@ case "$ACTION" in
         ;;
     docker-up)
         cd "$SCRIPT_DIR"
-        docker-compose up -d
+        docker compose -f deploy/docker/docker-compose.yml --project-directory . up -d
         ;;
     docker-down)
         cd "$SCRIPT_DIR"
-        docker-compose down
+        docker compose -f deploy/docker/docker-compose.yml --project-directory . down
         ;;
     clean)
         rm -rf "$SCRIPT_DIR/build"

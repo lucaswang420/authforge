@@ -37,7 +37,7 @@ ps1_commands=$(grep -oP '^\s*"([a-z0-9-]+)"\s*\{' "$PS1_FILE" | grep -oP '"[^"]+
 
 # Extract commands from manage.sh case patterns
 # Pattern: case labels like build-backend)
-sh_commands=$(grep -oP '^\s*([a-z0-9-]+)\)' "$SH_FILE" | grep -oP '^[a-z0-9-]+' | grep -v '^\*$' | sort -u)
+sh_commands=$(grep -oP '^\s*\K[a-z0-9-]+(?=\))' "$SH_FILE" | grep -v '^\*$' | sort -u)
 
 # Filter out allowlisted commands
 filter_allowlist() {
