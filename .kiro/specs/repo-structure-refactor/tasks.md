@@ -231,7 +231,7 @@ graph LR
     - _Design: §12.6 P5, §6.3.8, §6.4.9, §6.5.6_
     - _Requirements: 14.5, 5.5, 5.7, 5.9, 5.10, 6.6, 6.7, 6.10, 6.11, 6.12, 7.6, 7.7, 15.6, 15.9, 18.1, 18.2, 1.6, 1.7_
 
-- [ ] 7. P6 — CMake 构建基础设施统一 / CMake refactor
+- [x] 7. P6 — CMake 构建基础设施统一 / CMake refactor
   - [ ] 7.1 新建 `cmake/Compatibility.cmake`
     - 暴露函数 `oauth2_apply_compat(target)`，对 MSVC 应用 `/FI <orm_compat.h>` + `/utf-8` + `_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING`，对 GCC/Clang 应用 `-include <orm_compat.h>`；引用路径必须指向 `OAuth2Plugin/include/oauth2/types/orm_compat.h`。
     - _Design: §7.3_
