@@ -115,7 +115,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ../observability/../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observability/../../deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - promdata:/prometheus
     networks:
       - oauth2-net

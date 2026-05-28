@@ -84,3 +84,7 @@ OAuth2Plugin/models_backup/
 
 build_log.txt
 ctest_output.txt
+
+test_admin.txt
+test_oauth2.txt
+build_p12.txt
