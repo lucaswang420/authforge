@@ -1,10 +1,1 @@
-0001	AuthServiceGetUserInfoTest	PASSED
-0002	ErrorHandlerTest	PASSED
-0003	OpenApiGeneratorTest	PASSED
-0004	OpenApiGeneratorParameterTypesTest	PASSED
-0005	ConfigManagerLoadTest	PASSED
-0006	TokenServiceIssueTest	PASSED
-0007	TokenServiceIntrospectTest	PASSED
-0008	ClientServiceCreateTest	PASSED
-0009	ClientServiceUpdateTest	PASSED
-0010	ValidatorClientIdTest	PASSED
+0001	OAuth2Tests	PASSED
