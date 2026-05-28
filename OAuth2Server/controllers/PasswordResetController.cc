@@ -41,8 +41,8 @@ struct PasswordResetControllerDocs
 PasswordResetControllerDocs docs_;
 }  // namespace
 
-// Shared email service (uses SMTP if configured, otherwise console)
-static oauth2::IEmailService &emailService_ = oauth2::getEmailService();
+// Lazy accessor — avoids static init order crash (see P5 bugfix).
+static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
 
 void PasswordResetController::request(
   const HttpRequestPtr &req,
@@ -121,7 +121,7 @@ void PasswordResetController::request(
                 std::string emailBody = "Click the following link to reset your password:\n\n" +
                                         resetLink + "\n\nThis link expires in 15 minutes.";
 
-                emailService_.sendEmail(
+                getEmailSvc().sendEmail(
                   email, "Password Reset Request", emailBody, [](bool) {}  // fire-and-forget
                 );
 

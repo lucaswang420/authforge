@@ -37,7 +37,8 @@ struct EmailVerificationControllerDocs
 EmailVerificationControllerDocs docs_;
 }  // namespace
 
-static oauth2::IEmailService &emailService_ = oauth2::getEmailService();
+// Lazy accessor — avoids static init order crash (see P5 bugfix).
+static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
 
 void EmailVerificationController::sendVerificationEmail(int userId, const std::string &email)
 {

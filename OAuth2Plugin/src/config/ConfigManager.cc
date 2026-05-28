@@ -1,4 +1,4 @@
-﻿#include <oauth2/config/ConfigManager.h>
+#include <oauth2/config/ConfigManager.h>
 #include <drogon/drogon.h>
 #include <fstream>
 #include <iostream>
@@ -11,8 +11,13 @@
 namespace common::config
 {
 
-// .env file contents (loaded once)
-static std::unordered_map<std::string, std::string> dotEnvVars_;
+// .env file contents (loaded once) — wrapped in function to guarantee
+// construction-on-first-use (avoids static init order fiasco, see P5 bugfix).
+static std::unordered_map<std::string, std::string> &getDotEnvVars()
+{
+    static std::unordered_map<std::string, std::string> instance;
+    return instance;
+}
 static bool dotEnvLoaded_ = false;
 
 /**
@@ -89,13 +94,13 @@ static void loadDotEnv()
 
         if (!key.empty())
         {
-            dotEnvVars_[key] = value;
+            getDotEnvVars()[key] = value;
         }
     }
 
-    if (!dotEnvVars_.empty())
+    if (!getDotEnvVars().empty())
     {
-        LOG_INFO << "Loaded " << dotEnvVars_.size() << " variables from .env file";
+        LOG_INFO << "Loaded " << getDotEnvVars().size() << " variables from .env file";
     }
 }
 
@@ -106,8 +111,8 @@ static void loadDotEnv()
 static const char *getEnvValue(const char *name)
 {
     // Priority 1: .env file
-    auto it = dotEnvVars_.find(name);
-    if (it != dotEnvVars_.end() && !it->second.empty())
+    auto it = getDotEnvVars().find(name);
+    if (it != getDotEnvVars().end() && !it->second.empty())
     {
         return it->second.c_str();
     }

@@ -148,14 +148,16 @@ main() {
     local stray
     for cls in "${EXEMPT_CLASSES[@]}"; do
         # Find any header / source file matching this class name outside of
-        # the canonical models directories.
+        # the canonical models directories (exclude models_backup which is
+        # a gitignored legacy artifact, not a real source location).
         while IFS= read -r path; do
             err "ORM-exempt file found outside models/: ${path} (R1.9)"
         done < <(
             find "${REPO_ROOT}/OAuth2Plugin" -type f \
                 \( -name "${cls}.h" -o -name "${cls}.cc" \) \
                 -not -path "${INCLUDE_DIR}/*" \
-                -not -path "${SRC_DIR}/*" 2>/dev/null
+                -not -path "${SRC_DIR}/*" \
+                -not -path "*/models_backup/*" 2>/dev/null
         )
         checks=$((checks + 1))
     done

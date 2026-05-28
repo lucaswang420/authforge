@@ -70,3 +70,4 @@ OAuth2Plugin/models_backup/
 .kiro/tmp/
 
 build_log.txt
+ctest_output.txt

@@ -111,7 +111,7 @@ foreach ($cls in $ExemptClasses) {
     $candidates = Get-ChildItem -Path $pluginRoot -Recurse -File -Include "$cls.h", "$cls.cc" -ErrorAction SilentlyContinue |
         Where-Object {
             $full = $_.FullName
-            ($full -notlike "$IncludeDir\*") -and ($full -notlike "$SrcDir\*")
+            ($full -notlike "$IncludeDir\*") -and ($full -notlike "$SrcDir\*") -and ($full -notlike "*\models_backup\*")
         }
     foreach ($stray in $candidates) {
         Write-OkErr "ORM-exempt file found outside models/: $($stray.FullName) (R1.9)"
