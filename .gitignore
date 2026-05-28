@@ -46,8 +46,7 @@ deploy/keys/*.pem
 Release_v1.0.0.zip
 
 # Temporary Outputs
-tmp_output/*
-!tmp_output/.gitkeep
+tmp_output/
 
 # Test Runtime Files
 test_config_env_runtime.json
