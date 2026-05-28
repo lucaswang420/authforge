@@ -363,7 +363,7 @@ graph LR
     - _Design: §12.6 P9_
     - _Requirements: 14.5, 12.6, 12.9, 1.6, 1.7_
 
-- [ ] 11. P10 — `.gitignore` 与工作树清理 / gitignore + workspace cleanup
+- [x] 11. P10 — `.gitignore` 与工作树清理 / gitignore + workspace cleanup
   - [ ] 11.1 重写根级 `.gitignore` 为单一 catch-all
     - 按 design §11.2 加入 `**/node_modules/`、`**/dist/`、`**/.venv/`、`**/test-results/`、`**/__pycache__/`、`**/*.pyc`、`build/`、`build-*/`、`OAuth2Plugin/models_backup/`、`**/logs/`、`**/uploads/`、密钥模式等。
     - _Design: §11.2_

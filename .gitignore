@@ -17,6 +17,7 @@ worktrees/
 .vscode/launch.local.json
 .vscode/.intellicache/
 .venv/
+**/.venv/
 
 # Claude Code Settings
 .claude/settings.local.json
@@ -51,6 +52,10 @@ tmp_output/*
 # Test Runtime Files
 test_config_env_runtime.json
 test-results/
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/
 *_test_logs/
 *.log.files/
 
@@ -61,9 +66,17 @@ test-results/
 # Bug Fix Reports - local documentation only
 reports/
 
+# Build artifacts
 build/
+build-*/
 CMakeUserPresets.json
 OAuth2Plugin/models_backup/
+
+# Cross-project patterns
+**/node_modules/
+**/dist/
+**/__pycache__/
+**/*.pyc
 
 # Kiro spec workflow scratch (commit messages, probes, etc.). Spec files
 # under .kiro/specs/ remain tracked.
