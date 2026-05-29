@@ -1024,7 +1024,8 @@ bool Oauth2UserConsents::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;
             }
-            if(pJson.isString() && drogon::utils::utf8Length(pJson.asCString()) > 50)
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 50)
             {
                 err="String length exceeds limit for the " +
                     fieldName +
@@ -1042,7 +1043,8 @@ bool Oauth2UserConsents::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;
             }
-            if(pJson.isString() && drogon::utils::utf8Length(pJson.asCString()) > 100)
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 100)
             {
                 err="String length exceeds limit for the " +
                     fieldName +
