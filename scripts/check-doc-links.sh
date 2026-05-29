@@ -39,6 +39,14 @@ while IFS= read -r -d '' mdfile; do
         [[ "$link_path" =~ ^mailto: ]] && continue
         [[ "$link_path" =~ ^file:// ]] && continue
 
+        # Skip false positives from C++/code snippets that survive nested code
+        # fences (e.g. lambda captures `[&x](const T& x)`). Real doc paths never
+        # contain C++ scope operators, references, angle brackets, or spaces.
+        [[ "$link_path" == *"::"* ]] && continue
+        [[ "$link_path" == *"&"* ]] && continue
+        [[ "$link_path" == *"<"* || "$link_path" == *">"* ]] && continue
+        [[ "$link_path" == *" "* ]] && continue
+
         # Resolve relative to the markdown file's directory
         target="$dir/$link_path"
 
