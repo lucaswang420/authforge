@@ -68,10 +68,13 @@ paths:
     get:
       description: Get a paginated list of registered OAuth2 clients.
       operationId: get_api_admin_clients
-      responses: null
+      responses:
+        '200':
+          description: List of OAuth2 clients
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List OAuth2 Clients
       tags:
       - Admin
@@ -79,10 +82,13 @@ paths:
     post:
       description: Register a new OAuth2 client.
       operationId: post_api_admin_clients
-      responses: null
+      responses:
+        '201':
+          description: Client created successfully
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Create OAuth2 Client
       tags:
       - Admin
@@ -91,10 +97,22 @@ paths:
     delete:
       description: Delete a specific OAuth2 client.
       operationId: delete_api_admin_clients_{clientId}
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Client not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Delete OAuth2 Client
       tags:
       - Admin
@@ -102,10 +120,22 @@ paths:
     get:
       description: Get details of a specific OAuth2 client by ID.
       operationId: get_api_admin_clients_{clientId}
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client details
+        '401':
+          description: Unauthorized
+        '404':
+          description: Client not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Get Client Details
       tags:
       - Admin
@@ -113,10 +143,24 @@ paths:
     put:
       description: Update details of a specific OAuth2 client.
       operationId: put_api_admin_clients_{clientId}
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client updated successfully
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
+        '404':
+          description: Client not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Update OAuth2 Client
       tags:
       - Admin
@@ -125,10 +169,22 @@ paths:
     post:
       description: Reset the secret of a specific OAuth2 client.
       operationId: post_api_admin_clients_{clientId}_reset-secret
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client secret reset successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Client not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Reset Client Secret
       tags:
       - Admin
@@ -137,10 +193,20 @@ paths:
     get:
       description: Get the assigned scopes for an OAuth2 client.
       operationId: get_api_admin_clients_{clientId}_scopes
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client scopes retrieved
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Get Client Scopes
       tags:
       - Admin
@@ -148,10 +214,22 @@ paths:
     put:
       description: Update the assigned scopes for an OAuth2 client.
       operationId: put_api_admin_clients_{clientId}_scopes
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Client scopes updated successfully
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Update Client Scopes
       tags:
       - Admin
@@ -160,23 +238,43 @@ paths:
     get:
       description: Get a paginated list of system audit logs.
       operationId: get_api_admin_logs
-      responses: null
+      responses:
+        '200':
+          description: Audit logs list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List Audit Logs
       tags:
       - Admin
       - Logs
   /api/admin/oidc/keys:
+    get:
+      description: Get information about OIDC signing keys.
+      operationId: get_api_admin_oidc_keys
+      responses:
+        '200':
+          description: OIDC signing key information
+        '401':
+          description: Unauthorized
+      security:
+      - bearerAuth: []
+      summary: Get OIDC Keys Info
+      tags:
+      - Admin
+      - OIDC
   /api/admin/tokens:
     get:
       description: Get a list of active OAuth2 tokens.
       operationId: get_api_admin_tokens
-      responses: null
+      responses:
+        '200':
+          description: Tokens list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List Tokens
       tags:
       - Admin
@@ -185,10 +283,15 @@ paths:
     post:
       description: Revoke all tokens issued to a specific client.
       operationId: post_api_admin_tokens_revoke-by-client
-      responses: null
+      responses:
+        '200':
+          description: Tokens revoked successfully
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Revoke Tokens By Client
       tags:
       - Admin
@@ -197,10 +300,15 @@ paths:
     post:
       description: Revoke all tokens issued for a specific user.
       operationId: post_api_admin_tokens_revoke-by-user
-      responses: null
+      responses:
+        '200':
+          description: Tokens revoked successfully
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Revoke Tokens By User
       tags:
       - Admin
@@ -209,10 +317,22 @@ paths:
     delete:
       description: Revoke a specific token by its prefix.
       operationId: delete_api_admin_tokens_{tokenPrefix}
-      responses: null
+      parameters:
+      - description: Token prefix
+        in: path
+        name: tokenPrefix
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Token revoked successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Token not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Revoke Token
       tags:
       - Admin
@@ -221,10 +341,13 @@ paths:
     get:
       description: Get a paginated list of users.
       operationId: get_api_admin_users
-      responses: null
+      responses:
+        '200':
+          description: Users list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List Users
       tags:
       - Admin
@@ -233,10 +356,22 @@ paths:
     put:
       description: Disable a specific user account.
       operationId: put_api_admin_users_{userId}_disable
-      responses: null
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: User disabled successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Disable User
       tags:
       - Admin
@@ -773,20 +908,30 @@ paths:
     delete:
       description: Soft-delete the current user's account.
       operationId: delete_api_me
-      responses: null
+      responses:
+        '200':
+          description: Account deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Delete Account
       tags:
       - User Profile
     get:
       description: Get current user's profile information.
       operationId: get_api_me
-      responses: null
+      responses:
+        '200':
+          description: User profile
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Get User Profile
       tags:
       - User Profile
@@ -794,10 +939,13 @@ paths:
     get:
       description: List OAuth2 clients authorized by the current user.
       operationId: get_api_me_authorized-apps
-      responses: null
+      responses:
+        '200':
+          description: Authorized apps list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List Authorized Apps
       tags:
       - User Profile
@@ -805,10 +953,22 @@ paths:
     delete:
       description: Revoke the current user's authorization for a specific OAuth2 client.
       operationId: delete_api_me_authorized-apps_{clientId}
-      responses: null
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Authorization revoked successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Revoke App Authorization
       tags:
       - User Profile
@@ -816,10 +976,17 @@ paths:
     put:
       description: Change the current user's password.
       operationId: put_api_me_password
-      responses: null
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized or current password incorrect
+        '404':
+          description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Change Password
       tags:
       - User Profile
@@ -827,20 +994,30 @@ paths:
     get:
       description: List all organizations.
       operationId: get_api_orgs
-      responses: null
+      responses:
+        '200':
+          description: Organizations list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List Organizations
       tags:
       - Organization
     post:
       description: Create a new organization.
       operationId: post_api_orgs
-      responses: null
+      responses:
+        '201':
+          description: Organization created
+        '400':
+          description: Invalid request body
+        '401':
+          description: Unauthorized
+        '409':
+          description: Organization slug already exists
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Create Organization
       tags:
       - Organization
@@ -848,10 +1025,20 @@ paths:
     post:
       description: Add a user to an organization.
       operationId: post_api_orgs_{orgId}_users
-      responses: null
+      parameters:
+      - description: Organization ID
+        in: path
+        name: orgId
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: User added to organization
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Add User to Organization
       tags:
       - Organization
@@ -859,7 +1046,11 @@ paths:
     post:
       description: Confirm a password reset using the token sent via email.
       operationId: post_api_password-reset_confirm
-      responses: null
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid or expired token
       summary: Confirm Password Reset
       tags:
       - User Verification
@@ -867,7 +1058,11 @@ paths:
     post:
       description: Request a password reset link to be sent via email.
       operationId: post_api_password-reset_request
-      responses: null
+      responses:
+        '200':
+          description: Reset link sent if the email exists
+        '400':
+          description: Invalid request
       summary: Request Password Reset
       tags:
       - User Verification
@@ -912,7 +1107,11 @@ paths:
     get:
       description: Verify an email address using a token.
       operationId: get_api_verify-email
-      responses: null
+      responses:
+        '200':
+          description: Email verified successfully
+        '400':
+          description: Invalid or expired token
       summary: Verify Email
       tags:
       - User Verification
@@ -920,7 +1119,15 @@ paths:
     post:
       description: Resend the email verification link.
       operationId: post_api_verify-email_resend
-      responses: null
+      responses:
+        '200':
+          description: Verification email sent
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
       summary: Resend Verification Email
       tags:
       - User Verification
@@ -1071,7 +1278,9 @@ paths:
     get:
       description: Display device verification page.
       operationId: get_oauth2_device_verify
-      responses: null
+      responses:
+        '200':
+          description: Device verification page
       summary: Verify Device (GET)
       tags:
       - OAuth2
@@ -1079,7 +1288,9 @@ paths:
     post:
       description: Submit device verification code.
       operationId: post_oauth2_device_verify
-      responses: null
+      responses:
+        '200':
+          description: Device verification submitted
       summary: Verify Device (POST)
       tags:
       - OAuth2
@@ -1088,10 +1299,15 @@ paths:
     post:
       description: Request device authorization.
       operationId: post_oauth2_device_authorization
-      responses: null
+      responses:
+        '200':
+          description: Device authorization response
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Device Authorization
       tags:
       - OAuth2
@@ -1125,8 +1341,7 @@ paths:
         '401':
           description: Authentication failed
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Introspect token
       tags:
       - OAuth2
@@ -1197,10 +1412,13 @@ paths:
     post:
       description: Disable MFA for the authenticated user.
       operationId: post_oauth2_mfa_disable
-      responses: null
+      responses:
+        '200':
+          description: MFA disabled successfully
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Disable MFA
       tags:
       - MFA
@@ -1208,10 +1426,13 @@ paths:
     post:
       description: Initiate MFA setup by generating a TOTP secret.
       operationId: post_oauth2_mfa_setup
-      responses: null
+      responses:
+        '200':
+          description: MFA setup initiated
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Setup MFA
       tags:
       - MFA
@@ -1219,10 +1440,15 @@ paths:
     post:
       description: Verify a TOTP code to finalize MFA setup.
       operationId: post_oauth2_mfa_setup_verify
-      responses: null
+      responses:
+        '200':
+          description: MFA enabled successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized or invalid code
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Verify MFA Setup
       tags:
       - MFA
@@ -1230,7 +1456,13 @@ paths:
     post:
       description: Verify MFA code during login.
       operationId: post_oauth2_mfa_verify
-      responses: null
+      responses:
+        '200':
+          description: MFA verification successful
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid MFA code
       summary: Verify MFA Code (Login)
       tags:
       - MFA
@@ -1238,10 +1470,15 @@ paths:
     post:
       description: Dynamic client registration.
       operationId: post_oauth2_register
-      responses: null
+      responses:
+        '201':
+          description: Client registered successfully
+        '400':
+          description: Invalid client metadata
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Register Client
       tags:
       - OAuth2
@@ -1270,8 +1507,7 @@ paths:
         '401':
           description: Authentication failed
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Revoke token
       tags:
       - OAuth2
@@ -1375,8 +1611,7 @@ paths:
                 error: User not found
           description: User not found
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: Get user information
       tags:
       - OAuth2
@@ -1385,10 +1620,13 @@ paths:
     get:
       description: List registered WebAuthn credentials.
       operationId: get_oauth2_webauthn_credentials
-      responses: null
+      responses:
+        '200':
+          description: WebAuthn credentials list
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: List WebAuthn Credentials
       tags:
       - WebAuthn
@@ -1396,7 +1634,9 @@ paths:
     post:
       description: Start WebAuthn login.
       operationId: post_oauth2_webauthn_login_begin
-      responses: null
+      responses:
+        '200':
+          description: WebAuthn login options
       summary: WebAuthn Login Begin
       tags:
       - WebAuthn
@@ -1404,7 +1644,13 @@ paths:
     post:
       description: Finish WebAuthn login.
       operationId: post_oauth2_webauthn_login_finish
-      responses: null
+      responses:
+        '200':
+          description: WebAuthn login successful
+        '400':
+          description: Invalid request
+        '401':
+          description: Credential not found
       summary: WebAuthn Login Finish
       tags:
       - WebAuthn
@@ -1412,10 +1658,13 @@ paths:
     post:
       description: Start WebAuthn registration.
       operationId: post_oauth2_webauthn_register_begin
-      responses: null
+      responses:
+        '200':
+          description: WebAuthn registration options
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: WebAuthn Register Begin
       tags:
       - WebAuthn
@@ -1423,10 +1672,15 @@ paths:
     post:
       description: Finish WebAuthn registration.
       operationId: post_oauth2_webauthn_register_finish
-      responses: null
+      responses:
+        '201':
+          description: Passkey registered successfully
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
       security:
-        bearerAuth:
-        - bearerAuth
+      - bearerAuth: []
       summary: WebAuthn Register Finish
       tags:
       - WebAuthn
