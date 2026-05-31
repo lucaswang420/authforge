@@ -37,14 +37,23 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
         return identityService_;
     }
 
-    std::shared_ptr<oauth2::JwkManager> getJwkManager() const
+    // Defect 1.5 fix (immutable publish): the JwkManager is published as a
+    // std::shared_ptr<const JwkManager>. It is built and init()'d exactly once
+    // during initAndStart() (before requests are served); thereafter it is
+    // read-only, and the const pointer enforces that at the type level for
+    // every holder (this plugin, TokenService, the JWKS controller).
+    std::shared_ptr<const oauth2::JwkManager> getJwkManager() const
     {
         return jwkManager_;
     }
 
-    oauth2::IOAuth2Storage *getStorage() const
+    // Returns shared ownership of the storage (defect 1.3 / 1.11 fix). Both
+    // overloads return std::shared_ptr<IOAuth2Storage> so callers (e.g. the
+    // controller async chains) can capture it and keep the storage alive across
+    // async hops instead of holding a raw pointer whose lifetime is implicit.
+    std::shared_ptr<oauth2::IOAuth2Storage> getStorage() const
     {
-        return storage_.get();
+        return storage_;
     }
 
     // ========== Async API with Callbacks ==========
@@ -267,9 +276,9 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     );
 
     // ========== Storage Access ==========
-    oauth2::IOAuth2Storage *getStorage()
+    std::shared_ptr<oauth2::IOAuth2Storage> getStorage()
     {
-        return storage_.get();
+        return storage_;
     }
 
     const std::string &getStorageType() const
@@ -278,12 +287,12 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     }
 
   private:
-    std::unique_ptr<oauth2::IOAuth2Storage> storage_;
+    std::shared_ptr<oauth2::IOAuth2Storage> storage_;
     std::shared_ptr<oauth2::OAuth2CleanupService> cleanupService_;
     std::shared_ptr<oauth2::TokenService> tokenService_;
     std::shared_ptr<oauth2::ClientService> clientService_;
     std::shared_ptr<oauth2::IdentityService> identityService_;
-    std::shared_ptr<oauth2::JwkManager> jwkManager_;
+    std::shared_ptr<const oauth2::JwkManager> jwkManager_;
 
     std::string storageType_;
 

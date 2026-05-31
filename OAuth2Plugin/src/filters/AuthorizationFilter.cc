@@ -13,8 +13,25 @@ AuthorizationFilter::AuthorizationFilter()
 
 void AuthorizationFilter::loadConfig()
 {
-    if (initialized_)
-        return;
+    // Defect 1.4 fix: thread-safe, exactly-once initialization. std::call_once
+    // provides its own efficient fast path, so the previous non-atomic
+    // `if (initialized_) return;` check-then-act fast path is removed entirely
+    // (that read raced with the writes inside the init body).
+    std::call_once(initFlag_, [this] { loadRulesSafely(); });
+}
+
+void AuthorizationFilter::loadRulesSafely()
+{
+    // Strong exception guarantee: build the complete result in LOCAL vectors,
+    // then commit by swapping into the members only after everything succeeded.
+    // std::regex(pattern) may throw std::regex_error and push_back may throw; if
+    // we mutated rules_/publicPaths_ directly and threw mid-build, std::call_once
+    // would (correctly) NOT consume the flag, leaving the members partially
+    // filled and causing duplicate appends on the next retry. Building locally
+    // and swapping avoids both partial fill and duplicate-append.
+    std::vector<RbacRule> localRules;
+    std::vector<std::regex> localPublic;
+
     auto config = app().getCustomConfig();
     if (config.isMember("rbac_rules") && config["rbac_rules"].isObject())
     {
@@ -33,7 +50,7 @@ void AuthorizationFilter::loadConfig()
                     rule.allowedRoles.push_back(role.asString());
                 }
             }
-            rules_.push_back(rule);
+            localRules.push_back(rule);
             LOG_DEBUG << "RBAC Rule Loaded: " << pattern << " -> " << rule.allowedRoles.size()
                       << " roles";
         }
@@ -43,11 +60,15 @@ void AuthorizationFilter::loadConfig()
     {
         for (const auto &path : config["public_paths"])
         {
-            publicPaths_.push_back(std::regex(path.asString()));
+            localPublic.push_back(std::regex(path.asString()));
             LOG_DEBUG << "Public path loaded: " << path.asString();
         }
     }
-    initialized_ = true;
+
+    // Commit atomically (w.r.t. exceptions): only reached when the full build
+    // succeeded, so the members are never left in a partially-filled state.
+    rules_.swap(localRules);
+    publicPaths_.swap(localPublic);
 }
 
 void AuthorizationFilter::doFilter(

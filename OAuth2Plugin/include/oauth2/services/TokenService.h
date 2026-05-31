@@ -11,19 +11,40 @@ namespace oauth2
 
 class JwkManager;  // Forward declaration
 
-class TokenService
+// Defect 1.9 fix (async-chain dangling `this`): TokenService inherits
+// std::enable_shared_from_this so its asynchronous storage chains
+// (exchangeCodeForToken / refreshAccessToken) can capture `auto self =
+// shared_from_this();` at the outermost async call and thread that same `self`
+// through every nested continuation, keeping the service alive until the
+// in-flight callback completes (no use-after-free on teardown). The service is
+// always created via std::make_shared (OAuth2Plugin::initAndStart), so
+// shared_from_this() is valid at runtime. The synchronous pure-function call
+// sites (validatePkceCodeVerifier / generateSha256Hash via a stack-constructed
+// TokenService(nullptr) temporary) never call shared_from_this(), so they keep
+// working without shared ownership.
+class TokenService : public std::enable_shared_from_this<TokenService>
 {
   public:
+    // Shared ownership of the storage (defect 1.3 fix): the service holds a
+    // std::shared_ptr<IOAuth2Storage> instead of a raw IOAuth2Storage*, so the
+    // storage lifetime is guaranteed to cover every user. A null shared_ptr is
+    // accepted for the pure-function call sites (e.g.
+    // OAuth2Plugin::validatePkceCodeVerifier via TokenService(nullptr)).
     explicit TokenService(
-      IOAuth2Storage *storage,
+      std::shared_ptr<IOAuth2Storage> storage,
       int64_t authCodeTtl = 600,
       int64_t accessTokenTtl = 3600,
       int64_t refreshTokenTtl = 2592000
     );
 
-    void setJwkManager(std::shared_ptr<JwkManager> jwkManager)
+    // Defect 1.5 fix (immutable publish): the JwkManager is published as a
+    // std::shared_ptr<const JwkManager>. OAuth2Plugin constructs it, calls
+    // init() exactly once during startup, then hands it here as a const
+    // pointer — so this service can only READ it (signJwt/getJwks/getKeyId,
+    // all const), and the type system forbids any run-time mutation.
+    void setJwkManager(std::shared_ptr<const JwkManager> jwkManager)
     {
-        jwkManager_ = jwkManager;
+        jwkManager_ = std::move(jwkManager);
     }
 
     /**
@@ -95,11 +116,11 @@ class TokenService
     std::string generateSha256Hash(const std::string &input);
 
   private:
-    IOAuth2Storage *storage_;
+    std::shared_ptr<IOAuth2Storage> storage_;
     int64_t authCodeTtl_;
     int64_t accessTokenTtl_;
     int64_t refreshTokenTtl_;
-    std::shared_ptr<JwkManager> jwkManager_;
+    std::shared_ptr<const JwkManager> jwkManager_;
 };
 
 }  // namespace oauth2

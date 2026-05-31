@@ -13,6 +13,14 @@ using namespace drogon;
 void OAuth2Plugin::initAndStart(const Json::Value &config)
 {
     LOG_INFO << "OAuth2Plugin loading...";
+
+    // Explicitly register OpenApi docs during startup (replaces the former
+    // file-scope global object whose constructor side-effect registered these
+    // docs at static-init time -> cross-TU SIOF, defect 1.1). initApiDocs() is
+    // idempotent (call_once guarded), so registration is order-independent and
+    // happens exactly once regardless of how many call sites invoke it.
+    oauth2::controllers::OAuth2StandardController::initApiDocs();
+
     initStorage(config);
 
     // Load TTL Config
@@ -24,29 +32,43 @@ void OAuth2Plugin::initAndStart(const Json::Value &config)
         refreshTokenTtl_ = tokens.get("refresh_token_ttl", 2592000).asInt64();
     }
 
-    // Initialize JWK Manager for OIDC id_token signing
-    jwkManager_ = std::make_shared<oauth2::JwkManager>();
+    // Initialize JWK Manager for OIDC id_token signing.
+    // Defect 1.5 fix (init-once-then-read-only + immutable publish): build a
+    // mutable JwkManager locally, run init() exactly once HERE — during
+    // initAndStart(), before the server accepts requests / posts tasks to the
+    // event loop — then publish it as a std::shared_ptr<const JwkManager>. The
+    // const pointer makes the key state immutable at the type level for every
+    // downstream holder (jwkManager_, tokenService_, the JWKS controller), so
+    // run-time reads (signJwt/getJwks) cannot race any write. The "init before
+    // request acceptance" ordering provides the happens-before edge (see
+    // JwkManager.h); no per-read lock is needed.
+    auto jwkManager = std::make_shared<oauth2::JwkManager>();
     if (config.isMember("oidc"))
     {
-        jwkManager_->init(config["oidc"]);
+        jwkManager->init(config["oidc"]);
     }
     else
     {
         // Initialize with empty config (will generate ephemeral key)
         Json::Value emptyConfig;
-        jwkManager_->init(emptyConfig);
+        jwkManager->init(emptyConfig);
     }
+    // Publish as shared_ptr<const JwkManager>: read-only from here on.
+    jwkManager_ = jwkManager;
 
     // Initialize Services
+    // Defect 1.3 fix: services now share ownership of storage_ (shared_ptr),
+    // so the storage lifetime is guaranteed to cover every service instead of
+    // relying on the implicit "storage_ outlives services" timing convention.
     tokenService_ = std::make_shared<oauth2::TokenService>(
-      storage_.get(), authCodeTtl_, accessTokenTtl_, refreshTokenTtl_
+      storage_, authCodeTtl_, accessTokenTtl_, refreshTokenTtl_
     );
     tokenService_->setJwkManager(jwkManager_);
-    clientService_ = std::make_shared<oauth2::ClientService>(storage_.get());
-    identityService_ = std::make_shared<oauth2::IdentityService>(storage_.get());
+    clientService_ = std::make_shared<oauth2::ClientService>(storage_);
+    identityService_ = std::make_shared<oauth2::IdentityService>(storage_);
 
     // Initialize Cleanup Service
-    cleanupService_ = std::make_shared<oauth2::OAuth2CleanupService>(storage_.get());
+    cleanupService_ = std::make_shared<oauth2::OAuth2CleanupService>(storage_);
     double cleanupInterval = config.get("cleanup_interval_seconds", 3600.0).asDouble();
     cleanupService_->start(cleanupInterval);
 
@@ -59,32 +81,47 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
 
     if (storageType_ == "postgres")
     {
-        auto s = std::make_unique<oauth2::PostgresOAuth2Storage>();
-        s->initFromConfig(config["postgres"]);
+        // Option B (defect 1.8 nested ownership): create the inner Postgres via
+        // std::make_shared from the CONCRETE type so its control block is bound
+        // to PostgresOAuth2Storage. This arms enable_shared_from_this on the
+        // inner storage so its own shared_from_this() is valid in BOTH roles:
+        //   * wrapped as CachedOAuth2Storage::impl_ (shared_ptr), and
+        //   * direct (the no-cache fallback below).
+        auto pg = std::make_shared<oauth2::PostgresOAuth2Storage>();
+        pg->initFromConfig(config["postgres"]);
         try
         {
             auto redis = drogon::app().getRedisClient("default");
-            std::unique_ptr<oauth2::IOAuth2Storage> baseStorage = std::move(s);
-            storage_ = std::unique_ptr<oauth2::IOAuth2Storage>(
-              new oauth2::CachedOAuth2Storage(std::move(baseStorage), redis)
-            );
+            // The OUTER storage_ is created via make_shared<CachedOAuth2Storage>
+            // so the shared_ptr control block binds the CONCRETE type
+            // (CachedOAuth2Storage), arming its enable_shared_from_this. The
+            // inner Postgres (pg) is handed in as a shared_ptr<IOAuth2Storage>
+            // impl_, keeping its own armed control block (Option B). Do NOT move
+            // a unique_ptr<IOAuth2Storage> into the shared_ptr — that binds the
+            // control block to the base class and makes shared_from_this() throw
+            // bad_weak_ptr.
+            storage_ = std::make_shared<oauth2::CachedOAuth2Storage>(pg, redis);
             LOG_INFO << "Using PostgreSQL storage backend with L2 Redis Cache";
         }
         catch (...)
         {
             LOG_ERROR << "Failed to init Cache. Fallback to Postgres without cache.";
-            auto s2 = std::make_unique<oauth2::PostgresOAuth2Storage>();
-            s2->initFromConfig(config["postgres"]);
-            storage_ = std::move(s2);
+            // Direct (un-wrapped) Postgres: reuse the same make_shared'd concrete
+            // instance, so its control block (and shared_from_this) stay valid.
+            storage_ = pg;
         }
     }
     else if (storageType_ == "redis")
     {
-        storage_ = oauth2::createRedisStorage(config["redis"]);
+        // Direct Redis: create via make_shared from the concrete type so the
+        // control block binds RedisOAuth2Storage (arms shared_from_this in 8.1).
+        std::string clientName = config["redis"].get("client_name", "default").asString();
+        storage_ = std::make_shared<oauth2::RedisOAuth2Storage>(clientName);
     }
     else
     {
-        auto s = std::make_unique<oauth2::MemoryOAuth2Storage>();
+        // Direct Memory: create via make_shared from the concrete type.
+        auto s = std::make_shared<oauth2::MemoryOAuth2Storage>();
         if (config.isMember("clients"))
             s->initFromConfig(config["clients"], config["admin_users"]);
         storage_ = std::move(s);
@@ -93,8 +130,34 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
 
 void OAuth2Plugin::shutdown()
 {
+    // Explicit destruction order (defect 1.3 fix): stop the cleanup timer
+    // first so no new cleanup callback is dispatched, then release the service
+    // objects, and finally drop our reference to the storage. Because the
+    // services now share ownership of storage_ (shared_ptr), releasing them
+    // before resetting storage_ guarantees the storage outlives every service.
+    // Any in-flight async callback that captured a service / storage shared_ptr
+    // (added in tasks 8.x) keeps the relevant object alive until it completes,
+    // so the storage is destroyed only after the last user is gone.
+    //
+    // Defect 1.8 (self-capture interaction): the storage classes
+    // (CachedOAuth2Storage / RedisOAuth2Storage / PostgresOAuth2Storage) now
+    // capture `auto self = shared_from_this();` in their async continuations.
+    // As a result, when storage_.reset() runs here it may only drop OUR
+    // reference; if a Redis/DB callback is still in flight, the last reference
+    // is held by that continuation and ~CachedOAuth2Storage (and the inner
+    // storage) will run on the redis/DB client's loop thread once the callback
+    // completes — not on this shutdown thread. The shared-ownership guarantee
+    // makes that deferred destruction safe (no member is touched through a
+    // dangling `this`). We intentionally do not add extra synchronization here:
+    // the strong `self` reference is the lifetime contract.
     if (cleanupService_)
         cleanupService_->stop();
+
+    cleanupService_.reset();
+    tokenService_.reset();
+    clientService_.reset();
+    identityService_.reset();
+
     storage_.reset();
 }
 

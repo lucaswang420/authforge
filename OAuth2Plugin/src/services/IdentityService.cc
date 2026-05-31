@@ -5,7 +5,8 @@
 namespace oauth2
 {
 
-IdentityService::IdentityService(IOAuth2Storage *storage) : storage_(storage)
+IdentityService::IdentityService(std::shared_ptr<IOAuth2Storage> storage)
+    : storage_(std::move(storage))
 {
 }
 
@@ -37,10 +38,18 @@ void IdentityService::ensureSubjectMapping(
 
     auto [provider, sub] = utils::SubjectGenerator::parse(subject);
 
+    // Defect 1.9 fix: capture `self` (shared owner) at the OUTERMOST async call
+    // and thread the SAME `self` through the nested continuation, so the
+    // service stays alive until the in-flight callback completes. `this` is
+    // kept for unchanged member access (`storage_`); `self` guarantees `this`
+    // never dangles.
+    auto self = shared_from_this();
     storage_->getInternalUserId(
       sub,
       provider,
-      [this, sub, provider, internalUserId, callback = std::move(callback)](auto existingUserId) {
+      [self, this, sub, provider, internalUserId, callback = std::move(callback)](
+        auto existingUserId
+      ) {
           if (existingUserId)
           {
               callback();
@@ -71,10 +80,17 @@ void IdentityService::handleFirstTimeLogin(
     auto [prov, sub] = utils::SubjectGenerator::parse(subject);
 
     // Create a real user in the database via storage interface
+    //
+    // Defect 1.9 fix: capture `self` (shared owner) at the OUTERMOST async call
+    // and thread the SAME `self` through the nested continuation, so the
+    // service stays alive until the in-flight callback completes. `this` is
+    // kept for unchanged member access (`storage_`); `self` guarantees `this`
+    // never dangles.
+    auto self = shared_from_this();
     storage_->createUserForExternalLogin(
       sub,
       prov,
-      [this, sub, prov, callback = std::move(callback)](std::optional<int32_t> newUserId) {
+      [self, this, sub, prov, callback = std::move(callback)](std::optional<int32_t> newUserId) {
           if (!newUserId || *newUserId == 0)
           {
               LOG_ERROR << "Failed to create user for external login: " << prov << ":" << sub;

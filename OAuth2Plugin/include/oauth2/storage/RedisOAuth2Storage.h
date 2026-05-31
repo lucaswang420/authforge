@@ -2,11 +2,22 @@
 
 #include <oauth2/storage/IOAuth2Storage.h>
 #include <drogon/drogon.h>
+#include <memory>
 
 namespace oauth2
 {
 
-class RedisOAuth2Storage : public IOAuth2Storage
+/**
+ * @brief Direct Redis IOAuth2Storage implementation.
+ *
+ * Defect 1.8 lifetime safety: inherits std::enable_shared_from_this so async
+ * continuations (revokeAccessToken, atomicRevokeRefreshToken) can capture
+ * `auto self = shared_from_this();` and keep this object alive until the
+ * in-flight callback completes. In redis mode this is the direct (un-wrapped)
+ * storage owned by a make_shared'd shared_ptr, so shared_from_this() is valid.
+ */
+class RedisOAuth2Storage : public IOAuth2Storage,
+                           public std::enable_shared_from_this<RedisOAuth2Storage>
 {
   public:
     RedisOAuth2Storage(const std::string &redisClientName = "default")

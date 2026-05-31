@@ -11,6 +11,7 @@
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
 #include <functional>
+#include <mutex>
 #include <sstream>
 
 using namespace oauth2;
@@ -30,22 +31,26 @@ drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
     }
     return drogon::k400BadRequest;  // 400
 }
-
-struct OAuth2StandardControllerDocs
-{
-    OAuth2StandardControllerDocs()
-    {
-        OAuth2StandardController::initApiDocs();
-    }
-};
-
-OAuth2StandardControllerDocs docs_;
 }  // namespace
 
 namespace oauth2::controllers
 {
 
 void OAuth2StandardController::initApiDocs()
+{
+    // Explicit, order-independent registration (replaces the former file-scope
+    // global object whose constructor side-effect registered these docs at
+    // static-init time -> cross-TU SIOF, defect 1.1). Callers invoke this during
+    // startup (plugin initAndStart / server bootstrap). A function-local
+    // call_once flag makes registration happen exactly once even if invoked from
+    // several call sites, so endpoints are never registered twice.
+    static std::once_flag docsOnce;
+    std::call_once(docsOnce, [] {
+        initApiDocsImpl();
+    });
+}
+
+void OAuth2StandardController::initApiDocsImpl()
 {
     // Token endpoint
     {
@@ -1233,10 +1238,15 @@ void OAuth2StandardController::token(
               }
 
               // Verify client is CONFIDENTIAL (PUBLIC clients cannot use client_credentials)
+              // Capture the storage shared_ptr into the getClient continuation so the storage
+              // is guaranteed alive across this async hop (instead of re-fetching it inside the
+              // continuation, which could dangle if the plugin/storage were torn down mid-flight).
               auto storage = plugin->getStorage();
               storage->getClient(
                 clientId,
-                [plugin, clientId, req, sharedCb](std::optional<oauth2::OAuth2Client> client) {
+                [storage, clientId, req, sharedCb](
+                  std::optional<oauth2::OAuth2Client> client
+                ) {
                     if (!client)
                     {
                         Json::Value error;
@@ -1277,18 +1287,24 @@ void OAuth2StandardController::token(
                     token.scope = grantedScope;
                     token.expiresAt = now + 3600;
 
-                    auto storage2 = plugin->getStorage();
-                    storage2->saveAccessToken(token, [sharedCb, tokenStr, grantedScope]() {
-                        Json::Value json;
-                        json["access_token"] = tokenStr;
-                        json["token_type"] = "Bearer";
-                        json["expires_in"] = 3600;
-                        json["scope"] = grantedScope;
-                        // No refresh_token for client_credentials
-                        auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
-                        observability::Metrics::incRequest("token", 200);
-                        (*sharedCb)(resp);
-                    });
+                    // Reuse the storage shared_ptr captured from the outer scope (kept alive
+                    // across this async hop) instead of re-fetching plugin->getStorage().
+                    // Capture it into the saveAccessToken callback as well so the storage
+                    // outlives the in-flight save operation.
+                    storage->saveAccessToken(
+                      token,
+                      [storage, sharedCb, tokenStr, grantedScope]() {
+                          Json::Value json;
+                          json["access_token"] = tokenStr;
+                          json["token_type"] = "Bearer";
+                          json["expires_in"] = 3600;
+                          json["scope"] = grantedScope;
+                          // No refresh_token for client_credentials
+                          auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
+                          observability::Metrics::incRequest("token", 200);
+                          (*sharedCb)(resp);
+                      }
+                    );
                 }
               );
           });
@@ -1423,7 +1439,7 @@ void OAuth2StandardController::token(
                   return;
               }
 
-              // Status is "approved" éˆ?issue tokens
+              // Status is "approved" ï¿½?issue tokens
               auto accessTokenStr = oauth2::utils::generateSecureToken();
               auto refreshTokenStr = oauth2::utils::generateSecureToken();
               std::string familyId = oauth2::utils::generateSecureToken(16);
@@ -1445,11 +1461,13 @@ void OAuth2StandardController::token(
               refreshToken.expiresAt = now + (3600 * 24 * 30);
               refreshToken.familyId = familyId;
 
+              // Capture the storage shared_ptr into the saveTokenPair callback so the storage
+              // is guaranteed alive across this async hop.
               auto storage = plugin->getStorage();
               storage->saveTokenPair(
                 accessToken,
                 refreshToken,
-                [sharedCb, accessTokenStr, refreshTokenStr, scope, deviceCodeHash]() {
+                [storage, sharedCb, accessTokenStr, refreshTokenStr, scope, deviceCodeHash]() {
                     // Mark device code as consumed by deleting it
                     auto dbClient = drogon::app().getDbClient();
                     if (dbClient)
@@ -1544,9 +1562,12 @@ void OAuth2StandardController::userInfo(
         auto plugin = drogon::app().getPlugin<::OAuth2Plugin>();
         auto storage = plugin->getStorage();
 
-        // Query user details from database
-        storage
-          ->getUserInfo(userId, [userId, roles, callback](std::optional<Json::Value> dbUserInfo) {
+        // Query user details from database.
+        // Capture the storage shared_ptr into the getUserInfo callback so the storage
+        // is guaranteed alive across this async hop.
+        storage->getUserInfo(
+          userId,
+          [storage, userId, roles, callback](std::optional<Json::Value> dbUserInfo) {
               Json::Value userInfo;
               userInfo["sub"] = userId;
 

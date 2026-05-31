@@ -88,6 +88,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon OpenSSL::Crypto)
 
 # Platform compatibility (shared module)
 oauth2_apply_compat(${PROJECT_NAME})
+
+# Optional TSan/ASan instrumentation (shared module).
+# Controlled by the cache option OAUTH2_SANITIZER = off|thread|address.
+# GCC/Clang + Debug only; TSan and ASan are mutually exclusive (two builds).
+# The test executable compiles all plugin/server sources directly into itself,
+# so instrumenting this single target covers all code exercised by the suite.
+oauth2_apply_sanitizer(${PROJECT_NAME})
+
 if(MSVC)
     target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 elseif(APPLE)

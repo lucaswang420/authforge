@@ -275,6 +275,14 @@ int main()
     // Initialize API documentation
     LOG_INFO << "Initializing API documentation...";
 
+    // Explicitly register the OAuth2 standard controller's OpenApi docs before
+    // generating the spec. Previously these were registered via a file-scope
+    // global object's constructor at static-init time (cross-TU SIOF, defect
+    // 1.1); registration is now an explicit, order-independent startup step.
+    // initApiDocs() is idempotent (call_once), so this is safe even though the
+    // plugin also invokes it during initAndStart().
+    oauth2::controllers::OAuth2StandardController::initApiDocs();
+
     // Configure OpenAPI server from config
     const auto &listeners = drogon::app().getListeners();
     const auto &customConfig = drogon::app().getCustomConfig();

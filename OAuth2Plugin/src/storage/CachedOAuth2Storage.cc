@@ -17,7 +17,7 @@ namespace oauth2
 {
 
 CachedOAuth2Storage::CachedOAuth2Storage(
-  std::unique_ptr<IOAuth2Storage> impl,
+  std::shared_ptr<IOAuth2Storage> impl,
   drogon::nosql::RedisClientPtr redisClient
 )
     : impl_(std::move(impl)),
@@ -38,7 +38,10 @@ void CachedOAuth2Storage::getClient(const std::string &clientId, ClientCallback 
 
     impl_->getClient(
       clientId,
-      [this, clientId, cb = std::move(cb)](const std::optional<OAuth2Client> &client) mutable {
+      [self = shared_from_this(),
+       this,
+       clientId,
+       cb = std::move(cb)](const std::optional<OAuth2Client> &client) mutable {
           if (client)
           {
               clientCache_.insert(clientId, *client, 60);  // Cache for 60 seconds
@@ -96,7 +99,7 @@ void CachedOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCa
     }
 
     // Write to DB first
-    impl_->saveAccessToken(token, [this, token, cb = std::move(cb), ttl]() mutable {
+    impl_->saveAccessToken(token, [self = shared_from_this(), this, token, cb = std::move(cb), ttl]() mutable {
         if (!redisClient_ || ttl <= 0)
         {
             if (cb)
@@ -147,7 +150,8 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
     {
         impl_->getAccessToken(
           token,
-          [this,
+          [self = shared_from_this(),
+           this,
            token,
            cb = std::move(cb)](const std::optional<OAuth2AccessToken> &optToken) mutable {
               if (optToken)
@@ -170,12 +174,12 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
     auto sharedCb = std::make_shared<AccessTokenCallback>(std::move(cb));
 
     redisClient_->execCommandAsync(
-      [this, token, sharedCb](const drogon::nosql::RedisResult &r) {
+      [self = shared_from_this(), this, token, sharedCb](const drogon::nosql::RedisResult &r) {
           if (r.type() == drogon::nosql::RedisResultType::kNil)
           {
               // L2 Cache Miss -> Load from DB
               impl_->getAccessToken(
-                token, [this, token, sharedCb](const std::optional<OAuth2AccessToken> &optToken) {
+                token, [self, this, token, sharedCb](const std::optional<OAuth2AccessToken> &optToken) {
                     if (optToken)
                     {
                         auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -249,7 +253,7 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
               impl_->getAccessToken(token, [sharedCb](auto val) { (*sharedCb)(val); });
           }
       },
-      [this, token, sharedCb](const std::exception &e) {
+      [self = shared_from_this(), this, token, sharedCb](const std::exception &e) {
           LOG_ERROR << "Redis Read Error: " << e.what();
           impl_->getAccessToken(token, [sharedCb](auto val) { (*sharedCb)(val); });
       },
@@ -283,7 +287,7 @@ void CachedOAuth2Storage::atomicRevokeRefreshToken(
 
 void CachedOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)
 {
-    impl_->revokeTokenFamily(familyId, [this, familyId, cb = std::move(cb)]() {
+    impl_->revokeTokenFamily(familyId, [self = shared_from_this(), this, familyId, cb = std::move(cb)]() {
         // Evict all cached tokens (conservative approach)
         // In production, could track family->token mappings for precise eviction
         if (cb)
@@ -384,7 +388,10 @@ void CachedOAuth2Storage::saveUserConsent(
 )
 {
     impl_->saveUserConsent(
-      internalUserId, clientId, scope, [this, clientId, cb = std::move(cb)](bool success) {
+      internalUserId,
+      clientId,
+      scope,
+      [self = shared_from_this(), this, clientId, cb = std::move(cb)](bool success) {
           // Evict client from L1 cache after consent change
           clientCache_.erase(clientId);
           if (cb)
@@ -400,8 +407,11 @@ void CachedOAuth2Storage::revokeUserConsent(
   VoidCallback &&cb
 )
 {
-    impl_
-      ->revokeUserConsent(internalUserId, clientId, scope, [this, clientId, cb = std::move(cb)]() {
+    impl_->revokeUserConsent(
+      internalUserId,
+      clientId,
+      scope,
+      [self = shared_from_this(), this, clientId, cb = std::move(cb)]() {
           // Evict client from L1 cache after consent revocation
           clientCache_.erase(clientId);
           if (cb)
@@ -438,7 +448,7 @@ void CachedOAuth2Storage::revokeAccessToken(
 )
 {
     // Revoke in implementation and invalidate cache
-    impl_->revokeAccessToken(token, revokedBy, [this, token, cb = std::move(cb)]() mutable {
+    impl_->revokeAccessToken(token, revokedBy, [self = shared_from_this(), this, token, cb = std::move(cb)]() mutable {
         // Invalidate L1 Cache
         tokenCache_.erase(token);
 

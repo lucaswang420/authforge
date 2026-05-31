@@ -534,7 +534,7 @@ void RedisOAuth2Storage::atomicRevokeRefreshToken(
 {
     // Redis doesn't have native CAS, but we can use HSETNX-like logic
     // For simplicity, get then set (acceptable for Redis single-threaded model)
-    getRefreshToken(token, [this, token, cb = std::move(cb)](auto rt) mutable {
+    getRefreshToken(token, [self = shared_from_this(), this, token, cb = std::move(cb)](auto rt) mutable {
         if (!rt || rt->revoked)
         {
             cb(std::nullopt);
@@ -1083,7 +1083,7 @@ void RedisOAuth2Storage::revokeAccessToken(
 
     std::string key = "oauth2:token:" + token;
     redisClient_->execCommandAsync(
-      [this, cb, key, revokedBy](const RedisResult &result) {
+      [self = shared_from_this(), this, cb, key, revokedBy](const RedisResult &result) {
           if (result.type() == RedisResultType::kNil)
           {
               // Token doesn't exist, but return success per RFC 7009

@@ -4,7 +4,7 @@
 namespace oauth2
 {
 
-ClientService::ClientService(IOAuth2Storage *storage) : storage_(storage)
+ClientService::ClientService(std::shared_ptr<IOAuth2Storage> storage) : storage_(std::move(storage))
 {
 }
 

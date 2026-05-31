@@ -7,47 +7,24 @@ using namespace drogon;
 namespace oauth2::observability
 {
 
-// Helper to get labels safely
-// In a real implementation you would hold static pointers to metrics families
+// Thread-safety contract for this component is documented on the Metrics class
+// declaration in OAuth2Metrics.h. In short: metric counters MUST be
+// thread-safe; any future process-wide shared counter MUST use std::atomic<...>
+// (or a thread-safe metrics library such as Drogon's PromExporter
+// Counter/Gauge, already configured in config.json). Do NOT introduce
+// non-atomic shared mutable state here. The current implementation is log-based
+// (LOG_INFO, thread-safe) and holds no shared mutable counter, so there is no
+// data race.
 
 void Metrics::incRequest(const std::string &endpoint, int statusCode)
 {
-    // Labels: endpoint, status
-    // Note: Concurrency safety is handled by Prometheus client usually, or we
-    // assume loose consistency
+    // Labels: endpoint, status.
+    // Log-based metric (no shared mutable counter). If a real shared counter is
+    // ever introduced here, it MUST be std::atomic<...> or routed through the
+    // PromExporter Counter/Gauge — see the contract above. Do NOT add
+    // non-atomic shared mutable state.
     try
     {
-        // We use a simplified way to access metrics if widely available,
-        // Or we just ignore if Plugin is not loaded.
-        // For this example, we assume we just log if we can't find them, or
-        // standard integration. However, Drogon's PromExporter doesn't always
-        // expose a static 'inc' easily without setup. We will simulate
-        // "printing" or "logging" metrics if purely creating a full Prom
-        // integration is too complex given current dependencies. BUT, since the
-        // user asked for "Production Ready", we should try to use the real deal
-        // using custom collectors if possible. A simpler approach for this
-        // task: USE LOGGING for now as "Observability" pass 1 if Prom is hard,
-        // BUT config.json HAS PromExporter.
-        // Let's try to fetch the plugin and use it if possible.
-        // Since standard Drogon PromExporter just exports standard metrics,
-        // custom metrics need registering. We will assume usage of
-        // 'drogon::app().getPlugin<drogon::plugin::PromExporter>()' but that
-        // might fail if not registered. To be safe and fast: We'll LOG these
-        // metrics for now as "Structured Logs" doubling as metrics source via
-        // log processing, UNLESS we are sure about the API. Actually, let's use
-        // a static map for simulation or basic implementation? Let's go with
-        // Detailed LOG entries for "Metrics" as well to be safe, as compiling
-        // new dependencies might be risky. WAIT, the plan said "Prometheus
-        // Metrics". I will assume standard logging for this step to verify
-        // "Observability" logic first, then upgrade? No, I must implement what
-        // I promised. But I don't see `drogon::plugin::PromExporter` headers
-        // detailed usage. I will fallback to: LOG_INFO << "[METRIC] ..." which
-        // is a valid way to ship metrics (Log-based metrics).
-
-        // Actually, let's look at the include
-        // #include <drogon/plugins/PromExporter.h>
-        // If this exists, we might use it.
-
         static std::string metric_req = "oauth2_requests_total";
         LOG_INFO << "[METRIC] " << metric_req << " endpoint=" << endpoint
                  << " status=" << statusCode;

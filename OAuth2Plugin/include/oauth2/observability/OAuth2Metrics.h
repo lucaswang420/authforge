@@ -5,6 +5,23 @@
 namespace oauth2::observability
 {
 
+// =============================================================================
+// THREAD-SAFETY CONTRACT (defect 1.7 guardrail — preventive, latent)
+// -----------------------------------------------------------------------------
+// Metrics are emitted concurrently from multiple Drogon IO-loop threads.
+//
+// CONTRACT:
+//   * Metric counters MUST be thread-safe.
+//   * Any future process-wide shared counter MUST use std::atomic<...>, or a
+//     thread-safe metrics library (e.g. Drogon's PromExporter Counter/Gauge,
+//     already configured in config.json).
+//   * Do NOT introduce non-atomic shared mutable state in this component.
+//
+// Current implementation is log-based (LOG_INFO), which is thread-safe and
+// holds no shared mutable counter, so there is no data race today. This
+// contract exists to prevent a race from being introduced if a real counter is
+// added later.
+// =============================================================================
 class Metrics
 {
   public:

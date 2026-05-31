@@ -4,7 +4,8 @@
 namespace oauth2
 {
 
-OAuth2CleanupService::OAuth2CleanupService(IOAuth2Storage *storage) : storage_(storage)
+OAuth2CleanupService::OAuth2CleanupService(std::shared_ptr<IOAuth2Storage> storage)
+    : storage_(std::move(storage))
 {
 }
 
@@ -101,8 +102,23 @@ void OAuth2CleanupService::runCleanup()
         if (lockTtl < 60)
             lockTtl = 60;
 
+        // Defect 1.10 fix: the Redis callbacks may fire AFTER this service has
+        // been destroyed (the command is dispatched on the Redis client's loop
+        // and the reply arrives later). Capturing a raw `this` here — while
+        // start()'s runEvery timer already uses weak_from_this() — was an
+        // implementation inconsistency that could dereference a dangling `this`
+        // (use-after-free on this->running_ / this->storage_). Capture a
+        // weak_ptr and lock() at the top of each callback, matching start():
+        // if the service is gone (or no longer running), skip the cleanup
+        // safely. A periodic cleanup is droppable, so weak_ptr (skip-if-gone)
+        // is the correct choice rather than shared_ptr (extend-lifetime).
+        std::weak_ptr<OAuth2CleanupService> weakSelf = weak_from_this();
+
         redis->execCommandAsync(
-          [this](const drogon::nosql::RedisResult &r) {
+          [weakSelf](const drogon::nosql::RedisResult &r) {
+              auto self = weakSelf.lock();
+              if (!self || !self->running_)
+                  return;
               if (r.isNil())
               {
                   // Lock not acquired - another instance is running cleanup
@@ -113,19 +129,22 @@ void OAuth2CleanupService::runCleanup()
               LOG_DEBUG << "Running periodic data cleanup (lock acquired)...";
               try
               {
-                  storage_->deleteExpiredData();
+                  self->storage_->deleteExpiredData();
               }
               catch (const std::exception &e)
               {
                   LOG_ERROR << "Error during OAuth2 cleanup: " << e.what();
               }
           },
-          [this](const std::exception &e) {
+          [weakSelf](const std::exception &e) {
+              auto self = weakSelf.lock();
+              if (!self || !self->running_)
+                  return;
               // Redis not available - run cleanup anyway (single instance mode)
               LOG_DEBUG << "Running periodic data cleanup (no Redis lock)...";
               try
               {
-                  storage_->deleteExpiredData();
+                  self->storage_->deleteExpiredData();
               }
               catch (const std::exception &ex)
               {

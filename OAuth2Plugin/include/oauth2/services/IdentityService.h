@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <oauth2/storage/IOAuth2Storage.h>
+#include <memory>
 #include <string>
 #include <vector>
 #include <functional>
@@ -9,10 +10,26 @@
 namespace oauth2
 {
 
-class IdentityService
+// Defect 1.9 fix (async-chain dangling `this`): IdentityService inherits
+// std::enable_shared_from_this so its asynchronous storage chains
+// (ensureSubjectMapping / handleFirstTimeLogin / validateUserRolesForScopes)
+// can capture `auto self = shared_from_this();` at the outermost async call and
+// thread that same `self` through every nested continuation, keeping the
+// service alive until the in-flight callback completes (no use-after-free on
+// teardown). The service is always created via std::make_shared
+// (OAuth2Plugin::initAndStart), so shared_from_this() is valid at runtime. The
+// synchronous pure-function call site (scopeRequiresAdminRole via a
+// stack-constructed IdentityService(nullptr) temporary) never calls
+// shared_from_this(), so it keeps working without shared ownership.
+class IdentityService : public std::enable_shared_from_this<IdentityService>
 {
   public:
-    explicit IdentityService(IOAuth2Storage *storage);
+    // Shared ownership of the storage (defect 1.3 fix): holds a
+    // std::shared_ptr<IOAuth2Storage> instead of a raw pointer so the storage
+    // lifetime covers every user. A null shared_ptr is accepted for the
+    // pure-function call sites (e.g. OAuth2Plugin::scopeRequiresAdminRole via
+    // IdentityService(nullptr)).
+    explicit IdentityService(std::shared_ptr<IOAuth2Storage> storage);
 
     void getUserRoles(
       const std::string &userId,
@@ -60,7 +77,7 @@ class IdentityService
     bool scopeRequiresAdminRole(const std::string &scope);
 
   private:
-    IOAuth2Storage *storage_;
+    std::shared_ptr<IOAuth2Storage> storage_;
 };
 
 }  // namespace oauth2

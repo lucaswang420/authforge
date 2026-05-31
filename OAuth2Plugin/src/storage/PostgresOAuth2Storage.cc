@@ -102,7 +102,7 @@ void PostgresOAuth2Storage::getClient(const std::string &clientId, ClientCallbac
         Mapper<Oauth2Clients> mapper(dbClientReader_);
         mapper.findOne(
           Criteria(Oauth2Clients::Cols::_client_id, CompareOperator::EQ, clientId),
-          [sharedCb, clientId, this](const Oauth2Clients &row) {
+          [sharedCb, clientId, self = shared_from_this(), this](const Oauth2Clients &row) {
               OAuth2Client client;
               client.clientId = row.getValueOfClientId();
               LOG_DEBUG << "Postgres getClient: Found -> " << client.clientId;
@@ -856,7 +856,7 @@ void PostgresOAuth2Storage::revokeTokenFamily(
     // Revoke all refresh tokens in the family
     dbClientMaster_->execSqlAsync(
       "UPDATE oauth2_refresh_tokens SET revoked = true WHERE family_id = $1",
-      [sharedCb, familyId, this](const drogon::orm::Result &) {
+      [sharedCb, familyId, self = shared_from_this(), this](const drogon::orm::Result &) {
           // Also revoke all associated access tokens
           dbClientMaster_->execSqlAsync(
             "UPDATE oauth2_access_tokens SET revoked = true "
@@ -985,7 +985,7 @@ void PostgresOAuth2Storage::getUserRoles(const std::string &userId, StringListCa
         // UUID (public_sub) - resolve to internal ID first
         dbClientReader_->execSqlAsync(
           "SELECT id FROM users WHERE public_sub::text = $1::text",
-          [sharedCb, this](const drogon::orm::Result &r) {
+          [sharedCb, self = shared_from_this(), this](const drogon::orm::Result &r) {
               if (r.empty())
               {
                   (*sharedCb)({});
@@ -1013,7 +1013,7 @@ void PostgresOAuth2Storage::getUserRoles(const std::string &userId, StringListCa
         Mapper<UserRoles> urMapper(dbClientReader_);
         urMapper.findBy(
           Criteria(UserRoles::Cols::_user_id, CompareOperator::EQ, uid),
-          [sharedCb, this](const std::vector<UserRoles> &userRoles) {
+          [sharedCb, self = shared_from_this(), this](const std::vector<UserRoles> &userRoles) {
               if (userRoles.empty())
               {
                   (*sharedCb)({});
@@ -1393,7 +1393,7 @@ void PostgresOAuth2Storage::getUserRoles(int32_t internalUserId, StringListCallb
         Mapper<UserRoles> urMapper(dbClientReader_);
         urMapper.findBy(
           Criteria(UserRoles::Cols::_user_id, CompareOperator::EQ, internalUserId),
-          [sharedCb, this](const std::vector<UserRoles> &userRoles) {
+          [sharedCb, self = shared_from_this(), this](const std::vector<UserRoles> &userRoles) {
               if (userRoles.empty())
               {
                   (*sharedCb)({});
@@ -1593,7 +1593,7 @@ void PostgresOAuth2Storage::revokeAccessToken(
     dbClientMaster_->execSqlAsync(
       "UPDATE oauth2_access_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 WHERE "
       "token = $3",
-      [this, sharedCb, now, revokedBy, token](const Result &) {
+      [self = shared_from_this(), this, sharedCb, now, revokedBy, token](const Result &) {
           dbClientMaster_->execSqlAsync(
             "UPDATE oauth2_refresh_tokens SET revoked = TRUE, revoked_at = $1, revoked_by = $2 "
             "WHERE token = $3",
@@ -1611,12 +1611,12 @@ void PostgresOAuth2Storage::revokeAccessToken(
             token.c_str()
           );
       },
-      [this, sharedCb, now, revokedBy, token](const DrogonDbException &e) {
+      [self = shared_from_this(), this, sharedCb, now, revokedBy, token](const DrogonDbException &e) {
           LOG_DEBUG << "Access token revocation audit failed: " << e.base().what();
           // Fallback to simple revoked = TRUE
           dbClientMaster_->execSqlAsync(
             "UPDATE oauth2_access_tokens SET revoked = TRUE WHERE token = $1",
-            [this, sharedCb, token](const Result &) {
+            [self, this, sharedCb, token](const Result &) {
                 dbClientMaster_->execSqlAsync(
                   "UPDATE oauth2_refresh_tokens SET revoked = TRUE WHERE token = $1",
                   [sharedCb](const Result &) { (*sharedCb)(); },

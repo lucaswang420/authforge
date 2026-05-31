@@ -24,6 +24,18 @@ JwkManager::~JwkManager()
 
 bool JwkManager::init(const Json::Value &config)
 {
+    // init-once guard (defect 1.5): init() is the only mutating method on this
+    // class. Once a previous call has succeeded, refuse to run again — log an
+    // error and no-op (do NOT re-allocate rsaKey_ or overwrite kid_). This
+    // removes the run-time mutation entry point so concurrent readers
+    // (signJwt/getJwks/getKeyId) can never observe the key state changing.
+    if (initialized_)
+    {
+        LOG_ERROR << "JwkManager: init() called more than once; ignoring "
+                     "(init-once-then-read-only contract). The existing key is kept.";
+        return true;
+    }
+
     // Try loading from environment variable (PEM content)
     const char *keyEnv = std::getenv("OAUTH2_SIGNING_KEY");
     if (keyEnv && std::strlen(keyEnv) > 0)
@@ -154,6 +166,19 @@ std::string JwkManager::base64UrlEncode(const std::string &data)
 
 std::string JwkManager::signJwt(const Json::Value &payload) const
 {
+    // OpenSSL concurrency (defect 1.5): this const method is safe to call from
+    // many request threads at once because the per-call signing context below
+    // (EVP_MD_CTX) is created with EVP_MD_CTX_new() and released with
+    // EVP_MD_CTX_free() ON EVERY CALL — each thread gets its own, so there is
+    // NO shared mutable signing context. The ONLY object shared across
+    // concurrent signers is the EVP_PKEY (rsaKey_): concurrent signing touches
+    // its internal state (refcount, BN_BLINDING, lazily-initialized
+    // BN_MONT_CTX). This design ASSUMES OpenSSL >= 1.1.0 built with thread
+    // support (atomic refcounts + automatic internal locking), which makes that
+    // shared EVP_PKEY use thread-safe. If this project may instead link against
+    // OpenSSL 1.0.2 or earlier, concurrent signing would be a data race unless
+    // the application registers the legacy CRYPTO_set_locking_callback /
+    // CRYPTO_THREADID callbacks — prefer upgrading OpenSSL to >= 1.1.0.
     if (!initialized_ || !rsaKey_)
     {
         LOG_ERROR << "JwkManager: Cannot sign JWT - not initialized";
@@ -228,6 +253,12 @@ bool JwkManager::getPublicKeyComponents(std::string &n, std::string &e) const
         return false;
 
     EVP_PKEY *pkey = static_cast<EVP_PKEY *>(rsaKey_);
+    // Deprecation note (not required for the 1.5 concurrency fix): on OpenSSL
+    // 3.0+ EVP_PKEY_get1_RSA (and the RSA_*/BN_* accessors below) are
+    // deprecated. The forward-looking migration is EVP_PKEY_get_bn_param(pkey,
+    // OSSL_PKEY_PARAM_RSA_N / OSSL_PKEY_PARAM_RSA_E, ...) to read the modulus
+    // and exponent directly as BIGNUMs. Left as-is here to avoid changing any
+    // crypto behaviour or the JWKS output bytes (preservation 3.3).
     RSA *rsa = EVP_PKEY_get1_RSA(pkey);
     if (!rsa)
         return false;

@@ -6,6 +6,22 @@
 namespace oauth2::controllers
 {
 
+// Lifetime / concurrency contract (defect 1.11, design Property 3):
+//
+// Drogon controllers are process-wide singletons whose lifetime spans the entire
+// run of the process. `this` therefore remains valid for the duration of every
+// async callback issued from a controller method; the implicit framework guarantee
+// is made explicit here as a contract.
+//
+// Consequences enforced throughout this controller:
+//   - The controller MUST hold NO mutable shared state. Async callbacks never
+//     capture a raw `this` to reach controller members; they capture only the
+//     locals they need plus the plugin pointer.
+//   - Dependencies whose lifetime is NOT covered by the singleton guarantee (most
+//     importantly the OAuth2 storage) are captured as a std::shared_ptr and threaded
+//     along the async chain (NOT held as a raw IOAuth2Storage*), so they are kept
+//     alive across every async hop. See OAuth2Plugin::getStorage(), which returns
+//     std::shared_ptr<oauth2::IOAuth2Storage> for exactly this reason.
 class OAuth2StandardController : public drogon::HttpController<OAuth2StandardController>
 {
   public:
@@ -79,6 +95,8 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
     );
 
   private:
+    static void initApiDocsImpl();
+
     static drogon::HttpResponsePtr createSuccessResponse();
 
     static std::pair<std::string, std::string> extractClientCredentials(

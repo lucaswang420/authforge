@@ -10,12 +10,12 @@ namespace oauth2
 {
 
 TokenService::TokenService(
-  IOAuth2Storage *storage,
+  std::shared_ptr<IOAuth2Storage> storage,
   int64_t authCodeTtl,
   int64_t accessTokenTtl,
   int64_t refreshTokenTtl
 )
-    : storage_(storage),
+    : storage_(std::move(storage)),
       authCodeTtl_(authCodeTtl),
       accessTokenTtl_(accessTokenTtl),
       refreshTokenTtl_(refreshTokenTtl)
@@ -85,10 +85,17 @@ void TokenService::exchangeCodeForToken(
         return;
     }
 
+    // Defect 1.9 fix: capture `self` (shared owner) at the OUTERMOST async call
+    // and thread the SAME `self` through every nested continuation below, so
+    // the service stays alive until the in-flight callback completes. `this` is
+    // kept alongside `self` purely for unchanged member access (`storage_` /
+    // accessTokenTtl_ / refreshTokenTtl_ / jwkManager_); `self` guarantees that
+    // `this` never dangles.
+    auto self = shared_from_this();
     storage_->validateClient(
       clientId,
       clientSecret,
-      [this, code, clientId, redirectUri, codeVerifier, callback = std::move(callback)](
+      [self, this, code, clientId, redirectUri, codeVerifier, callback = std::move(callback)](
         bool isValid
       ) mutable {
           if (!isValid)
@@ -100,7 +107,7 @@ void TokenService::exchangeCodeForToken(
           storage_->consumeAuthCode(
             utils::hashToken(code),
             redirectUri,
-            [this, callback = std::move(callback), clientId, code, codeVerifier](
+            [self, this, callback = std::move(callback), clientId, code, codeVerifier](
               std::optional<OAuth2AuthCode> authCode
             ) {
                 if (!authCode)
@@ -157,7 +164,7 @@ void TokenService::exchangeCodeForToken(
 
                 storage_->getUserRoles(
                   authCode->userId,
-                  [this, callback, authCode, now](std::vector<std::string> roles) {
+                  [self, this, callback, authCode, now](std::vector<std::string> roles) {
                       Json::Value rolesJson(Json::arrayValue);
                       for (const auto &r : roles)
                           rolesJson.append(r);
@@ -184,7 +191,7 @@ void TokenService::exchangeCodeForToken(
                       storage_->saveTokenPair(
                         token,
                         refreshToken,
-                        [this, callback, tokenStr, refreshTokenStr, rolesJson, authCode, now]() {
+                        [self, this, callback, tokenStr, refreshTokenStr, rolesJson, authCode, now]() {
                             Json::Value json;
                             json["access_token"] = tokenStr;
                             json["token_type"] = "Bearer";
@@ -256,9 +263,16 @@ void TokenService::refreshAccessToken(
 
     // Atomic CAS: revoke the old RT and get its data
     // If it's already revoked, this means reuse -> cascade revoke family
+    //
+    // Defect 1.9 fix: capture `self` (shared owner) at the OUTERMOST async call
+    // and thread the SAME `self` through every nested continuation, so the
+    // service stays alive until the in-flight callback completes. `this` is
+    // kept for unchanged member access (`storage_` / accessTokenTtl_ /
+    // refreshTokenTtl_); `self` guarantees `this` never dangles.
+    auto self = shared_from_this();
     storage_->atomicRevokeRefreshToken(
       hashedRt,
-      [this, callback = std::move(callback), clientId, hashedRt](
+      [self, this, callback = std::move(callback), clientId, hashedRt](
         std::optional<OAuth2RefreshToken> storedRt
       ) mutable {
           if (!storedRt)
@@ -267,7 +281,7 @@ void TokenService::refreshAccessToken(
               // Try to get the token to check if it exists but is revoked
               storage_->getRefreshToken(
                 hashedRt,
-                [this,
+                [self, this,
                  callback = std::move(callback)](std::optional<OAuth2RefreshToken> maybeRevoked) {
                     if (maybeRevoked && maybeRevoked->revoked && !maybeRevoked->familyId.empty())
                     {

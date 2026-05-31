@@ -12,6 +12,7 @@ BUILD_DIR="$PROJECT_DIR/build"
 INSTALL_DEPS=false
 BUILD_DROGON=false
 DROGON_VERSION="v1.9.13"
+SANITIZER=off
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -27,6 +28,12 @@ Show-Help() {
     echo "  --release           Build in Release mode (default)"
     echo "  --install-deps      Install system dependencies (requires sudo/brew)"
     echo "  --build-drogon      Clone and build Drogon from source (as in CI)"
+    echo "  --sanitizer=<kind>  Enable a sanitizer for the test target:"
+    echo "                        off (default) | thread (TSan) | address (ASan)"
+    echo "                        Implies --debug. TSan and ASan are mutually"
+    echo "                        exclusive; run two builds to cover both."
+    echo "  --tsan              Shortcut for --sanitizer=thread (implies --debug)"
+    echo "  --asan              Shortcut for --sanitizer=address (implies --debug)"
     echo "  --help              Show this help"
 }
 
@@ -36,6 +43,19 @@ for arg in "$@"; do
             BUILD_TYPE=$arg
             ;;
         --debug|-debug)
+            BUILD_TYPE=Debug
+            ;;
+        --sanitizer=*)
+            SANITIZER="${arg#*=}"
+            # Sanitizers require a Debug build with frame pointers/symbols.
+            BUILD_TYPE=Debug
+            ;;
+        --tsan)
+            SANITIZER=thread
+            BUILD_TYPE=Debug
+            ;;
+        --asan)
+            SANITIZER=address
             BUILD_TYPE=Debug
             ;;
         --install-deps)
@@ -50,6 +70,14 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+case "$SANITIZER" in
+    off|thread|address) ;;
+    *)
+        echo -e "${RED}[Error] --sanitizer must be one of: off | thread | address (got '$SANITIZER')${NC}"
+        exit 1
+        ;;
+esac
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Building Project (Linux/macOS) - Config: $BUILD_TYPE${NC}"
@@ -100,6 +128,11 @@ cd "$BUILD_DIR"
 
 echo -e "${YELLOW}[INFO] Configuring Project with CMake...${NC}"
 CMAKE_PROJECT_FLAGS="-DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_TESTS=ON -DCMAKE_CXX_STANDARD=17"
+
+if [ "$SANITIZER" != "off" ]; then
+    echo -e "${YELLOW}[INFO] Sanitizer enabled for test target: $SANITIZER${NC}"
+    CMAKE_PROJECT_FLAGS="$CMAKE_PROJECT_FLAGS -DOAUTH2_SANITIZER=$SANITIZER"
+fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS specific paths

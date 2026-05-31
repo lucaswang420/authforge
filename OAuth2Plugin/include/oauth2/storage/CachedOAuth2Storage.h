@@ -10,12 +10,25 @@ namespace oauth2
 
 /**
  * @brief Decorator for IOAuth2Storage that adds L1 Memory and L2 Redis Caching
+ *
+ * Defect 1.8 (incl. original 1.6) lifetime safety: this decorator inherits
+ * std::enable_shared_from_this so its async continuations can capture an
+ * `auto self = shared_from_this();` strong reference. That keeps the host
+ * object (and its tokenCache_/clientCache_/redisClient_ members) alive until
+ * the in-flight callback finishes, even if OAuth2Plugin::shutdown() calls
+ * storage_.reset() in the meantime.
+ *
+ * Option B (nested ownership): impl_ is a std::shared_ptr so the inner storage
+ * (created via make_shared from its CONCRETE type) keeps its own armed control
+ * block and shared_from_this() is valid for the inner storage in BOTH the
+ * wrapped (impl_) and direct roles.
  */
-class CachedOAuth2Storage : public IOAuth2Storage
+class CachedOAuth2Storage : public IOAuth2Storage,
+                            public std::enable_shared_from_this<CachedOAuth2Storage>
 {
   public:
     CachedOAuth2Storage(
-      std::unique_ptr<IOAuth2Storage> impl,
+      std::shared_ptr<IOAuth2Storage> impl,
       drogon::nosql::RedisClientPtr redisClient
     );
 
@@ -122,7 +135,7 @@ class CachedOAuth2Storage : public IOAuth2Storage
     void getUserInfo(int32_t internalUserId, OptionalJsonCallback &&cb) override;
 
   private:
-    std::unique_ptr<IOAuth2Storage> impl_;
+    std::shared_ptr<IOAuth2Storage> impl_;
     drogon::nosql::RedisClientPtr redisClient_;
     drogon::CacheMap<std::string, OAuth2AccessToken> tokenCache_;
     drogon::CacheMap<std::string, OAuth2Client> clientCache_;

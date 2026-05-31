@@ -2,11 +2,23 @@
 
 #include <oauth2/storage/IOAuth2Storage.h>
 #include <drogon/orm/DbClient.h>
+#include <memory>
 
 namespace oauth2
 {
 
-class PostgresOAuth2Storage : public IOAuth2Storage
+/**
+ * @brief Direct PostgreSQL IOAuth2Storage implementation.
+ *
+ * Defect 1.8 lifetime safety: inherits std::enable_shared_from_this so async
+ * continuations (revokeAccessToken) can capture `auto self = shared_from_this();`
+ * and keep this object alive until the in-flight DB callback completes. Valid in
+ * both roles under Option B: created via make_shared from the concrete type both
+ * as OAuth2Plugin::storage_ (postgres no-cache fallback) and as
+ * CachedOAuth2Storage::impl_ (the shared_ptr inner storage).
+ */
+class PostgresOAuth2Storage : public IOAuth2Storage,
+                              public std::enable_shared_from_this<PostgresOAuth2Storage>
 {
   public:
     PostgresOAuth2Storage() = default;
