@@ -90,9 +90,10 @@ if [ "$INSTALL_DEPS" = true ]; then
         sudo apt-get update
         sudo apt-get install -y \
             git gcc g++ cmake libjsoncpp-dev uuid-dev libpq-dev \
-            libssl-dev zlib1g-dev libhiredis-dev redis-tools
+            libssl-dev zlib1g-dev libhiredis-dev redis-tools \
+            libcurl4-openssl-dev
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        brew install git cmake jsoncpp ossp-uuid zlib openssl@3 libpq hiredis
+        brew install git cmake jsoncpp ossp-uuid zlib openssl@3 libpq hiredis curl
     else
         echo -e "${RED}[Error] Unsupported OS type: $OSTYPE${NC}"
         exit 1
@@ -137,7 +138,7 @@ fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS specific paths
     export PostgreSQL_ROOT="$(brew --prefix libpq)"
-    CMAKE_PROJECT_FLAGS="$CMAKE_PROJECT_FLAGS -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3) -DCMAKE_FIND_FRAMEWORK=LAST"
+    CMAKE_PROJECT_FLAGS="$CMAKE_PROJECT_FLAGS -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3) -DCURL_ROOT=$(brew --prefix curl) -DCMAKE_FIND_FRAMEWORK=LAST"
 fi
 
 cmake "$PROJECT_DIR" $CMAKE_PROJECT_FLAGS

@@ -1,9 +1,31 @@
 cmake_minimum_required(VERSION 3.16)
+
+# --- Self-contained bootstrap (PR #2 P2 review) -----------------------------
+# OAuth2Plugin is documented (docs/backend/plugin-integration.md) as a standalone
+# library usable via `add_subdirectory(OAuth2Plugin)` from a third-party root.
+# Such a root will NOT have included the repo's shared CMake modules, so make
+# this CMakeLists provide its own fallbacks instead of requiring the repo root:
+#   * OAUTH2_PROJECT_VERSION (normally set by the root's Version.cmake)
+#   * oauth2_apply_compat()  (normally defined by the root's Compatibility.cmake)
+# When configured from the repo root these are already defined/included, so the
+# guards below are no-ops and behavior is unchanged.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
+if(NOT DEFINED OAUTH2_PROJECT_VERSION)
+    set(OAUTH2_PROJECT_VERSION 1.0.0)
+endif()
+if(NOT COMMAND oauth2_apply_compat)
+    include(Compatibility)
+endif()
+
 project(OAuth2Plugin VERSION ${OAUTH2_PROJECT_VERSION} LANGUAGES CXX)
 
 # Find Dependencies
 find_package(Drogon CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
+# libcurl provides the SMTP/SMTPS transport for SmtpEmailService (PR #2 P1 fix).
+# It is built against the same OpenSSL as the rest of the project, so no second
+# TLS implementation is introduced.
+find_package(CURL REQUIRED)
 
 # Plugin Core Library
 add_library(${PROJECT_NAME} OBJECT)
@@ -33,7 +55,18 @@ file(GLOB_RECURSE PLUGIN_SOURCES
 target_sources(${PROJECT_NAME} PRIVATE ${PLUGIN_SOURCES})
 
 # Links
-target_link_libraries(${PROJECT_NAME} PUBLIC Drogon::Drogon OpenSSL::Crypto)
+target_link_libraries(${PROJECT_NAME} PUBLIC Drogon::Drogon OpenSSL::Crypto CURL::libcurl)
+
+# Conan provides a STATIC libcurl by default. On Windows the curl headers
+# decorate symbols with __declspec(dllimport) UNLESS CURL_STATICLIB is defined,
+# which otherwise yields unresolved __imp_curl_* symbols when linking the static
+# lib. (find_package(CURL) here resolves via CMake's built-in FindCURL module,
+# which exposes CURL::libcurl as an UNKNOWN imported target and does NOT set
+# this define, so we set it explicitly.) PUBLIC so consumers of this OBJECT lib
+# that include curl headers transitively also get it. No-op on non-Windows.
+if(WIN32)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC CURL_STATICLIB)
+endif()
 
 # Compiler compatibility (shared module)
 oauth2_apply_compat(${PROJECT_NAME})

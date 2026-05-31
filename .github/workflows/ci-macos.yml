@@ -29,6 +29,7 @@ jobs:
           brew install ossp-uuid
           brew install zlib
           brew install openssl@3 libpq hiredis
+          brew install curl
 
       # --- Drogon build cache ---
       # Temporarily disable cache to force rebuild after key change
@@ -77,6 +78,7 @@ jobs:
             -DBUILD_TESTS=ON \
             -DOAUTH2_MEMORY_TESTS_ONLY=ON \
             -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
+            -DCURL_ROOT="$(brew --prefix curl)" \
             -DCMAKE_FIND_FRAMEWORK=LAST
       - name: Build
         run: cmake --build build --config ${{env.BUILD_TYPE}}

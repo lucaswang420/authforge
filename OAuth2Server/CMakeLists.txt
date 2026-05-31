@@ -3,6 +3,9 @@ project(OAuth2Server VERSION ${OAUTH2_PROJECT_VERSION} LANGUAGES CXX)
 
 # Find Dependencies
 find_package(Drogon CONFIG REQUIRED)
+# libcurl: OAuth2Plugin is an OBJECT library, so the SMTP code in
+# EmailService.cc is compiled into THIS executable; link libcurl here too.
+find_package(CURL REQUIRED)
 
 add_executable(${PROJECT_NAME} 
     main.cc
@@ -24,7 +27,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 # Link against the Plugin library (defined in root CMakeLists.txt)
-target_link_libraries(${PROJECT_NAME} PRIVATE OAuth2Plugin)
+target_link_libraries(${PROJECT_NAME} PRIVATE OAuth2Plugin CURL::libcurl)
 
 # Additional includes
 target_include_directories(${PROJECT_NAME} PRIVATE 

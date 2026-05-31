@@ -63,6 +63,23 @@ class SmtpEmailService : public IEmailService
       std::function<void(bool)> &&callback
     ) override;
 
+    /**
+     * @brief Build the RFC 5322 message for an email.
+     *
+     * Header fields (to/subject/from) are sanitized so CR/LF cannot inject
+     * additional headers or SMTP commands; the body is appended verbatim after
+     * the header/body separator. Exposed as a static method so security
+     * regression tests can assert that no header/command injection is possible
+     * regardless of input (defense for PR #2 P1 finding).
+     */
+    static std::string buildMimeMessage(
+      const std::string &to,
+      const std::string &subject,
+      const std::string &body,
+      const std::string &fromName,
+      const std::string &fromAddress
+    );
+
   private:
     Config config_;
 };
