@@ -57,6 +57,7 @@ jobs:
             libssl-dev \
             zlib1g-dev \
             libhiredis-dev \
+            libcurl4-openssl-dev \
             redis-tools
 
       # --- Drogon build cache ---

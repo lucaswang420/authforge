@@ -84,7 +84,19 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Link libraries
 find_package(OpenSSL REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon OpenSSL::Crypto)
+# libcurl: the test target compiles the plugin sources (incl. EmailService.cc,
+# which uses libcurl SMTP) directly into itself, so it must link libcurl too.
+find_package(CURL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon OpenSSL::Crypto CURL::libcurl)
+
+# Match the plugin's static-libcurl handling: define CURL_STATICLIB so the curl
+# headers don't decorate symbols with __declspec(dllimport) (which would yield
+# unresolved __imp_curl_* on Windows when linking a static libcurl). The test
+# target compiles its own copy of EmailService.cc, so the define must be set
+# here directly. No-op on non-Windows.
+if(WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE CURL_STATICLIB)
+endif()
 
 # Platform compatibility (shared module)
 oauth2_apply_compat(${PROJECT_NAME})
