@@ -187,7 +187,7 @@ void EmailVerificationController::resend(
       [sharedCb, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "resend: user not found");
+              respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "resend: user not found");
               return;
           }
 

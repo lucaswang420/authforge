@@ -40,7 +40,13 @@ int httpStatusFor(ErrorCategory category, int numericCode)
 }
 
 // Raw (pre-HTTP-status) definition of an Application catalog entry. The httpStatus
-// is filled in by httpStatusFor() when the immutable table is materialized.
+// is filled in by httpStatusFor() when the immutable table is materialized,
+// UNLESS httpStatusOverride is non-zero, in which case that explicit value wins.
+//
+// The explicit override exists to preserve pre-migration HTTP statuses for
+// errors whose semantics differ from their category default (方案 A / Requirement
+// 11.4): e.g. a VALIDATION-class "resource not found" must keep returning 404
+// (and "resource conflict" 409) even though the VALIDATION default is 400.
 struct RawEntry
 {
     std::string_view code;
@@ -48,14 +54,15 @@ struct RawEntry
     ErrorCategory category;
     std::string_view defaultMessage;
     std::string_view description;
+    int httpStatusOverride = 0;  ///< 0 -> derive from httpStatusFor(); >0 -> use as-is.
 };
 
 // Existing 14 numeric error codes: integer values preserved unchanged
 // (Requirement 3.6 / 11.5). New codes, when added during migration, must keep
 // their numeric value inside the owning category segment.
-const std::array<RawEntry, 14> &rawEntries()
+const std::array<RawEntry, 16> &rawEntries()
 {
-    static const std::array<RawEntry, 14> kEntries = {{
+    static const std::array<RawEntry, 16> kEntries = {{
       // NETWORK (1000-1099)
       {"NET_CONNECTION_FAILED", 1001, ErrorCategory::NETWORK, "上游连接失败",
        "上游服务连接失败（NETWORK 类）"},
@@ -77,6 +84,14 @@ const std::array<RawEntry, 14> &rawEntries()
        "缺少必填字段（VALIDATION 类）"},
       {"VALIDATION_FORMAT_ERROR", 3003, ErrorCategory::VALIDATION, "格式不正确",
        "字段格式不正确（VALIDATION 类）"},
+      // Resource-oriented VALIDATION codes whose HTTP status is overridden to
+      // preserve pre-migration semantics (方案 A / Requirement 11.4): "not found"
+      // keeps 404 and "conflict/duplicate" keeps 409 instead of the VALIDATION
+      // default 400.
+      {"VALIDATION_RESOURCE_NOT_FOUND", 3004, ErrorCategory::VALIDATION, "资源不存在",
+       "请求的资源不存在（VALIDATION 类，HTTP 404）", 404},
+      {"VALIDATION_RESOURCE_CONFLICT", 3005, ErrorCategory::VALIDATION, "资源已存在或冲突",
+       "资源已存在或与现有资源冲突（VALIDATION 类，HTTP 409）", 409},
 
       // AUTHENTICATION (4000-4099)
       {"AUTH_INVALID_CREDENTIALS", 4001, ErrorCategory::AUTHENTICATION, "用户名或密码错误",
@@ -200,7 +215,11 @@ const std::vector<CatalogEntry> &ErrorCatalog::allEntries()
               r.code,
               r.numericCode,
               r.category,
-              httpStatusFor(r.category, r.numericCode),
+              // Explicit per-entry override wins over the category default so
+              // resource-oriented codes can keep their pre-migration 404/409
+              // (方案 A / Requirement 11.4); otherwise derive from the category.
+              r.httpStatusOverride > 0 ? r.httpStatusOverride
+                                       : httpStatusFor(r.category, r.numericCode),
               r.defaultMessage,
               r.description,
             });

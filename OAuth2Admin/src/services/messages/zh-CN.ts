@@ -26,6 +26,8 @@ export const zhCN: Record<string, string> = {
   VALIDATION_INVALID_INPUT: '输入参数有误',
   VALIDATION_MISSING_REQUIRED_FIELD: '缺少必填字段',
   VALIDATION_FORMAT_ERROR: '格式不正确',
+  VALIDATION_RESOURCE_NOT_FOUND: '资源不存在',
+  VALIDATION_RESOURCE_CONFLICT: '资源已存在或冲突',
   AUTH_INVALID_CREDENTIALS: '用户名或密码错误',
   AUTH_TOKEN_EXPIRED: '登录已过期',
   AUTH_TOKEN_INVALID: '登录凭证无效',

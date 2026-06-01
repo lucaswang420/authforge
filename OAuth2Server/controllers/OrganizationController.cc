@@ -159,7 +159,7 @@ void OrganizationController::create(
       },
       [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           respondError(
-            req, sharedCb, "DB_CONSTRAINT_VIOLATION",
+            req, sharedCb, "VALIDATION_RESOURCE_CONFLICT",
             std::string("create org: slug already exists or DB error: ") + e.base().what()
           );
       },
@@ -187,7 +187,7 @@ void OrganizationController::getBySlug(
           if (r.empty())
           {
               respondError(
-                req, sharedCb, "VALIDATION_INVALID_INPUT", "get org: organization not found"
+                req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "get org: organization not found"
               );
               return;
           }

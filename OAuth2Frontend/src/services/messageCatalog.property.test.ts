@@ -21,8 +21,8 @@ const RUNS = { numRuns: 100 } as const
 
 // --- 期望覆盖的码集合（与后端 ErrorCatalog 单一权威来源镜像，design.md AD-5） ---
 
-// 后端 Error_Catalog 全部 Error_Code（design.md「Error_Catalog 初始条目」14 条，
-// 整数取值保留不变）。
+// 后端 Error_Catalog 全部 Error_Code（初始 14 条 + 方案 A 新增的
+// VALIDATION_RESOURCE_NOT_FOUND/CONFLICT 共 16 条，整数取值保留不变）。
 const BACKEND_ERROR_CODES = [
   'NET_CONNECTION_FAILED',
   'NET_TIMEOUT',
@@ -32,6 +32,8 @@ const BACKEND_ERROR_CODES = [
   'VALIDATION_INVALID_INPUT',
   'VALIDATION_MISSING_REQUIRED_FIELD',
   'VALIDATION_FORMAT_ERROR',
+  'VALIDATION_RESOURCE_NOT_FOUND',
+  'VALIDATION_RESOURCE_CONFLICT',
   'AUTH_INVALID_CREDENTIALS',
   'AUTH_TOKEN_EXPIRED',
   'AUTH_TOKEN_INVALID',

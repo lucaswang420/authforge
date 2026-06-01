@@ -217,7 +217,7 @@ Authorization: `Bearer {access_token}`
 
 ### 5.1 应用错误码 (Application Error Codes)
 
-业务端点（Application_Endpoint）返回统一的 Error Envelope，其 `error.code` 取值属于下表登记的 Error_Code 集合；`numeric_code` 与 `category` 同样取自下表，HTTP 状态码按 Error_Category（NETWORK 类按 numeric_code 区分 502/504）一致映射。
+业务端点（Application_Endpoint）返回统一的 Error Envelope，其 `error.code` 取值属于下表登记的 Error_Code 集合；`numeric_code` 与 `category` 同样取自下表，HTTP 状态码按 Error_Category（NETWORK 类按 numeric_code 区分 502/504）一致映射。少数面向资源语义的 VALIDATION 码（`VALIDATION_RESOURCE_NOT_FOUND` → 404、`VALIDATION_RESOURCE_CONFLICT` → 409）通过条目级显式覆盖保留迁移前的 HTTP 状态码（方案 A / 需求 11.4），其余 VALIDATION 码仍为 400。
 
 | Error_Code | numeric_code | Error_Category | HTTP Status | 默认信息 (Client_Safe_Message) |
 |---|---|---|---|---|
@@ -229,6 +229,8 @@ Authorization: `Bearer {access_token}`
 | `VALIDATION_INVALID_INPUT` | 3001 | VALIDATION | 400 | 输入参数有误 |
 | `VALIDATION_MISSING_REQUIRED_FIELD` | 3002 | VALIDATION | 400 | 缺少必填字段 |
 | `VALIDATION_FORMAT_ERROR` | 3003 | VALIDATION | 400 | 格式不正确 |
+| `VALIDATION_RESOURCE_NOT_FOUND` | 3004 | VALIDATION | 404 | 资源不存在 |
+| `VALIDATION_RESOURCE_CONFLICT` | 3005 | VALIDATION | 409 | 资源已存在或冲突 |
 | `AUTH_INVALID_CREDENTIALS` | 4001 | AUTHENTICATION | 401 | 用户名或密码错误 |
 | `AUTH_TOKEN_EXPIRED` | 4002 | AUTHENTICATION | 401 | 登录已过期 |
 | `AUTH_TOKEN_INVALID` | 4003 | AUTHENTICATION | 401 | 登录凭证无效 |

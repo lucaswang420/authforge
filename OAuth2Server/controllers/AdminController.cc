@@ -445,7 +445,7 @@ void AdminController::getClient(
           [sharedCb, req, clientId, db](const drogon::orm::Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                   return;
               }
 
@@ -565,7 +565,7 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                       return;
                   }
                   Json::Value json;
@@ -588,7 +588,7 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                       return;
                   }
                   Json::Value json;
@@ -612,7 +612,7 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                       return;
                   }
                   Json::Value json;
@@ -906,7 +906,7 @@ void AdminController::deleteClient(
           [sharedCb, req, clientId](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                   return;
               }
 
@@ -952,7 +952,7 @@ void AdminController::disableUser(
           [sharedCb, req, userId](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "User not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
                   return;
               }
 
@@ -1113,7 +1113,7 @@ void AdminController::resetClientSecret(
           [sharedCb, req, clientId, newSecret](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Client not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
                   return;
               }
 
@@ -1594,7 +1594,7 @@ void AdminController::revokeToken(
           [sharedCb, req](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Token not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Token not found");
                   return;
               }
 
@@ -1802,7 +1802,7 @@ void AdminController::getUser(
           [sharedCb, req](const drogon::orm::Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "User not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
                   return;
               }
               const auto &row = result[0];
@@ -1923,7 +1923,7 @@ void AdminController::updateUser(
               [sharedCb, req, userId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "User not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
                       return;
                   }
                   Json::Value json;
@@ -1945,7 +1945,7 @@ void AdminController::updateUser(
               [sharedCb, req](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "User not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
                       return;
                   }
                   Json::Value json;
@@ -1991,7 +1991,7 @@ void AdminController::enableUser(
           [sharedCb, req, userId](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "User not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
                   return;
               }
               Json::Value json;
@@ -2147,7 +2147,7 @@ void AdminController::createRole(
           [sharedCb, req, db, name, description](const drogon::orm::Result &checkResult) {
               if (!checkResult.empty())
               {
-                  respondError(req, sharedCb, "DB_CONSTRAINT_VIOLATION", "Role name already exists");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Role name already exists");
                   return;
               }
               db->execSqlAsync(
@@ -2240,7 +2240,7 @@ void AdminController::updateRole(
           [sharedCb, req](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Role not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Role not found");
                   return;
               }
               Json::Value json;
@@ -2278,7 +2278,7 @@ void AdminController::deleteRole(
           [sharedCb, req, roleId](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Role not found or cannot delete built-in roles");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Role not found or cannot delete built-in roles");
                   return;
               }
               Json::Value json;
@@ -2339,7 +2339,7 @@ void AdminController::createScope(
           ) {
               if (!checkResult.empty())
               {
-                  respondError(req, sharedCb, "DB_CONSTRAINT_VIOLATION", "Scope name already exists");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Scope name already exists");
                   return;
               }
               db->execSqlAsync(
@@ -2460,7 +2460,7 @@ void AdminController::updateScope(
               [sharedCb, req](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Scope not found");
+                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Scope not found");
                       return;
                   }
                   Json::Value json;
@@ -2508,7 +2508,7 @@ void AdminController::deleteScope(
           [sharedCb, req](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "Scope not found or cannot delete built-in scopes");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Scope not found or cannot delete built-in scopes");
                   return;
               }
               Json::Value json;
