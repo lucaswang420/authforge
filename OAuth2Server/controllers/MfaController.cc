@@ -4,6 +4,7 @@
 #include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -12,6 +13,23 @@ using namespace drogon::orm;
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct MfaControllerDocs
 {
     MfaControllerDocs()
@@ -84,13 +102,9 @@ void MfaController::setup(
           auto resp = HttpResponse::newHttpJsonResponse(json);
           (*sharedCb)(resp);
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "MFA setup failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("MFA setup failed: ") + e.base().what());
       },
       secret,
       userId
@@ -117,12 +131,9 @@ void MfaController::verifySetup(
 
     if (code.empty() || code.length() != 6)
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "6-digit TOTP code is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "VALIDATION_FORMAT_ERROR",
+          "verifySetup: 6-digit TOTP code is required");
         return;
     }
 
@@ -135,12 +146,8 @@ void MfaController::verifySetup(
       [sharedCb, code, userId, db, req](const Result &r) {
           if (r.empty() || r[0]["mfa_secret"].isNull())
           {
-              Json::Value error;
-              error["error"] = "invalid_request";
-              error["error_description"] = "MFA not set up. Call /api/me/mfa/setup first";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k400BadRequest);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                           "verifySetup: MFA not set up. Call /api/me/mfa/setup first");
               return;
           }
 
@@ -149,12 +156,8 @@ void MfaController::verifySetup(
           // Verify the TOTP code
           if (!oauth2::utils::TotpUtils::verifyCode(secret, code))
           {
-              Json::Value error;
-              error["error"] = "invalid_code";
-              error["error_description"] = "TOTP code is incorrect";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k401Unauthorized);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
+                           "verifySetup: TOTP code is incorrect");
               return;
           }
 
@@ -185,25 +188,17 @@ void MfaController::verifySetup(
                 auto resp = HttpResponse::newHttpJsonResponse(json);
                 (*sharedCb)(resp);
             },
-            [sharedCb](const DrogonDbException &e) {
-                LOG_ERROR << "MFA enable failed: " << e.base().what();
-                Json::Value error;
-                error["error"] = "server_error";
-                auto resp = HttpResponse::newHttpJsonResponse(error);
-                resp->setStatusCode(k500InternalServerError);
-                (*sharedCb)(resp);
+            [sharedCb, req](const DrogonDbException &e) {
+                respondError(req, sharedCb, "DB_QUERY_ERROR",
+                             std::string("MFA enable failed: ") + e.base().what());
             },
             hashedCodesStr,
             userId
           );
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "MFA verify setup failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("MFA verify setup failed: ") + e.base().what());
       },
       userId
     );
@@ -229,13 +224,9 @@ void MfaController::disable(
           auto resp = HttpResponse::newHttpJsonResponse(json);
           (*sharedCb)(resp);
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "MFA disable failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("MFA disable failed: ") + e.base().what());
       },
       userId
     );
@@ -266,12 +257,9 @@ void MfaController::verifyLogin(
 
     if (mfaToken.empty() || code.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "mfa_token and code are required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
+          "verifyLogin: mfa_token and code are required");
         return;
     }
 
@@ -287,12 +275,8 @@ void MfaController::verifyLogin(
       [sharedCb, code, mfaToken, req](const Result &r) {
           if (r.empty())
           {
-              Json::Value error;
-              error["error"] = "invalid_grant";
-              error["error_description"] = "Invalid MFA session";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k401Unauthorized);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
+                           "verifyLogin: invalid MFA session");
               return;
           }
 
@@ -320,20 +304,12 @@ void MfaController::verifyLogin(
 
           // Try backup code
           // (simplified: in production, parse JSON array and check each hashed code)
-          Json::Value error;
-          error["error"] = "invalid_code";
-          error["error_description"] = "TOTP code is incorrect";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k401Unauthorized);
-          (*sharedCb)(resp);
+          respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
+                       "verifyLogin: TOTP code is incorrect");
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "MFA login verify failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("MFA login verify failed: ") + e.base().what());
       },
       mfaToken
     );

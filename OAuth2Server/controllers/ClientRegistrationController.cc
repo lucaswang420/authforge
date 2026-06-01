@@ -2,11 +2,29 @@
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct ClientRegistrationControllerDocs
 {
     ClientRegistrationControllerDocs()
@@ -37,12 +55,10 @@ void ClientRegistrationController::registerClient(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        Json::Value json;
-        json["error"] = "invalid_client_metadata";
-        json["error_description"] = "Request body must be valid JSON";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_INVALID_INPUT",
+          "registerClient: request body must be valid JSON"
+        );
         return;
     }
 
@@ -55,24 +71,20 @@ void ClientRegistrationController::registerClient(
     // Validate client_name is provided
     if (clientName.empty())
     {
-        Json::Value json;
-        json["error"] = "invalid_client_metadata";
-        json["error_description"] = "client_name is required";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+          "registerClient: client_name is required"
+        );
         return;
     }
 
     // Validate client_type
     if (clientType != "CONFIDENTIAL" && clientType != "PUBLIC")
     {
-        Json::Value json;
-        json["error"] = "invalid_client_metadata";
-        json["error_description"] = "client_type must be CONFIDENTIAL or PUBLIC";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_FORMAT_ERROR",
+          "registerClient: client_type must be CONFIDENTIAL or PUBLIC"
+        );
         return;
     }
 
@@ -94,12 +106,10 @@ void ClientRegistrationController::registerClient(
     // Validate at least one redirect_uri for confidential clients
     if (redirectUris.empty() && clientType == "CONFIDENTIAL")
     {
-        Json::Value json;
-        json["error"] = "invalid_client_metadata";
-        json["error_description"] = "redirect_uris is required for confidential clients";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+          "registerClient: redirect_uris is required for confidential clients"
+        );
         return;
     }
 
@@ -118,14 +128,11 @@ void ClientRegistrationController::registerClient(
               grantType != "client_credentials"
             )
             {
-                Json::Value json;
-                json["error"] = "invalid_client_metadata";
-                json["error_description"] =
-                  "Unsupported grant_type: " + grantType +
-                  ". Allowed: authorization_code, refresh_token, client_credentials";
-                auto resp = HttpResponse::newHttpJsonResponse(json);
-                resp->setStatusCode(k400BadRequest);
-                (*sharedCb)(resp);
+                respondError(
+                  req, sharedCb, "VALIDATION_FORMAT_ERROR",
+                  "registerClient: unsupported grant_type: " + grantType +
+                    ". Allowed: authorization_code, refresh_token, client_credentials"
+                );
                 return;
             }
             if (i > 0)
@@ -194,18 +201,15 @@ void ClientRegistrationController::registerClient(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              Json::Value json;
-              json["error"] = "server_error";
-              json["error_description"] = "Failed to register client";
-              auto resp = HttpResponse::newHttpJsonResponse(json);
-              resp->setStatusCode(k500InternalServerError);
-
               // Audit log the failure
               oauth2::observability::AuditLogger::log(
                 "client_registered", "failure", req, "", "client", "", Json::Value(e.base().what())
               );
 
-              (*sharedCb)(resp);
+              respondError(
+                req, sharedCb, "DB_QUERY_ERROR",
+                std::string("registerClient: failed to register client: ") + e.base().what()
+              );
           },
           clientId,
           clientType,
@@ -218,11 +222,8 @@ void ClientRegistrationController::registerClient(
     }
     catch (...)
     {
-        Json::Value json;
-        json["error"] = "server_error";
-        json["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(json);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "DB_CONNECTION_ERROR", "registerClient: database unavailable"
+        );
     }
 }

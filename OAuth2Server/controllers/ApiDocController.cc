@@ -1,5 +1,6 @@
 #include "ApiDocController.h"
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/utils/Utilities.h>
 #include <filesystem>
 #include <fstream>
@@ -57,15 +58,13 @@ void ApiDocController::openApiSpec(
         std::ifstream file(filePath);
         if (!file.is_open())
         {
-            auto resp = drogon::HttpResponse::newHttpResponse();
-            resp->setStatusCode(drogon::k404NotFound);
-            resp->setContentTypeString("application/json");
-            resp->setBody(
-              "{\"error\": \"OpenAPI specification not found\", \"path\": "
-              "\"" +
-              filePath + "\"}"
+            // Error responses are emitted as JSON Error Envelopes via the unified
+            // entry point so no non-JSON / ad-hoc body is returned (Requirement
+            // 7.1 / 7.3 / 7.5). A missing spec file is a server-side condition.
+            common::error::ErrorResponder::respond(
+              req, std::move(callback), "INTERNAL_ERROR",
+              "openApiSpec: OpenAPI specification not found at " + filePath
             );
-            callback(resp);
             return;
         }
 
@@ -82,11 +81,9 @@ void ApiDocController::openApiSpec(
     }
     catch (const std::exception &e)
     {
-        auto resp = drogon::HttpResponse::newHttpResponse();
-        resp->setStatusCode(drogon::k500InternalServerError);
-        resp->setContentTypeString("application/json");
-        resp->setBody("{\"error\": \"" + std::string(e.what()) + "\"}");
-        callback(resp);
+        common::error::ErrorResponder::respondException(
+          req, std::move(callback), e, common::error::ErrorCategory::INTERNAL
+        );
     }
 }
 
@@ -110,13 +107,14 @@ void ApiDocController::swaggerUi(
         std::ifstream file(filePath);
         if (!file.is_open())
         {
-            auto resp = drogon::HttpResponse::newHttpResponse();
-            resp->setStatusCode(drogon::k404NotFound);
-            resp->setContentTypeString("text/html");
-            resp->setBody(
-              "<h1>Swagger UI not found</h1><p>Attempted to read from: " + filePath + "</p>"
+            // The previous implementation returned an HTML error page here. Error
+            // responses must be JSON Error Envelopes (Requirement 7.3): the
+            // successful response is still HTML, but errors go through the unified
+            // entry point. A missing UI asset is a server-side condition.
+            common::error::ErrorResponder::respond(
+              req, std::move(callback), "INTERNAL_ERROR",
+              "swaggerUi: Swagger UI not found at " + filePath
             );
-            callback(resp);
             return;
         }
 
@@ -133,11 +131,9 @@ void ApiDocController::swaggerUi(
     }
     catch (const std::exception &e)
     {
-        auto resp = drogon::HttpResponse::newHttpResponse();
-        resp->setStatusCode(drogon::k500InternalServerError);
-        resp->setContentTypeString("text/html");
-        resp->setBody("<h1>Error</h1><p>" + std::string(e.what()) + "</p>");
-        callback(resp);
+        common::error::ErrorResponder::respondException(
+          req, std::move(callback), e, common::error::ErrorCategory::INTERNAL
+        );
     }
 }
 

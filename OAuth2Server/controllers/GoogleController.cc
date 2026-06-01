@@ -1,6 +1,7 @@
 #include "GoogleController.h"
 #include <drogon/HttpClient.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 
 // TODO: REPLACE WITH YOUR REAL GOOGLE CREDENTIALS
 const std::string GOOGLE_CLIENT_ID_KEY = "client_id";
@@ -16,6 +17,26 @@ std::string getGoogleConfig(const std::string &key)
     }
     return "";
 }
+
+namespace
+{
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const drogon::HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const drogon::HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const drogon::HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+}  // namespace
 
 // Register OpenAPI documentation (executed once at startup)
 namespace
@@ -118,10 +139,9 @@ void GoogleController::login(
 
     if (code.empty())
     {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Missing code parameter");
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
+          "google login: missing code parameter");
         return;
     }
 
@@ -141,23 +161,19 @@ void GoogleController::login(
       std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     client->sendRequest(
-      request, [callbackPtr, client](ReqResult result, const HttpResponsePtr &response) {
+      request, [callbackPtr, client, req](ReqResult result, const HttpResponsePtr &response) {
           if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
           {
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k502BadGateway);
-              resp->setBody("Failed to contact Google Token API");
-              (*callbackPtr)(resp);
+              respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                           "google login: failed to contact Google Token API");
               return;
           }
 
           auto json = response->getJsonObject();
           if (!json || !json->isMember("access_token"))
           {
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k400BadRequest);
-              resp->setBody("Google Error: Invalid token response");
-              (*callbackPtr)(resp);
+              respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT",
+                           "google login: invalid token response");
               return;
           }
 
@@ -170,13 +186,11 @@ void GoogleController::login(
           req2->setPath("/oauth2/v3/userinfo");
           req2->addHeader("Authorization", "Bearer " + accessToken);
 
-          client2->sendRequest(req2, [callbackPtr](ReqResult res2, const HttpResponsePtr &resp2) {
+          client2->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
               if (res2 != ReqResult::Ok || !resp2)
               {
-                  auto errResp = HttpResponse::newHttpResponse();
-                  errResp->setStatusCode(k502BadGateway);
-                  errResp->setBody("Failed to fetch Google UserInfo");
-                  (*callbackPtr)(errResp);
+                  respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                               "google login: failed to fetch Google UserInfo");
                   return;
               }
 

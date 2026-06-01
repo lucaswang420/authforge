@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { setTokens } from '../../services/http'
+import { normalizeError } from '../../services/errorAdapter'
 import axios from 'axios'
 
 const router = useRouter()
@@ -31,8 +32,8 @@ onMounted(async () => {
     } else {
       error.value = 'GitHub login did not return an access token'
     }
-  } catch (e: any) {
-    error.value = e.response?.data?.error || e.response?.data?.detail || 'GitHub login failed'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   }
 })
 </script>

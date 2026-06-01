@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { normalizeError } from '../../services/errorAdapter'
 
 const router = useRouter()
 const route = useRoute()
@@ -25,8 +26,8 @@ onMounted(async () => {
   try {
     await auth.exchangeCode(code)
     router.replace('/')
-  } catch (e: any) {
-    error.value = e.response?.data?.error_description || 'Token exchange failed'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   }
 })
 </script>

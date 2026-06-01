@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,8 +22,8 @@ async function handleReset() {
     await axios.post('/api/password-reset/confirm', { token, new_password: newPassword.value }, { headers: { 'Content-Type': 'application/json' } })
     success.value = true
     setTimeout(() => router.push('/login'), 3000)
-  } catch (e: any) {
-    error.value = e.response?.data?.message || 'Reset failed. The link may have expired.'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   } finally {
     loading.value = false
   }

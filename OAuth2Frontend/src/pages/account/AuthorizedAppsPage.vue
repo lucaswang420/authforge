@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import http from '../../services/http'
+import { normalizeError } from '../../services/errorAdapter'
 
 const apps = ref<any[]>([])
 const loading = ref(true)
@@ -26,8 +27,8 @@ async function revokeApp(clientId: string, appName: string) {
     success.value = `Access revoked for "${appName}"`
     setTimeout(() => { success.value = '' }, 3000)
     await fetchApps()
-  } catch (e: any) {
-    error.value = e.response?.data?.message || 'Failed to revoke access'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   }
 }
 

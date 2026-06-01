@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const route = useRoute()
 const status = ref<'loading' | 'success' | 'error'>('loading')
@@ -18,9 +19,9 @@ onMounted(async () => {
     const resp = await axios.get(`/api/verify-email?token=${encodeURIComponent(token)}`)
     status.value = 'success'
     message.value = resp.data?.message || 'Email verified successfully!'
-  } catch (e: any) {
+  } catch (e: unknown) {
     status.value = 'error'
-    message.value = e.response?.data?.message || 'Verification failed. The link may have expired.'
+    message.value = normalizeError(e).message
   }
 })
 </script>

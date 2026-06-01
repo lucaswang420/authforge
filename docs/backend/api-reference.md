@@ -212,6 +212,51 @@ Authorization: `Bearer {access_token}`
 
 ## 5. 通用错误码
 
+> **单一权威来源（single source of truth）**：本章节 5.1 与 5.2 的表格由后端 `ErrorCatalog`（`OAuth2Plugin/include/oauth2/error/ErrorCatalog.h`）的 `allEntries()` / `allOAuthEntries()` 生成并由自动化测试校验，请勿手工修改表格行。
+> 任一不一致（缺失/多余条目、HTTP 状态码或 Error_Category 不匹配）都会导致校验测试失败：`OAuth2Test_test -r ErrorCatalogDoc`。
+
+### 5.1 应用错误码 (Application Error Codes)
+
+业务端点（Application_Endpoint）返回统一的 Error Envelope，其 `error.code` 取值属于下表登记的 Error_Code 集合；`numeric_code` 与 `category` 同样取自下表，HTTP 状态码按 Error_Category（NETWORK 类按 numeric_code 区分 502/504）一致映射。
+
+| Error_Code | numeric_code | Error_Category | HTTP Status | 默认信息 (Client_Safe_Message) |
+|---|---|---|---|---|
+| `NET_CONNECTION_FAILED` | 1001 | NETWORK | 502 | 上游连接失败 |
+| `NET_TIMEOUT` | 1002 | NETWORK | 504 | 请求超时 |
+| `DB_CONNECTION_ERROR` | 2001 | DATABASE | 500 | 服务暂时不可用 |
+| `DB_QUERY_ERROR` | 2002 | DATABASE | 500 | 服务暂时不可用 |
+| `DB_CONSTRAINT_VIOLATION` | 2003 | DATABASE | 500 | 数据冲突 |
+| `VALIDATION_INVALID_INPUT` | 3001 | VALIDATION | 400 | 输入参数有误 |
+| `VALIDATION_MISSING_REQUIRED_FIELD` | 3002 | VALIDATION | 400 | 缺少必填字段 |
+| `VALIDATION_FORMAT_ERROR` | 3003 | VALIDATION | 400 | 格式不正确 |
+| `AUTH_INVALID_CREDENTIALS` | 4001 | AUTHENTICATION | 401 | 用户名或密码错误 |
+| `AUTH_TOKEN_EXPIRED` | 4002 | AUTHENTICATION | 401 | 登录已过期 |
+| `AUTH_TOKEN_INVALID` | 4003 | AUTHENTICATION | 401 | 登录凭证无效 |
+| `AUTHZ_ACCESS_DENIED` | 5001 | AUTHORIZATION | 403 | 没有访问权限 |
+| `AUTHZ_INSUFFICIENT_PERMISSIONS` | 5002 | AUTHORIZATION | 403 | 权限不足 |
+| `INTERNAL_ERROR` | 6001 | INTERNAL | 500 | 服务器内部错误 |
+
+### 5.2 OAuth2 协议错误码 (RFC 6749 §5.2 / RFC 7009 / RFC 8628)
+
+OAuth2 协议端点（OAuth2_Protocol_Endpoint）保持 RFC 6749 §5.2 错误体结构 `{ "error", "error_description", "error_uri" }`，其 `error` 取值与 HTTP 状态码取自下表。
+
+| error | HTTP Status | 默认 error_description |
+|---|---|---|
+| `invalid_request` | 400 | 请求参数缺失或无效 |
+| `invalid_client` | 401 | 客户端认证失败 |
+| `invalid_grant` | 400 | 授权许可无效或已过期 |
+| `unauthorized_client` | 400 | 客户端无权使用该授权类型 |
+| `unsupported_grant_type` | 400 | 不支持的授权类型 |
+| `invalid_scope` | 400 | 请求的 scope 无效 |
+| `server_error` | 500 | 服务器内部错误 |
+| `temporarily_unavailable` | 503 | 服务暂时不可用 |
+| `unsupported_token_type` | 400 | 不支持的令牌类型 |
+| `authorization_pending` | 400 | 授权尚未完成，请稍后重试 |
+| `slow_down` | 400 | 轮询过于频繁，请降低频率 |
+| `expired_token` | 400 | 设备码已过期，请重新发起授权 |
+
+### 5.3 HTTP 状态码速查
+
 | HTTP Status | 描述 | 原因示例 |
 |---|---|---|
 | `200` | OK | 请求成功 |

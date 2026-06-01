@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const router = useRouter()
 const clients = ref<any[]>([])
@@ -9,6 +10,7 @@ const loading = ref(true)
 const showCreateModal = ref(false)
 const showSecretModal = ref(false)
 const newClientSecret = ref('')
+const errorMessage = ref('')
 const createForm = ref({
   name: '',
   client_type: 'CONFIDENTIAL',
@@ -24,13 +26,19 @@ const AVAILABLE_GRANT_TYPES = [
   { value: 'urn:ietf:params:oauth:grant-type:device_code', label: 'Device Code', description: '无浏览器设备授权' },
 ]
 
+// Inline error banner (replaces native alert for backend errors, Req 10.6).
+function showError(msg: string) {
+  errorMessage.value = msg
+  setTimeout(() => { errorMessage.value = '' }, 5000)
+}
+
 async function fetchClients() {
   loading.value = true
   try {
     const resp = await axios.get('/api/admin/clients')
     clients.value = resp.data.clients || []
-  } catch (e) {
-    console.error('Failed to fetch clients:', e)
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -38,7 +46,7 @@ async function fetchClients() {
 
 async function createClient() {
   if (createForm.value.grant_types.length === 0) {
-    alert('Please select at least one grant type')
+    showError('Please select at least one grant type')
     return
   }
   creating.value = true
@@ -57,8 +65,9 @@ async function createClient() {
     showSecretModal.value = true
     createForm.value = { name: '', client_type: 'CONFIDENTIAL', redirect_uris: '', grant_types: ['authorization_code'] }
     await fetchClients()
-  } catch (e: any) {
-    alert(e.response?.data?.message || 'Failed to create client')
+  } catch (e: unknown) {
+    // Req 10.3/10.6: normalize via Frontend_Error_Module, no native alert.
+    showError(normalizeError(e).message)
   } finally {
     creating.value = false
   }
@@ -69,8 +78,8 @@ async function deleteClient(clientId: string) {
   try {
     await axios.delete(`/api/admin/clients/${clientId}`)
     await fetchClients()
-  } catch (e: any) {
-    alert(e.response?.data?.message || 'Failed to delete client')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 
@@ -80,8 +89,8 @@ async function resetSecret(clientId: string) {
     const resp = await axios.post(`/api/admin/clients/${clientId}/reset-secret`)
     newClientSecret.value = resp.data.client_secret || ''
     showSecretModal.value = true
-  } catch (e: any) {
-    alert(e.response?.data?.message || 'Failed to reset secret')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 
@@ -96,6 +105,8 @@ onMounted(fetchClients)
         + Create Application
       </button>
     </div>
+
+    <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">{{ errorMessage }}</div>
 
     <div v-if="loading" class="text-center py-12 text-gray-500">Loading...</div>
 

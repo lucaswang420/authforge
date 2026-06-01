@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const scopes = ref<any[]>([])
 const loading = ref(true)
@@ -30,8 +31,8 @@ async function fetchScopes() {
   try {
     const resp = await axios.get('/api/admin/scopes')
     scopes.value = resp.data.scopes || []
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to fetch scopes')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -46,8 +47,8 @@ async function createScope() {
     showCreateModal.value = false
     newScope.value = { name: '', description: '', mapped_role: '', is_default: false, requires_admin_role: false }
     await fetchScopes()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to create scope')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -72,8 +73,8 @@ async function updateScope() {
     showSuccess('Scope updated')
     showEditModal.value = false
     await fetchScopes()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to update scope')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -85,8 +86,8 @@ async function deleteScope(scope: any) {
     await axios.delete(`/api/admin/scopes/${scope.id}`)
     showSuccess(`Scope "${scope.name}" deleted`)
     await fetchScopes()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to delete scope')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 

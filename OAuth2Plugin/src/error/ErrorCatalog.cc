@@ -1,0 +1,397 @@
+#include <oauth2/error/ErrorCatalog.h>
+#include <drogon/drogon.h>
+
+#include <array>
+#include <cstdlib>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace common::error
+{
+
+namespace
+{
+
+// --- HTTP status generation (Requirement 4 category/numeric rules) ----------
+// The catalog never hard-codes per-entry HTTP statuses; they are generated from
+// the category (and numeric code for NETWORK) so the registered value is, by
+// construction, consistent with Requirement 4 (1-6, 8).
+int httpStatusFor(ErrorCategory category, int numericCode)
+{
+    switch (category)
+    {
+        case ErrorCategory::VALIDATION:
+            return 400;
+        case ErrorCategory::AUTHENTICATION:
+            return 401;
+        case ErrorCategory::AUTHORIZATION:
+            return 403;
+        case ErrorCategory::NETWORK:
+            // TIMEOUT (1002) -> 504 Gateway Timeout, other network -> 502 Bad Gateway.
+            return (numericCode == 1002) ? 504 : 502;
+        case ErrorCategory::DATABASE:
+        case ErrorCategory::INTERNAL:
+        case ErrorCategory::UNKNOWN:
+        default:
+            return 500;
+    }
+}
+
+// Raw (pre-HTTP-status) definition of an Application catalog entry. The httpStatus
+// is filled in by httpStatusFor() when the immutable table is materialized.
+struct RawEntry
+{
+    std::string_view code;
+    int numericCode;
+    ErrorCategory category;
+    std::string_view defaultMessage;
+    std::string_view description;
+};
+
+// Existing 14 numeric error codes: integer values preserved unchanged
+// (Requirement 3.6 / 11.5). New codes, when added during migration, must keep
+// their numeric value inside the owning category segment.
+const std::array<RawEntry, 14> &rawEntries()
+{
+    static const std::array<RawEntry, 14> kEntries = {{
+      // NETWORK (1000-1099)
+      {"NET_CONNECTION_FAILED", 1001, ErrorCategory::NETWORK, "上游连接失败",
+       "上游服务连接失败（NETWORK 类）"},
+      {"NET_TIMEOUT", 1002, ErrorCategory::NETWORK, "请求超时",
+       "上游服务请求超时（NETWORK 类）"},
+
+      // DATABASE (2000-2099)
+      {"DB_CONNECTION_ERROR", 2001, ErrorCategory::DATABASE, "服务暂时不可用",
+       "数据库连接失败（DATABASE 类）"},
+      {"DB_QUERY_ERROR", 2002, ErrorCategory::DATABASE, "服务暂时不可用",
+       "数据库查询执行失败（DATABASE 类）"},
+      {"DB_CONSTRAINT_VIOLATION", 2003, ErrorCategory::DATABASE, "数据冲突",
+       "数据库约束冲突（DATABASE 类）"},
+
+      // VALIDATION (3000-3099)
+      {"VALIDATION_INVALID_INPUT", 3001, ErrorCategory::VALIDATION, "输入参数有误",
+       "输入参数校验失败（VALIDATION 类）"},
+      {"VALIDATION_MISSING_REQUIRED_FIELD", 3002, ErrorCategory::VALIDATION, "缺少必填字段",
+       "缺少必填字段（VALIDATION 类）"},
+      {"VALIDATION_FORMAT_ERROR", 3003, ErrorCategory::VALIDATION, "格式不正确",
+       "字段格式不正确（VALIDATION 类）"},
+
+      // AUTHENTICATION (4000-4099)
+      {"AUTH_INVALID_CREDENTIALS", 4001, ErrorCategory::AUTHENTICATION, "用户名或密码错误",
+       "凭据无效（AUTHENTICATION 类）"},
+      {"AUTH_TOKEN_EXPIRED", 4002, ErrorCategory::AUTHENTICATION, "登录已过期",
+       "令牌已过期（AUTHENTICATION 类）"},
+      {"AUTH_TOKEN_INVALID", 4003, ErrorCategory::AUTHENTICATION, "登录凭证无效",
+       "令牌无效（AUTHENTICATION 类）"},
+
+      // AUTHORIZATION (5000-5099)
+      {"AUTHZ_ACCESS_DENIED", 5001, ErrorCategory::AUTHORIZATION, "没有访问权限",
+       "访问被拒绝（AUTHORIZATION 类）"},
+      {"AUTHZ_INSUFFICIENT_PERMISSIONS", 5002, ErrorCategory::AUTHORIZATION, "权限不足",
+       "权限不足（AUTHORIZATION 类）"},
+
+      // INTERNAL (6000-6099)
+      {"INTERNAL_ERROR", 6001, ErrorCategory::INTERNAL, "服务器内部错误",
+       "服务器内部错误（INTERNAL 类）"},
+    }};
+    return kEntries;
+}
+
+// OAuth2 protocol error codes (RFC 6749 §5.2 base set + RFC 7009/8628 codes).
+// httpStatus values are registered explicitly per their defining RFC.
+const std::array<OAuthCatalogEntry, 12> &rawOAuthEntries()
+{
+    static const std::array<OAuthCatalogEntry, 12> kEntries = {{
+      // RFC 6749 §5.2 token endpoint error codes.
+      {"invalid_request", 400, "请求参数缺失或无效", ""},
+      {"invalid_client", 401, "客户端认证失败", ""},
+      {"invalid_grant", 400, "授权许可无效或已过期", ""},
+      {"unauthorized_client", 400, "客户端无权使用该授权类型", ""},
+      {"unsupported_grant_type", 400, "不支持的授权类型", ""},
+      {"invalid_scope", 400, "请求的 scope 无效", ""},
+      {"server_error", 500, "服务器内部错误", ""},
+      {"temporarily_unavailable", 503, "服务暂时不可用", ""},
+
+      // RFC 7009 (token revocation) §2.2.1.
+      {"unsupported_token_type", 400, "不支持的令牌类型", ""},
+
+      // RFC 8628 (device authorization grant) §3.5 polling error codes.
+      {"authorization_pending", 400, "授权尚未完成，请稍后重试", ""},
+      {"slow_down", 400, "轮询过于频繁，请降低频率", ""},
+      {"expired_token", 400, "设备码已过期，请重新发起授权", ""},
+    }};
+    return kEntries;
+}
+
+const char *categoryName(ErrorCategory category)
+{
+    switch (category)
+    {
+        case ErrorCategory::NETWORK:
+            return "NETWORK";
+        case ErrorCategory::DATABASE:
+            return "DATABASE";
+        case ErrorCategory::VALIDATION:
+            return "VALIDATION";
+        case ErrorCategory::AUTHENTICATION:
+            return "AUTHENTICATION";
+        case ErrorCategory::AUTHORIZATION:
+            return "AUTHORIZATION";
+        case ErrorCategory::INTERNAL:
+            return "INTERNAL";
+        case ErrorCategory::UNKNOWN:
+            return "UNKNOWN";
+    }
+    return "UNKNOWN";
+}
+
+bool isKnownCategory(ErrorCategory category)
+{
+    switch (category)
+    {
+        case ErrorCategory::NETWORK:
+        case ErrorCategory::DATABASE:
+        case ErrorCategory::VALIDATION:
+        case ErrorCategory::AUTHENTICATION:
+        case ErrorCategory::AUTHORIZATION:
+        case ErrorCategory::INTERNAL:
+        case ErrorCategory::UNKNOWN:
+            return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+NumericSegment ErrorCatalog::segmentFor(ErrorCategory category)
+{
+    switch (category)
+    {
+        case ErrorCategory::NETWORK:
+            return {1000, 1099};
+        case ErrorCategory::DATABASE:
+            return {2000, 2099};
+        case ErrorCategory::VALIDATION:
+            return {3000, 3099};
+        case ErrorCategory::AUTHENTICATION:
+            return {4000, 4099};
+        case ErrorCategory::AUTHORIZATION:
+            return {5000, 5099};
+        case ErrorCategory::INTERNAL:
+            return {6000, 6099};
+        case ErrorCategory::UNKNOWN:
+        default:
+            // UNKNOWN owns no numeric segment; return an empty (min > max) range.
+            return {1, 0};
+    }
+}
+
+const std::vector<CatalogEntry> &ErrorCatalog::allEntries()
+{
+    static const std::vector<CatalogEntry> kEntries = [] {
+        std::vector<CatalogEntry> v;
+        const auto &raw = rawEntries();
+        v.reserve(raw.size());
+        for (const auto &r : raw)
+        {
+            v.push_back(CatalogEntry{
+              r.code,
+              r.numericCode,
+              r.category,
+              httpStatusFor(r.category, r.numericCode),
+              r.defaultMessage,
+              r.description,
+            });
+        }
+        return v;
+    }();
+    return kEntries;
+}
+
+const std::vector<OAuthCatalogEntry> &ErrorCatalog::allOAuthEntries()
+{
+    static const std::vector<OAuthCatalogEntry> kEntries = [] {
+        const auto &raw = rawOAuthEntries();
+        return std::vector<OAuthCatalogEntry>(raw.begin(), raw.end());
+    }();
+    return kEntries;
+}
+
+const CatalogEntry *ErrorCatalog::find(std::string_view code)
+{
+    for (const auto &e : allEntries())
+    {
+        if (e.code == code)
+        {
+            return &e;
+        }
+    }
+    return nullptr;
+}
+
+const CatalogEntry *ErrorCatalog::findByNumeric(int numericCode)
+{
+    for (const auto &e : allEntries())
+    {
+        if (e.numericCode == numericCode)
+        {
+            return &e;
+        }
+    }
+    return nullptr;
+}
+
+const OAuthCatalogEntry *ErrorCatalog::findOAuth(std::string_view error)
+{
+    for (const auto &e : allOAuthEntries())
+    {
+        if (e.error == error)
+        {
+            return &e;
+        }
+    }
+    return nullptr;
+}
+
+const CatalogEntry &ErrorCatalog::internalError()
+{
+    const CatalogEntry *entry = find("INTERNAL_ERROR");
+    if (entry == nullptr)
+    {
+        // INTERNAL_ERROR is a mandatory catalog entry; its absence is a build defect.
+        LOG_FATAL << "ErrorCatalog: mandatory entry INTERNAL_ERROR is missing";
+        std::abort();
+    }
+    return *entry;
+}
+
+void ErrorCatalog::validateInvariants()
+{
+    std::vector<std::string> violations;
+
+    const auto &entries = allEntries();
+
+    std::unordered_set<std::string_view> seenCodes;
+    std::unordered_set<int> seenNumeric;
+
+    for (const auto &e : entries)
+    {
+        const std::string codeStr(e.code);
+
+        // code: non-empty string, unique in catalog.
+        if (e.code.empty())
+        {
+            violations.push_back("entry has empty code");
+        }
+        else if (!seenCodes.insert(e.code).second)
+        {
+            violations.push_back("duplicate code: " + codeStr);
+        }
+
+        // category: member of the known enum set.
+        if (!isKnownCategory(e.category))
+        {
+            violations.push_back("entry '" + codeStr + "' has unknown category");
+        }
+
+        // numeric_code: unique and inside the owning category segment.
+        if (!seenNumeric.insert(e.numericCode).second)
+        {
+            violations.push_back("duplicate numeric_code " + std::to_string(e.numericCode) +
+                                 " (code " + codeStr + ")");
+        }
+        const NumericSegment seg = segmentFor(e.category);
+        if (e.numericCode < seg.min || e.numericCode > seg.max)
+        {
+            violations.push_back("numeric_code " + std::to_string(e.numericCode) + " for code '" +
+                                 codeStr + "' out of " + categoryName(e.category) + " segment [" +
+                                 std::to_string(seg.min) + "," + std::to_string(seg.max) + "]");
+        }
+
+        // httpStatus in [100, 599].
+        if (e.httpStatus < 100 || e.httpStatus > 599)
+        {
+            violations.push_back("httpStatus " + std::to_string(e.httpStatus) + " for code '" +
+                                 codeStr + "' out of range [100,599]");
+        }
+
+        // default Client_Safe_Message: non-empty.
+        if (e.defaultMessage.empty())
+        {
+            violations.push_back("empty default message for code '" + codeStr + "'");
+        }
+
+        // description: length 1..200.
+        if (e.description.empty() || e.description.size() > 200)
+        {
+            violations.push_back("description length out of [1,200] for code '" + codeStr + "'");
+        }
+    }
+
+    // OAuth2 protocol codes: each required code covered by exactly one entry,
+    // each entry well-formed (non-empty error code, non-empty default description,
+    // httpStatus in range), and no duplicates.
+    const auto &oauthEntries = allOAuthEntries();
+    std::unordered_map<std::string_view, int> oauthCounts;
+    for (const auto &o : oauthEntries)
+    {
+        const std::string errStr(o.error);
+        if (o.error.empty())
+        {
+            violations.push_back("oauth entry has empty error code");
+        }
+        if (o.defaultErrorDesc.empty())
+        {
+            violations.push_back("oauth entry '" + errStr + "' has empty default error_description");
+        }
+        if (o.httpStatus < 100 || o.httpStatus > 599)
+        {
+            violations.push_back("oauth entry '" + errStr + "' httpStatus " +
+                                 std::to_string(o.httpStatus) + " out of range [100,599]");
+        }
+        ++oauthCounts[o.error];
+    }
+
+    static constexpr std::array<std::string_view, 12> kRequiredOAuthCodes = {{
+      "invalid_request",
+      "invalid_client",
+      "invalid_grant",
+      "unauthorized_client",
+      "unsupported_grant_type",
+      "invalid_scope",
+      "server_error",
+      "temporarily_unavailable",
+      "unsupported_token_type",
+      "authorization_pending",
+      "slow_down",
+      "expired_token",
+    }};
+    for (const auto &required : kRequiredOAuthCodes)
+    {
+        const auto it = oauthCounts.find(required);
+        const int count = (it == oauthCounts.end()) ? 0 : it->second;
+        if (count != 1)
+        {
+            violations.push_back("oauth code '" + std::string(required) + "' must appear exactly once, found " +
+                                 std::to_string(count));
+        }
+    }
+
+    if (!violations.empty())
+    {
+        std::ostringstream oss;
+        oss << "ErrorCatalog::validateInvariants() failed with " << violations.size()
+            << " violation(s):";
+        for (const auto &v : violations)
+        {
+            oss << "\n  - " << v;
+        }
+        // Fail-fast: a defective catalog must not reach production.
+        LOG_FATAL << oss.str();
+        std::abort();
+    }
+}
+
+}  // namespace common::error

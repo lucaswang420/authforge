@@ -1,11 +1,29 @@
 #include "OrganizationController.h"
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <regex>
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct OrganizationControllerDocs
 {
     OrganizationControllerDocs()
@@ -73,13 +91,11 @@ void OrganizationController::list(
           json["total"] = static_cast<int>(r.size());
           (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
       },
-      [sharedCb](const drogon::orm::DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "server_error";
-          err["message"] = e.base().what();
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const drogon::orm::DrogonDbException &e) {
+          respondError(
+            req, sharedCb, "DB_QUERY_ERROR",
+            std::string("list organizations failed: ") + e.base().what()
+          );
       }
     );
 }
@@ -94,12 +110,7 @@ void OrganizationController::create(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "JSON body required";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "create org: JSON body required");
         return;
     }
 
@@ -113,23 +124,18 @@ void OrganizationController::create(
     std::regex slugPattern("^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$");
     if (!std::regex_match(slug, slugPattern))
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "slug must be 3-50 chars, lowercase alphanumeric + hyphens";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_FORMAT_ERROR",
+          "create org: slug must be 3-50 chars, lowercase alphanumeric + hyphens"
+        );
         return;
     }
 
     if (name.empty())
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "name is required";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "create org: name is required"
+        );
         return;
     }
 
@@ -151,13 +157,11 @@ void OrganizationController::create(
           resp->setStatusCode(k201Created);
           (*sharedCb)(resp);
       },
-      [sharedCb](const drogon::orm::DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "conflict";
-          err["error_description"] = "Organization slug already exists or DB error";
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k409Conflict);
-          (*sharedCb)(resp);
+      [sharedCb, req](const drogon::orm::DrogonDbException &e) {
+          respondError(
+            req, sharedCb, "DB_CONSTRAINT_VIOLATION",
+            std::string("create org: slug already exists or DB error: ") + e.base().what()
+          );
       },
       slug,
       name,
@@ -179,14 +183,12 @@ void OrganizationController::getBySlug(
     db->execSqlAsync(
       "SELECT id, slug, name, logo_uri, primary_color, issuer_override, created_at "
       "FROM organizations WHERE slug = $1",
-      [sharedCb](const drogon::orm::Result &r) {
+      [sharedCb, req](const drogon::orm::Result &r) {
           if (r.empty())
           {
-              Json::Value err;
-              err["error"] = "not_found";
-              auto resp = HttpResponse::newHttpJsonResponse(err);
-              resp->setStatusCode(k404NotFound);
-              (*sharedCb)(resp);
+              respondError(
+                req, sharedCb, "VALIDATION_INVALID_INPUT", "get org: organization not found"
+              );
               return;
           }
           auto row = r[0];
@@ -201,12 +203,11 @@ void OrganizationController::getBySlug(
             row["issuer_override"].isNull() ? "" : row["issuer_override"].as<std::string>();
           (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
       },
-      [sharedCb](const drogon::orm::DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const drogon::orm::DrogonDbException &e) {
+          respondError(
+            req, sharedCb, "DB_QUERY_ERROR",
+            std::string("get org failed: ") + e.base().what()
+          );
       },
       slug
     );

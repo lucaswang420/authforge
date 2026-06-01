@@ -5,6 +5,7 @@
 #include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -14,6 +15,23 @@ using namespace drogon::orm;
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct PasswordResetControllerDocs
 {
     PasswordResetControllerDocs()
@@ -49,6 +67,9 @@ void PasswordResetController::request(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
     // Extract email from request
     std::string email;
     if (req->contentType() == CT_APPLICATION_JSON)
@@ -64,19 +85,12 @@ void PasswordResetController::request(
 
     if (email.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "email is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "password-reset request: email is required");
         return;
     }
 
     // Always return 200 regardless of whether email exists (prevent enumeration)
-    auto sharedCb =
-      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
-
     auto db = app().getDbClient();
     db->execSqlAsync(
       "SELECT id, email FROM users WHERE email = $1",
@@ -129,6 +143,7 @@ void PasswordResetController::request(
                 (*sharedCb)(resp);
             },
             [sharedCb, json](const DrogonDbException &e) {
+                // Best-effort: still return the generic 200 message to prevent enumeration.
                 LOG_ERROR << "Failed to store reset token: " << e.base().what();
                 auto resp = HttpResponse::newHttpJsonResponse(json);
                 (*sharedCb)(resp);
@@ -139,6 +154,7 @@ void PasswordResetController::request(
           );
       },
       [sharedCb](const DrogonDbException &e) {
+          // Best-effort: still return the generic 200 message to prevent enumeration.
           LOG_ERROR << "Password reset lookup failed: " << e.base().what();
           Json::Value json;
           json["message"] = "If the email exists, a reset link has been sent";
@@ -154,6 +170,9 @@ void PasswordResetController::confirm(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
     // Extract token and new password
     std::string token, newPassword;
     if (req->contentType() == CT_APPLICATION_JSON)
@@ -173,28 +192,17 @@ void PasswordResetController::confirm(
 
     if (token.empty() || newPassword.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "token and new_password are required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "password-reset confirm: token and new_password are required");
         return;
     }
 
     if (newPassword.length() < 8)
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "Password must be at least 8 characters";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        respondError(req, sharedCb, "VALIDATION_FORMAT_ERROR",
+                     "password-reset confirm: password must be at least 8 characters");
         return;
     }
-
-    auto sharedCb =
-      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     // Hash the token and look up
     std::string tokenHash = oauth2::utils::hashToken(token);
@@ -213,12 +221,8 @@ void PasswordResetController::confirm(
       [sharedCb, newPassword, db, req](const Result &r) {
           if (r.empty())
           {
-              Json::Value error;
-              error["error"] = "invalid_grant";
-              error["error_description"] = "Token is invalid, expired, or already used";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k400BadRequest);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                           "password-reset confirm: token is invalid, expired, or already used");
               return;
           }
 
@@ -232,12 +236,8 @@ void PasswordResetController::confirm(
           }
           catch (const std::exception &e)
           {
-              LOG_ERROR << "Password hashing failed: " << e.what();
-              Json::Value error;
-              error["error"] = "server_error";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k500InternalServerError);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "INTERNAL_ERROR",
+                           std::string("Password hashing failed: ") + e.what());
               return;
           }
 
@@ -301,25 +301,17 @@ void PasswordResetController::confirm(
                   userIdStr
                 );
             },
-            [sharedCb](const DrogonDbException &e) {
-                LOG_ERROR << "Failed to update password: " << e.base().what();
-                Json::Value error;
-                error["error"] = "server_error";
-                auto resp = HttpResponse::newHttpJsonResponse(error);
-                resp->setStatusCode(k500InternalServerError);
-                (*sharedCb)(resp);
+            [sharedCb, req](const DrogonDbException &e) {
+                respondError(req, sharedCb, "DB_QUERY_ERROR",
+                             std::string("Failed to update password: ") + e.base().what());
             },
             newHash,
             userId
           );
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "Reset token lookup failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("Reset token lookup failed: ") + e.base().what());
       },
       tokenHash,
       now

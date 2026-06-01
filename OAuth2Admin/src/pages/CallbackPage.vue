@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { normalizeError } from '../services/errorAdapter'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -26,8 +27,9 @@ onMounted(async () => {
   try {
     await auth.handleCallback(code, state)
     router.replace('/')
-  } catch (e: any) {
-    error.value = e.message || 'Authentication failed'
+  } catch (e: unknown) {
+    // Display the localized message via the Frontend_Error_Module (Req 10.2/10.3).
+    error.value = normalizeError(e).message
   }
 })
 </script>

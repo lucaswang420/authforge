@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
 import { getAccessToken, getRefreshToken, clearTokens as httpClearTokens, tryRestoreSession } from '../services/http'
+import { normalizeError } from '../services/errorAdapter'
 import type { User, LoginResult } from '../types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -43,8 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
         await fetchUser()
       }
       return result
-    } catch (e: any) {
-      error.value = e.response?.data?.error_description || e.response?.data?.error || e.message || 'Login failed'
+    } catch (e: unknown) {
+      error.value = normalizeError(e).message
       return { error: error.value }
     } finally {
       loading.value = false
@@ -61,8 +62,8 @@ export const useAuthStore = defineStore('auth', () => {
         await fetchUser()
       }
       return result
-    } catch (e: any) {
-      error.value = e.response?.data?.error_description || 'Verification failed'
+    } catch (e: unknown) {
+      error.value = normalizeError(e).message
       return { error: error.value }
     } finally {
       loading.value = false

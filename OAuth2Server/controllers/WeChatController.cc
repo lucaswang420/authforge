@@ -1,6 +1,7 @@
 #include "WeChatController.h"
 #include <drogon/HttpClient.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 
 // TODO: REPLACE WITH YOUR REAL CREDENTIALS
 const std::string WECHAT_APPID_KEY = "appid";
@@ -15,6 +16,26 @@ std::string getWeChatConfig(const std::string &key)
     }
     return "";
 }
+
+namespace
+{
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const drogon::HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const drogon::HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const drogon::HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+}  // namespace
 
 // Register OpenAPI documentation (executed once at startup)
 namespace
@@ -115,10 +136,9 @@ void WeChatController::login(
 
     if (code.empty())
     {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k400BadRequest);
-        resp->setBody("Missing code parameter");
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
+          "wechat login: missing code parameter");
         return;
     }
 
@@ -137,23 +157,19 @@ void WeChatController::login(
       std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     client->sendRequest(
-      request, [callbackPtr, client](ReqResult result, const HttpResponsePtr &response) {
+      request, [callbackPtr, client, req](ReqResult result, const HttpResponsePtr &response) {
           if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
           {
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k502BadGateway);
-              resp->setBody("Failed to contact WeChat API");
-              (*callbackPtr)(resp);
+              respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                           "wechat login: failed to contact WeChat API");
               return;
           }
 
           auto json = *response->getJsonObject();
           if (json.isMember("errcode") && json["errcode"].asInt() != 0)
           {
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k400BadRequest);
-              resp->setBody("WeChat Error: " + json["errmsg"].asString());
-              (*callbackPtr)(resp);
+              respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT",
+                           "wechat login: WeChat error: " + json["errmsg"].asString());
               return;
           }
 
@@ -167,13 +183,11 @@ void WeChatController::login(
           auto req2 = HttpRequest::newHttpRequest();
           req2->setPath("/sns/userinfo?access_token=" + accessToken + "&openid=" + openid);
 
-          client2->sendRequest(req2, [callbackPtr](ReqResult res2, const HttpResponsePtr &resp2) {
+          client2->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
               if (res2 != ReqResult::Ok || !resp2)
               {
-                  auto errResp = HttpResponse::newHttpResponse();
-                  errResp->setStatusCode(k502BadGateway);
-                  errResp->setBody("Failed to fetch WeChat UserInfo");
-                  (*callbackPtr)(errResp);
+                  respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                               "wechat login: failed to fetch WeChat UserInfo");
                   return;
               }
 

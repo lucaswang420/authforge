@@ -3,6 +3,7 @@
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -11,6 +12,24 @@ using namespace drogon::orm;
 
 namespace
 {
+// Forward an ErrorResponder-built response through a shared callback. Application
+// errors are emitted exclusively via the unified ErrorResponder entry point so
+// every body is an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct UserSelfServiceControllerDocs
 {
     UserSelfServiceControllerDocs()
@@ -81,15 +100,10 @@ void UserSelfServiceController::getProfile(
         db->execSqlAsync(
           "SELECT username, email, email_verified, mfa_enabled "
           "FROM users WHERE public_sub::text = $1::text",
-          [sharedCb](const Result &result) {
+          [sharedCb, req](const Result &result) {
               if (result.empty())
               {
-                  Json::Value error;
-                  error["error"] = "not_found";
-                  error["error_description"] = "User not found";
-                  auto resp = HttpResponse::newHttpJsonResponse(error);
-                  resp->setStatusCode(k404NotFound);
-                  (*sharedCb)(resp);
+                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "getProfile: user not found");
                   return;
               }
 
@@ -104,26 +118,16 @@ void UserSelfServiceController::getProfile(
               auto resp = HttpResponse::newHttpJsonResponse(json);
               (*sharedCb)(resp);
           },
-          [sharedCb](const DrogonDbException &e) {
-              LOG_ERROR << "getProfile failed: " << e.base().what();
-              Json::Value error;
-              error["error"] = "server_error";
-              error["error_description"] = "Failed to fetch user profile";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k500InternalServerError);
-              (*sharedCb)(resp);
+          [sharedCb, req](const DrogonDbException &e) {
+              respondError(req, sharedCb, "DB_QUERY_ERROR",
+                           std::string("getProfile failed: ") + e.base().what());
           },
           userId
         );
     }
     catch (...)
     {
-        Json::Value error;
-        error["error"] = "server_error";
-        error["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "getProfile: database unavailable");
     }
 }
 
@@ -140,12 +144,7 @@ void UserSelfServiceController::changePassword(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "JSON body is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "changePassword: JSON body is required");
         return;
     }
 
@@ -154,23 +153,15 @@ void UserSelfServiceController::changePassword(
 
     if (oldPassword.empty() || newPassword.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "old_password and new_password are required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "changePassword: old_password and new_password are required");
         return;
     }
 
     if (newPassword.length() < 8)
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "New password must be at least 8 characters";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_FORMAT_ERROR",
+                     "changePassword: new password must be at least 8 characters");
         return;
     }
 
@@ -182,12 +173,7 @@ void UserSelfServiceController::changePassword(
           [sharedCb, oldPassword, newPassword, userId, req](const Result &result) {
               if (result.empty())
               {
-                  Json::Value error;
-                  error["error"] = "not_found";
-                  error["error_description"] = "User not found";
-                  auto resp = HttpResponse::newHttpJsonResponse(error);
-                  resp->setStatusCode(k404NotFound);
-                  (*sharedCb)(resp);
+                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "changePassword: user not found");
                   return;
               }
 
@@ -201,12 +187,8 @@ void UserSelfServiceController::changePassword(
                   oauth2::observability::AuditLogger::log(
                     "password_change_failed", "failure", req, userId, "user", userId
                   );
-                  Json::Value error;
-                  error["error"] = "invalid_credentials";
-                  error["error_description"] = "Current password is incorrect";
-                  auto resp = HttpResponse::newHttpJsonResponse(error);
-                  resp->setStatusCode(k401Unauthorized);
-                  (*sharedCb)(resp);
+                  respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
+                               "changePassword: current password is incorrect");
                   return;
               }
 
@@ -218,12 +200,8 @@ void UserSelfServiceController::changePassword(
               }
               catch (const std::exception &e)
               {
-                  LOG_ERROR << "Password hashing failed: " << e.what();
-                  Json::Value error;
-                  error["error"] = "server_error";
-                  auto resp = HttpResponse::newHttpJsonResponse(error);
-                  resp->setStatusCode(k500InternalServerError);
-                  (*sharedCb)(resp);
+                  respondError(req, sharedCb, "INTERNAL_ERROR",
+                               std::string("Password hashing failed: ") + e.what());
                   return;
               }
 
@@ -291,39 +269,24 @@ void UserSelfServiceController::changePassword(
                       userId
                     );
                 },
-                [sharedCb](const DrogonDbException &e) {
-                    LOG_ERROR << "Password update failed: " << e.base().what();
-                    Json::Value error;
-                    error["error"] = "server_error";
-                    error["error_description"] = "Failed to update password";
-                    auto resp = HttpResponse::newHttpJsonResponse(error);
-                    resp->setStatusCode(k500InternalServerError);
-                    (*sharedCb)(resp);
+                [sharedCb, req](const DrogonDbException &e) {
+                    respondError(req, sharedCb, "DB_QUERY_ERROR",
+                                 std::string("Password update failed: ") + e.base().what());
                 },
                 newHash,
                 userId
               );
           },
-          [sharedCb](const DrogonDbException &e) {
-              LOG_ERROR << "changePassword lookup failed: " << e.base().what();
-              Json::Value error;
-              error["error"] = "server_error";
-              error["error_description"] = "Failed to verify credentials";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k500InternalServerError);
-              (*sharedCb)(resp);
+          [sharedCb, req](const DrogonDbException &e) {
+              respondError(req, sharedCb, "DB_QUERY_ERROR",
+                           std::string("changePassword lookup failed: ") + e.base().what());
           },
           userId
         );
     }
     catch (...)
     {
-        Json::Value error;
-        error["error"] = "server_error";
-        error["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "changePassword: database unavailable");
     }
 }
 
@@ -362,26 +325,16 @@ void UserSelfServiceController::listAuthorizedApps(
               auto resp = HttpResponse::newHttpJsonResponse(json);
               (*sharedCb)(resp);
           },
-          [sharedCb](const DrogonDbException &e) {
-              LOG_ERROR << "listAuthorizedApps failed: " << e.base().what();
-              Json::Value error;
-              error["error"] = "server_error";
-              error["error_description"] = "Failed to fetch authorized apps";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k500InternalServerError);
-              (*sharedCb)(resp);
+          [sharedCb, req](const DrogonDbException &e) {
+              respondError(req, sharedCb, "DB_QUERY_ERROR",
+                           std::string("listAuthorizedApps failed: ") + e.base().what());
           },
           userId
         );
     }
     catch (...)
     {
-        Json::Value error;
-        error["error"] = "server_error";
-        error["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "listAuthorizedApps: database unavailable");
     }
 }
 
@@ -397,12 +350,8 @@ void UserSelfServiceController::revokeAuthorizedApp(
 
     if (clientId.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "clientId is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "revokeAuthorizedApp: clientId is required");
         return;
     }
 
@@ -416,12 +365,8 @@ void UserSelfServiceController::revokeAuthorizedApp(
           [sharedCb, userId, clientId, req, db](const Result &result) {
               if (result.empty())
               {
-                  Json::Value error;
-                  error["error"] = "not_found";
-                  error["error_description"] = "User not found";
-                  auto resp = HttpResponse::newHttpJsonResponse(error);
-                  resp->setStatusCode(k404NotFound);
-                  (*sharedCb)(resp);
+                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                               "revokeAuthorizedApp: user not found");
                   return;
               }
 
@@ -461,39 +406,27 @@ void UserSelfServiceController::revokeAuthorizedApp(
                       clientId
                     );
                 },
-                [sharedCb](const DrogonDbException &e) {
-                    LOG_ERROR << "revokeAuthorizedApp consent delete failed: " << e.base().what();
-                    Json::Value error;
-                    error["error"] = "server_error";
-                    error["error_description"] = "Failed to revoke authorization";
-                    auto resp = HttpResponse::newHttpJsonResponse(error);
-                    resp->setStatusCode(k500InternalServerError);
-                    (*sharedCb)(resp);
+                [sharedCb, req](const DrogonDbException &e) {
+                    respondError(req, sharedCb, "DB_QUERY_ERROR",
+                                 std::string("revokeAuthorizedApp consent delete failed: ") +
+                                   e.base().what());
                 },
                 internalUserId,
                 clientId
               );
           },
-          [sharedCb](const DrogonDbException &e) {
-              LOG_ERROR << "revokeAuthorizedApp user lookup failed: " << e.base().what();
-              Json::Value error;
-              error["error"] = "server_error";
-              error["error_description"] = "Failed to revoke authorization";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k500InternalServerError);
-              (*sharedCb)(resp);
+          [sharedCb, req](const DrogonDbException &e) {
+              respondError(req, sharedCb, "DB_QUERY_ERROR",
+                           std::string("revokeAuthorizedApp user lookup failed: ") +
+                             e.base().what());
           },
           userId
         );
     }
     catch (...)
     {
-        Json::Value error;
-        error["error"] = "server_error";
-        error["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR",
+                     "revokeAuthorizedApp: database unavailable");
     }
 }
 
@@ -533,12 +466,8 @@ void UserSelfServiceController::deleteAccount(
                       [sharedCb, userId, req](const Result &result) {
                           if (result.affectedRows() == 0)
                           {
-                              Json::Value error;
-                              error["error"] = "not_found";
-                              error["error_description"] = "User not found";
-                              auto resp = HttpResponse::newHttpJsonResponse(error);
-                              resp->setStatusCode(k404NotFound);
-                              (*sharedCb)(resp);
+                              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                                           "deleteAccount: user not found");
                               return;
                           }
 
@@ -550,14 +479,10 @@ void UserSelfServiceController::deleteAccount(
                           auto resp = HttpResponse::newHttpJsonResponse(json);
                           (*sharedCb)(resp);
                       },
-                      [sharedCb](const DrogonDbException &e) {
-                          LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
-                          Json::Value error;
-                          error["error"] = "server_error";
-                          error["error_description"] = "Failed to delete account";
-                          auto resp = HttpResponse::newHttpJsonResponse(error);
-                          resp->setStatusCode(k500InternalServerError);
-                          (*sharedCb)(resp);
+                      [sharedCb, req](const DrogonDbException &e) {
+                          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                                       std::string("deleteAccount user update failed: ") +
+                                         e.base().what());
                       },
                       anonUsername,
                       userId
@@ -585,14 +510,10 @@ void UserSelfServiceController::deleteAccount(
                           auto resp = HttpResponse::newHttpJsonResponse(json);
                           (*sharedCb)(resp);
                       },
-                      [sharedCb](const DrogonDbException &e) {
-                          LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
-                          Json::Value error;
-                          error["error"] = "server_error";
-                          error["error_description"] = "Failed to delete account";
-                          auto resp = HttpResponse::newHttpJsonResponse(error);
-                          resp->setStatusCode(k500InternalServerError);
-                          (*sharedCb)(resp);
+                      [sharedCb, req](const DrogonDbException &e) {
+                          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                                       std::string("deleteAccount user update failed: ") +
+                                         e.base().what());
                       },
                       anonUsername,
                       userId
@@ -623,14 +544,10 @@ void UserSelfServiceController::deleteAccount(
                     auto resp = HttpResponse::newHttpJsonResponse(json);
                     (*sharedCb)(resp);
                 },
-                [sharedCb](const DrogonDbException &e) {
-                    LOG_ERROR << "deleteAccount user update failed: " << e.base().what();
-                    Json::Value error;
-                    error["error"] = "server_error";
-                    error["error_description"] = "Failed to delete account";
-                    auto resp = HttpResponse::newHttpJsonResponse(error);
-                    resp->setStatusCode(k500InternalServerError);
-                    (*sharedCb)(resp);
+                [sharedCb, req](const DrogonDbException &e) {
+                    respondError(req, sharedCb, "DB_QUERY_ERROR",
+                                 std::string("deleteAccount user update failed: ") +
+                                   e.base().what());
                 },
                 anonUsername,
                 userId
@@ -641,14 +558,6 @@ void UserSelfServiceController::deleteAccount(
     }
     catch (...)
     {
-        Json::Value error;
-        error["error"] = "server_error";
-        error["error_description"] = "Database unavailable";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k500InternalServerError);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "deleteAccount: database unavailable");
     }
 }
-
-
-

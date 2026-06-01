@@ -2,6 +2,7 @@
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/observability/AuditLogger.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <chrono>
@@ -11,6 +12,23 @@ using namespace drogon::orm;
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct WebAuthnControllerDocs
 {
     WebAuthnControllerDocs()
@@ -150,12 +168,8 @@ void WebAuthnController::registerFinish(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "JSON body with credential response required";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                     "registerFinish: JSON body with credential response required");
         return;
     }
 
@@ -172,12 +186,8 @@ void WebAuthnController::registerFinish(
 
     if (credentialId.empty() || publicKey.empty())
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "credential_id and public_key are required";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "registerFinish: credential_id and public_key are required");
         return;
     }
 
@@ -197,13 +207,10 @@ void WebAuthnController::registerFinish(
           resp->setStatusCode(k201Created);
           (*sharedCb)(resp);
       },
-      [sharedCb](const DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "server_error";
-          err["error_description"] = "Failed to store credential";
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("registerFinish: failed to store credential: ") +
+                         e.base().what());
       },
       userId,
       credentialId,
@@ -252,23 +259,16 @@ void WebAuthnController::authenticateFinish(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                     "authenticateFinish: JSON body is required");
         return;
     }
 
     std::string credentialId = (*jsonBody).get("credential_id", "").asString();
     if (credentialId.empty())
     {
-        Json::Value err;
-        err["error"] = "invalid_request";
-        err["error_description"] = "credential_id is required";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        (*sharedCb)(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "authenticateFinish: credential_id is required");
         return;
     }
 
@@ -283,12 +283,8 @@ void WebAuthnController::authenticateFinish(
       [sharedCb, credentialId, db, req](const Result &r) {
           if (r.empty())
           {
-              Json::Value err;
-              err["error"] = "invalid_credential";
-              err["error_description"] = "Credential not found";
-              auto resp = HttpResponse::newHttpJsonResponse(err);
-              resp->setStatusCode(k401Unauthorized);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
+                           "authenticateFinish: credential not found");
               return;
           }
 
@@ -318,12 +314,9 @@ void WebAuthnController::authenticateFinish(
           auto resp = HttpResponse::newHttpJsonResponse(json);
           (*sharedCb)(resp);
       },
-      [sharedCb](const DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("authenticateFinish: lookup failed: ") + e.base().what());
       },
       credentialId
     );
@@ -359,12 +352,9 @@ void WebAuthnController::listCredentials(
           json["total"] = static_cast<int>(r.size());
           (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
       },
-      [sharedCb](const DrogonDbException &e) {
-          Json::Value err;
-          err["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(err);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("listCredentials: query failed: ") + e.base().what());
       },
       userId
     );

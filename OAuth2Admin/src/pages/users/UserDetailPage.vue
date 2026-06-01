@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,8 +39,8 @@ async function fetchUser() {
     editEmail.value = resp.data.email || ''
     editEmailVerified.value = resp.data.email_verified || false
     selectedRoles.value = (resp.data.roles || []).filter((r: any) => typeof r === 'string')
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to fetch user')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -62,8 +63,8 @@ async function saveInfo() {
     await axios.put(`/api/admin/users/${userId.value}`, body, { headers: { 'Content-Type': 'application/json' } })
     showSuccess('User updated successfully')
     await fetchUser()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to update user')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -76,8 +77,8 @@ async function saveRoles() {
     showSuccess('Roles updated successfully')
     // Refresh user data in background without clearing success message
     fetchUser().catch(() => {})
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to update roles')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -89,8 +90,8 @@ async function disableUser() {
     await axios.put(`/api/admin/users/${userId.value}/disable`)
     showSuccess('User disabled')
     await fetchUser()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to disable user')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 
@@ -99,8 +100,8 @@ async function enableUser() {
     await axios.post(`/api/admin/users/${userId.value}/enable`)
     showSuccess('User enabled')
     await fetchUser()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to enable user')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 

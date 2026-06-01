@@ -43,6 +43,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # --- Frontend error-mapping property tests (Requirement 12.5) ---
+      # Release-readiness gate for the shared Frontend_Error_Module: pure
+      # vitest + fast-check property tests (errorAdapter / message catalog /
+      # cross-app consistency). These tests need no database or Redis, so they
+      # run regardless of DB availability and gate the pipeline early. Any
+      # failure fails the release-readiness check (Requirement 12.7).
+      - name: Set up Node.js (frontend property tests)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Frontend Error-Mapping Property Tests (Req 12.5)
+        working-directory: ${{github.workspace}}/OAuth2Frontend
+        run: |
+          echo "=== OAuth2Frontend: error-mapping property tests (Property 11/12/13/14) ==="
+          npm ci
+          npm run test:unit
+
+      - name: Run Admin Error-Mapping Property Tests (Req 12.5)
+        working-directory: ${{github.workspace}}/OAuth2Admin
+        run: |
+          echo "=== OAuth2Admin: error-mapping property tests (shared errorAdapter source) ==="
+          npm ci
+          npm run test:unit
+
       - name: Install Drogon dependencies
         run: |
           sudo apt-get update
@@ -146,6 +171,58 @@ jobs:
           OAUTH2_DB_HOST: "127.0.0.1"
           OAUTH2_REDIS_HOST: "127.0.0.1"
         run: ctest -V -C ${{env.BUILD_TYPE}} --output-on-failure --timeout 120
+
+      # --- Error-Standardization release-readiness gate (Requirement 12.7) ---
+      # Explicit, attributable gate over the error-code/message-standardization
+      # backend suite. The ctest step above already runs the whole binary, but
+      # per Requirement 12.7 these headline tests are named individually so a
+      # failure is directly attributable to the gated requirement:
+      #   - Property 5 / Req 12.2-ish catalog completeness & uniqueness
+      #   - Property 4 / Req 12.2 HTTP status <-> catalog/category consistency
+      #   - Property 3 / Req 12.3 Error Envelope serialization round-trip
+      #   - Property 1/2/7/8 Error Envelope structural & numeric_code invariants
+      #   - Property 6 / Req 12.4 production-mode safety isolation (see note below)
+      #   - Property 9 RFC 6749 protocol compliance
+      #   - Property 10 Request_ID resolution/generation
+      #   - Integration_ApplicationEndpoint_* / Req 12.6 endpoint envelope enumeration
+      #   - Unit_P0_ErrorCatalogDoc_* / Req 12.1 doc<->catalog consistency
+      #
+      # NOTE (Req 12.4, dev/staging/prod): Property6_ErrorEnvelope_ProductionModeSafetyIsolation
+      # forces Production_Mode internally via an ErrorContext override, so it is
+      # config-independent BY CONSTRUCTION and asserts the no-leak guarantee under
+      # every environment configuration. It is therefore run here explicitly in
+      # addition to executing as part of the full binary above.
+      - name: Run Error-Standardization Backend Tests (Req 12.2/12.3/12.4/12.6/12.1)
+        working-directory: ${{github.workspace}}/build/OAuth2Server/test
+        env:
+          OAUTH2_REDIS_PASSWORD: ""
+          OAUTH2_DB_HOST: "127.0.0.1"
+          OAUTH2_REDIS_HOST: "127.0.0.1"
+        run: |
+          echo "=== Error-Standardization: property + consistency tests (Req 12.2/12.3) ==="
+          ./OAuth2Test_test -r Property5_ErrorCatalog_EveryEntrySatisfiesInvariants
+          ./OAuth2Test_test -r Property5_ErrorCatalog_CodeAndNumericCodeUnique
+          ./OAuth2Test_test -r Property5_ErrorCatalog_OAuthAllowedSetCoveredExactlyOnce
+          ./OAuth2Test_test -r Property4_HttpStatus_RuntimeEqualsCatalogRegisteredValue
+          ./OAuth2Test_test -r Property4_HttpStatus_CatalogValueMatchesCategoryMapping
+          ./OAuth2Test_test -r Property4_HttpStatus_SameCategoryConsistency
+          ./OAuth2Test_test -r Property3_ErrorEnvelope_SerializationRoundTrip
+          ./OAuth2Test_test -r Property1_ErrorEnvelope_StructuralInvariants
+          ./OAuth2Test_test -r Property2_ErrorEnvelope_NumericCodeCorrectnessAndOmission
+          ./OAuth2Test_test -r Property7_ErrorEnvelope_NonProductionDiagnosticDetails
+          ./OAuth2Test_test -r Property8_ErrorEnvelope_UnmappedExceptionInternalFallback
+          ./OAuth2Test_test -r Property9_OAuth2Error_Rfc6749Compliance
+          ./OAuth2Test_test -r Property10_RequestId_ResolveAndGenerate
+          echo "=== Error-Standardization: security safety isolation (Property 6 / Req 12.4, dev/staging/prod) ==="
+          # Config-independent by construction (forces Production_Mode via ErrorContext override).
+          ./OAuth2Test_test -r Property6_ErrorEnvelope_ProductionModeSafetyIsolation
+          echo "=== Error-Standardization: Application_Endpoint envelope enumeration (Req 12.6) ==="
+          ./OAuth2Test_test -r Integration_ApplicationEndpoint_AllCatalogCodes_BuildResponse_AreEnvelopes
+          ./OAuth2Test_test -r Integration_ApplicationEndpoint_ResponderEntries_AreEnvelopes
+          ./OAuth2Test_test -r Integration_ApplicationEndpoint_UnregisteredCode_FallsBackToEnvelope
+          echo "=== Error-Standardization: catalog<->doc consistency (Req 12.1) ==="
+          ./OAuth2Test_test -r Unit_P0_ErrorCatalogDoc_ApplicationTableMatchesCatalog
+          ./OAuth2Test_test -r Unit_P0_ErrorCatalogDoc_OAuthTableMatchesCatalog
 
       - name: Run Performance Benchmarks
         working-directory: ${{github.workspace}}/build/OAuth2Server/test
