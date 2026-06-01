@@ -1,8 +1,8 @@
 # Drogon OAuth2.0 Provider — 全栈授权服务器
 
-![Linux CI](https://github.com/lucaswang420/OAuth2-plugin-example/workflows/ci-linux.yml/badge.svg)
-![Windows CI](https://github.com/lucaswang420/OAuth2-plugin-example/workflows/ci-windows.yml/badge.svg)
-![macOS CI](https://github.com/lucaswang420/OAuth2-plugin-example/workflows/ci-macos.yml/badge.svg)
+![Linux CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-linux.yml/badge.svg)
+![Windows CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-windows.yml/badge.svg)
+![macOS CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-macos.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 生产级 OAuth2.0/OIDC 授权服务器，完整支持 RFC 6749、RFC 7662、RFC 7009、RFC 8414 标准。包含管理后台、前端客户端和完整的测试体系。
