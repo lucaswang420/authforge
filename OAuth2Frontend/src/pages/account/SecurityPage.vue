@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import http from '../../services/http'
+import { normalizeError } from '../../services/errorAdapter'
 
 const loading = ref(true)
 const profile = ref<any>(null)
@@ -39,8 +40,8 @@ async function changePassword() {
     await http.put('/api/me/password', { old_password: oldPassword.value, new_password: newPassword.value }, { headers: { 'Content-Type': 'application/json' } })
     showSuccess('Password changed successfully')
     oldPassword.value = ''; newPassword.value = ''; confirmNewPassword.value = ''
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to change password')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally { changingPassword.value = false }
 }
 
@@ -49,8 +50,8 @@ async function setupMfa() {
   try {
     const resp = await http.post('/api/me/mfa/setup')
     mfaSetupData.value = resp.data
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to start MFA setup')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
     settingUpMfa.value = false
   }
 }
@@ -63,8 +64,8 @@ async function verifyMfaSetup() {
     settingUpMfa.value = false
     mfaVerifyCode.value = ''
     await fetchProfile()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Invalid code')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 
@@ -76,8 +77,8 @@ async function disableMfa() {
     showSuccess('MFA disabled')
     disablePassword.value = ''
     await fetchProfile()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to disable MFA')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally { disablingMfa.value = false }
 }
 
@@ -139,7 +140,7 @@ async function registerPasskey() {
     if (e.name === 'NotAllowedError') {
       showError('Passkey registration was cancelled or timed out')
     } else {
-      showError(e.response?.data?.message || e.message || 'Failed to register passkey')
+      showError(normalizeError(e).message)
     }
   } finally { registeringPasskey.value = false }
 }
@@ -157,8 +158,8 @@ async function deleteAccount() {
     // Clear session and redirect to login
     localStorage.clear()
     window.location.href = '/login'
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to delete account')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally { deletingAccount.value = false }
 }
 

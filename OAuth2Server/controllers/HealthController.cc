@@ -111,10 +111,17 @@ void HealthController::healthReady(
               }
           },
           [sharedCb](const drogon::orm::DrogonDbException &e) {
+              // Readiness probe contract: report DB unavailability as a health
+              // status body with HTTP 503 (consumed by orchestration/monitoring
+              // systems). This is NOT an Application error response, so it stays
+              // a health-status body rather than an Error Envelope, and the HTTP
+              // status code is preserved (Requirement 11.4). The raw exception
+              // text is an Internal_Detail and is logged server-side only, never
+              // surfaced to the client (Requirement 5.3).
+              LOG_ERROR << "Readiness probe DB check failed: " << e.base().what();
               Json::Value json;
               json["status"] = "unhealthy";
               json["database"] = "disconnected";
-              json["error"] = e.base().what();
               auto resp = HttpResponse::newHttpJsonResponse(json);
               resp->setStatusCode(k503ServiceUnavailable);
               (*sharedCb)(resp);

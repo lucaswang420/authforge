@@ -114,6 +114,24 @@ elseif(APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 endif()
 
+# Repo-root documentation path for the ErrorCatalog doc validator test (task 11.1).
+# The committed "通用错误码" section of docs/backend/api-reference.md is validated
+# against ErrorCatalog::allEntries()/allOAuthEntries() at test time. The test runs
+# from the test executable directory, so the absolute source path is injected here
+# (CMake normalizes the path with forward slashes, usable by std::ifstream on all
+# platforms). Defined as an absolute path derived from this CMakeLists location.
+get_filename_component(OAUTH2_REPO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    "OAUTH2_DOC_API_REFERENCE=\"${OAUTH2_REPO_ROOT_DIR}/docs/backend/api-reference.md\"")
+
+# Repo-source golden-snapshot directory for the success-response / route-manifest
+# regression test (task 12.4). The committed golden files under
+# OAuth2Server/test/integration/error/golden/ are read (and self-seeded on first
+# run) at test time. Like OAUTH2_DOC_API_REFERENCE above, the test runs from the
+# test executable directory, so the absolute source path is injected here.
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    "OAUTH2_GOLDEN_DIR=\"${OAUTH2_REPO_ROOT_DIR}/OAuth2Server/test/integration/error/golden\"")
+
 # Coverage support
 if(OAUTH2_TEST_COVERAGE)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

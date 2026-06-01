@@ -1,0 +1,2 @@
+GET /health 200 {database:string, service:string, status:string, storage_type:string, timestamp:int}
+GET /health/live 200 {status:string}

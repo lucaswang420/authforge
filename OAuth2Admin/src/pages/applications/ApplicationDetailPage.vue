@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,8 +59,8 @@ async function fetchClient() {
       ? resp.data.allowed_grant_types.split(',').filter((s: string) => s)
       : []
     clientScopes.value = resp.data.scopes || []
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to fetch client details')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -101,8 +102,8 @@ async function saveChanges() {
     })
     showSuccess('Changes saved successfully')
     await fetchClient()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to save changes')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -118,8 +119,8 @@ async function saveScopes() {
     })
     clientScopes.value = resp.data.scopes || clientScopes.value
     showSuccess('Scopes updated successfully')
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to update scopes')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     savingScopes.value = false
   }
@@ -131,8 +132,8 @@ async function resetSecret() {
     const resp = await axios.post(`/api/admin/clients/${clientId.value}/reset-secret`)
     newClientSecret.value = resp.data.client_secret || ''
     showSecretModal.value = true
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to reset secret')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 

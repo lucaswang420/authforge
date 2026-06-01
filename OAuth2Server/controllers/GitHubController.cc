@@ -4,6 +4,7 @@
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/error/ErrorResponder.h>
 
 static std::string getGitHubConfig(const std::string &key)
 {
@@ -14,6 +15,26 @@ static std::string getGitHubConfig(const std::string &key)
     }
     return "";
 }
+
+namespace
+{
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const drogon::HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const drogon::HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const drogon::HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+}  // namespace
 
 namespace
 {
@@ -74,11 +95,9 @@ void GitHubController::login(
 
     if (code.empty())
     {
-        Json::Value err;
-        err["error"] = "Missing code parameter";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
+          "github login: missing code parameter");
         return;
     }
 
@@ -87,11 +106,9 @@ void GitHubController::login(
 
     if (clientId.empty() || clientSecret.empty())
     {
-        Json::Value err;
-        err["error"] = "GitHub OAuth not configured";
-        auto resp = HttpResponse::newHttpJsonResponse(err);
-        resp->setStatusCode(k500InternalServerError);
-        callback(resp);
+        common::error::ErrorResponder::respond(
+          req, std::move(callback), "INTERNAL_ERROR",
+          "github login: GitHub OAuth not configured");
         return;
     }
 
@@ -108,27 +125,21 @@ void GitHubController::login(
     auto callbackPtr =
       std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
-    client->sendRequest(request, [callbackPtr](ReqResult result, const HttpResponsePtr &response) {
+    client->sendRequest(request, [callbackPtr, req](ReqResult result, const HttpResponsePtr &response) {
         if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
         {
-            Json::Value err;
-            err["error"] = "Failed to contact GitHub Token API";
-            auto resp = HttpResponse::newHttpJsonResponse(err);
-            resp->setStatusCode(k502BadGateway);
-            (*callbackPtr)(resp);
+            respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                         "github login: failed to contact GitHub Token API");
             return;
         }
 
         auto json = response->getJsonObject();
         if (!json || !json->isMember("access_token"))
         {
-            Json::Value err;
-            err["error"] = "GitHub returned invalid token response";
+            std::string detail = "github login: GitHub returned invalid token response";
             if (json && json->isMember("error_description"))
-                err["detail"] = (*json)["error_description"].asString();
-            auto resp = HttpResponse::newHttpJsonResponse(err);
-            resp->setStatusCode(k400BadRequest);
-            (*callbackPtr)(resp);
+                detail += ": " + (*json)["error_description"].asString();
+            respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT", detail);
             return;
         }
 
@@ -143,14 +154,11 @@ void GitHubController::login(
         userReq->addHeader("Accept", "application/json");
 
         apiClient
-          ->sendRequest(userReq, [callbackPtr](ReqResult res2, const HttpResponsePtr &resp2) {
+          ->sendRequest(userReq, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
               if (res2 != ReqResult::Ok || !resp2 || resp2->getStatusCode() != k200OK)
               {
-                  Json::Value err;
-                  err["error"] = "Failed to fetch GitHub user info";
-                  auto resp = HttpResponse::newHttpJsonResponse(err);
-                  resp->setStatusCode(k502BadGateway);
-                  (*callbackPtr)(resp);
+                  respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
+                               "github login: failed to fetch GitHub user info");
                   return;
               }
 
@@ -161,11 +169,8 @@ void GitHubController::login(
 
               if (githubLogin.empty())
               {
-                  Json::Value err;
-                  err["error"] = "GitHub returned no user login";
-                  auto resp = HttpResponse::newHttpJsonResponse(err);
-                  resp->setStatusCode(k400BadRequest);
-                  (*callbackPtr)(resp);
+                  respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT",
+                               "github login: GitHub returned no user login");
                   return;
               }
 
@@ -178,19 +183,16 @@ void GitHubController::login(
               db->execSqlAsync(
                 "SELECT internal_user_id FROM oauth2_subject_mappings "
                 "WHERE provider = $1 AND subject = $2",
-                [callbackPtr, db, githubLogin, githubEmail, provider, subject](
+                [callbackPtr, db, githubLogin, githubEmail, provider, subject, req](
                   const drogon::orm::Result &mappingResult
                 ) {
-                    auto issueTokens = [callbackPtr](int userId, const std::string &username) {
+                    auto issueTokens = [callbackPtr, req](int userId, const std::string &username) {
                         // Issue access_token and refresh_token
                         auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
                         if (!plugin)
                         {
-                            Json::Value err;
-                            err["error"] = "OAuth2Plugin not available";
-                            auto resp = HttpResponse::newHttpJsonResponse(err);
-                            resp->setStatusCode(k500InternalServerError);
-                            (*callbackPtr)(resp);
+                            respondError(req, callbackPtr, "INTERNAL_ERROR",
+                                         "github login: OAuth2Plugin not available");
                             return;
                         }
 
@@ -205,7 +207,7 @@ void GitHubController::login(
                         db2->execSqlAsync(
                           "INSERT INTO oauth2_access_tokens (token, client_id, user_id, scope, "
                           "issued_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                          [callbackPtr, accessToken, refreshToken, db2, userId](
+                          [callbackPtr, accessToken, refreshToken, db2, userId, req](
                             const drogon::orm::Result &
                           ) {
                               // Also insert refresh token
@@ -227,12 +229,11 @@ void GitHubController::login(
                                     result["expires_in"] = 3600;
                                     (*callbackPtr)(HttpResponse::newHttpJsonResponse(result));
                                 },
-                                [callbackPtr](const drogon::orm::DrogonDbException &) {
-                                    Json::Value err;
-                                    err["error"] = "Failed to create refresh token";
-                                    auto resp = HttpResponse::newHttpJsonResponse(err);
-                                    resp->setStatusCode(k500InternalServerError);
-                                    (*callbackPtr)(resp);
+                                [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                                    respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                                 std::string("github login: failed to create "
+                                                             "refresh token: ") +
+                                                   e.base().what());
                                 },
                                 refreshToken,
                                 accessToken,
@@ -242,13 +243,11 @@ void GitHubController::login(
                                 now2 + 2592000  // 30 days
                               );
                           },
-                          [callbackPtr](const drogon::orm::DrogonDbException &e) {
-                              Json::Value err;
-                              err["error"] = "Failed to create access token";
-                              err["detail"] = e.base().what();
-                              auto resp = HttpResponse::newHttpJsonResponse(err);
-                              resp->setStatusCode(k500InternalServerError);
-                              (*callbackPtr)(resp);
+                          [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                              respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                           std::string("github login: failed to create access "
+                                                       "token: ") +
+                                             e.base().what());
                           },
                           accessToken,
                           "vue-client",
@@ -271,12 +270,10 @@ void GitHubController::login(
                                 r.empty() ? "user" : r[0]["username"].as<std::string>();
                               issueTokens(userId, username);
                           },
-                          [callbackPtr](const drogon::orm::DrogonDbException &) {
-                              Json::Value err;
-                              err["error"] = "Failed to fetch user";
-                              auto resp = HttpResponse::newHttpJsonResponse(err);
-                              resp->setStatusCode(k500InternalServerError);
-                              (*callbackPtr)(resp);
+                          [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                              respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                           std::string("github login: failed to fetch user: ") +
+                                             e.base().what());
                           },
                           userId
                         );
@@ -295,7 +292,7 @@ void GitHubController::login(
                           "ON CONFLICT (username) DO UPDATE SET email = EXCLUDED.email, "
                           "email_verified = true "
                           "RETURNING id",
-                          [callbackPtr, db, issueTokens, provider, subject, username](
+                          [callbackPtr, db, issueTokens, provider, subject, username, req](
                             const drogon::orm::Result &userResult
                           ) {
                               int userId = userResult[0]["id"].as<int>();
@@ -326,25 +323,22 @@ void GitHubController::login(
                                       userId
                                     );
                                 },
-                                [callbackPtr](const drogon::orm::DrogonDbException &) {
-                                    Json::Value err;
-                                    err["error"] = "Failed to link GitHub account";
-                                    auto resp = HttpResponse::newHttpJsonResponse(err);
-                                    resp->setStatusCode(k500InternalServerError);
-                                    (*callbackPtr)(resp);
+                                [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                                    respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                                 std::string("github login: failed to link GitHub "
+                                                             "account: ") +
+                                                   e.base().what());
                                 },
                                 subject,
                                 userId,
                                 provider
                               );
                           },
-                          [callbackPtr](const drogon::orm::DrogonDbException &e) {
-                              Json::Value err;
-                              err["error"] = "Failed to create user account";
-                              err["detail"] = e.base().what();
-                              auto resp = HttpResponse::newHttpJsonResponse(err);
-                              resp->setStatusCode(k500InternalServerError);
-                              (*callbackPtr)(resp);
+                          [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                              respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                           std::string("github login: failed to create user "
+                                                       "account: ") +
+                                             e.base().what());
                           },
                           username,
                           passwordHash,
@@ -352,13 +346,11 @@ void GitHubController::login(
                         );
                     }
                 },
-                [callbackPtr](const drogon::orm::DrogonDbException &e) {
-                    Json::Value err;
-                    err["error"] = "Database error during account linking";
-                    err["detail"] = e.base().what();
-                    auto resp = HttpResponse::newHttpJsonResponse(err);
-                    resp->setStatusCode(k500InternalServerError);
-                    (*callbackPtr)(resp);
+                [callbackPtr, req](const drogon::orm::DrogonDbException &e) {
+                    respondError(req, callbackPtr, "DB_QUERY_ERROR",
+                                 std::string("github login: database error during account "
+                                             "linking: ") +
+                                   e.base().what());
                 },
                 provider,
                 subject

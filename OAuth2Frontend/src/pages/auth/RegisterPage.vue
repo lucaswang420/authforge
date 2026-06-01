@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const router = useRouter()
 const username = ref('')
@@ -31,8 +32,8 @@ async function handleRegister() {
     }))
     success.value = true
     setTimeout(() => router.push('/login'), 2000)
-  } catch (e: any) {
-    error.value = e.response?.data?.message || e.response?.data?.error || 'Registration failed'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   } finally {
     loading.value = false
   }

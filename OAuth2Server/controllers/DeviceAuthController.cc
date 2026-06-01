@@ -2,6 +2,7 @@
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/error/OAuth2ErrorHandler.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
@@ -9,6 +10,26 @@
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5). This is used
+// only by the user-facing /oauth2/device/approve action; the RFC 8628 device
+// authorization protocol endpoint keeps emitting RFC 6749 §5.2 error bodies via
+// OAuth2ErrorHandler.
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct DeviceAuthControllerDocs
 {
     DeviceAuthControllerDocs()
@@ -196,18 +217,24 @@ void DeviceAuthController::approveDevice(
     std::string userCode = req->getParameter("user_code");
     std::string userId = req->getParameter("user_id");
 
+    // /oauth2/device/approve is a user-facing approval action (admin-only), not a
+    // standardized RFC 8628 protocol endpoint, so its errors are emitted as JSON
+    // Error Envelopes via the unified entry point (Requirement 7.1 / 7.3 / 7.5).
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
     if (userCode.empty())
     {
-        common::error::OAuth2ErrorHandler::sendErrorResponse(
-          std::move(callback), "invalid_request", "user_code is required"
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "approveDevice: user_code is required"
         );
         return;
     }
 
     if (userId.empty())
     {
-        common::error::OAuth2ErrorHandler::sendErrorResponse(
-          std::move(callback), "invalid_request", "user_id is required"
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "approveDevice: user_id is required"
         );
         return;
     }
@@ -215,14 +242,9 @@ void DeviceAuthController::approveDevice(
     auto dbClient = drogon::app().getDbClient();
     if (!dbClient)
     {
-        common::error::OAuth2ErrorHandler::sendErrorResponse(
-          std::move(callback), "server_error", "Database not available"
-        );
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "approveDevice: database not available");
         return;
     }
-
-    auto sharedCb =
-      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                  std::chrono::system_clock::now().time_since_epoch()
@@ -233,14 +255,13 @@ void DeviceAuthController::approveDevice(
     dbClient->execSqlAsync(
       "UPDATE oauth2_device_codes SET status = 'approved', user_id = $1 "
       "WHERE user_code = $2 AND status = 'pending' AND expires_at > $3",
-      [sharedCb, userCode](const drogon::orm::Result &result) {
+      [sharedCb, userCode, req](const drogon::orm::Result &result) {
           if (result.affectedRows() == 0)
           {
               // Either not found, already approved/denied, or expired
-              common::error::OAuth2ErrorHandler::sendErrorResponse(
-                std::move(*sharedCb),
-                "invalid_request",
-                "Invalid, expired, or already processed user_code"
+              respondError(
+                req, sharedCb, "VALIDATION_INVALID_INPUT",
+                "approveDevice: invalid, expired, or already processed user_code"
               );
               return;
           }
@@ -253,10 +274,11 @@ void DeviceAuthController::approveDevice(
           resp->setStatusCode(k200OK);
           (*sharedCb)(resp);
       },
-      [sharedCb](const drogon::orm::DrogonDbException &e) {
+      [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           LOG_ERROR << "Failed to approve device code: " << e.base().what();
-          common::error::OAuth2ErrorHandler::sendErrorResponse(
-            std::move(*sharedCb), "server_error", "Failed to approve device"
+          respondError(
+            req, sharedCb, "DB_QUERY_ERROR",
+            std::string("approveDevice: failed to approve device: ") + e.base().what()
           );
       },
       userId,

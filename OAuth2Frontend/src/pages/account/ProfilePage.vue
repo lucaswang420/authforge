@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import http from '../../services/http'
+import { normalizeError } from '../../services/errorAdapter'
 
 const auth = useAuthStore()
 const profile = ref<any>(null)
@@ -26,8 +27,8 @@ async function resendVerification() {
     await http.post('/api/verify-email/resend')
     success.value = 'Verification email sent!'
     setTimeout(() => { success.value = '' }, 3000)
-  } catch (e: any) {
-    error.value = e.response?.data?.message || 'Failed to send verification email'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
   }
 }
 

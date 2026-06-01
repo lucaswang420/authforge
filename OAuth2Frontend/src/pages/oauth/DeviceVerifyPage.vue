@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const route = useRoute()
 const userCode = ref(route.query.user_code as string || '')
@@ -16,8 +17,8 @@ async function handleVerify() {
   try {
     await axios.post('/oauth2/device/verify', new URLSearchParams({ user_code: userCode.value.trim().toUpperCase() }))
     status.value = 'success'
-  } catch (e: any) {
-    error.value = e.response?.data?.error_description || e.response?.data?.message || 'Verification failed'
+  } catch (e: unknown) {
+    error.value = normalizeError(e).message
     status.value = 'error'
   } finally {
     loading.value = false

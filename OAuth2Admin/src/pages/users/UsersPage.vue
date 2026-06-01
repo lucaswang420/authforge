@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const users = ref<any[]>([])
 const loading = ref(true)
@@ -8,14 +9,22 @@ const showRoleModal = ref(false)
 const selectedUser = ref<any>(null)
 const roleInput = ref('')
 const saving = ref(false)
+const errorMessage = ref('')
+
+// Inline error banner (replaces native alert for backend errors, Req 10.6).
+function showError(msg: string) {
+  errorMessage.value = msg
+  setTimeout(() => { errorMessage.value = '' }, 5000)
+}
 
 async function fetchUsers() {
   loading.value = true
   try {
     const resp = await axios.get('/api/admin/users')
     users.value = resp.data.users || []
-  } catch (e) {
-    console.error('Failed to fetch users:', e)
+  } catch (e: unknown) {
+    // Display the localized message via the Frontend_Error_Module (Req 10.2).
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -37,8 +46,9 @@ async function assignRoles() {
     })
     showRoleModal.value = false
     await fetchUsers()
-  } catch (e: any) {
-    alert(e.response?.data?.message || 'Failed to assign roles')
+  } catch (e: unknown) {
+    // Req 10.3/10.6: normalize via Frontend_Error_Module, no native alert.
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -50,6 +60,8 @@ onMounted(fetchUsers)
 <template>
   <div>
     <h2 class="text-2xl font-bold text-gray-900 mb-6">Users</h2>
+
+    <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">{{ errorMessage }}</div>
 
     <div v-if="loading" class="text-center py-12 text-gray-500">Loading...</div>
 

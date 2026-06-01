@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '../../services/errorAdapter'
 
 const roles = ref<any[]>([])
 const loading = ref(true)
@@ -31,8 +32,8 @@ async function fetchRoles() {
   try {
     const resp = await axios.get('/api/admin/roles')
     roles.value = resp.data.roles || []
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to fetch roles')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     loading.value = false
   }
@@ -51,8 +52,8 @@ async function createRole() {
     newRoleName.value = ''
     newRoleDescription.value = ''
     await fetchRoles()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to create role')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -74,8 +75,8 @@ async function updateRole() {
     showSuccess('Role updated')
     showEditModal.value = false
     await fetchRoles()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to update role')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   } finally {
     saving.value = false
   }
@@ -87,8 +88,8 @@ async function deleteRole(role: any) {
     await axios.delete(`/api/admin/roles/${role.id}`)
     showSuccess(`Role "${role.name}" deleted`)
     await fetchRoles()
-  } catch (e: any) {
-    showError(e.response?.data?.message || 'Failed to delete role')
+  } catch (e: unknown) {
+    showError(normalizeError(e).message)
   }
 }
 

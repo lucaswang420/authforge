@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { sessionExpiredError } from './errorAdapter'
+import type { NormalizedError } from './errorAdapter'
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
@@ -59,6 +61,24 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * Navigate to the login view after a failed 401 token refresh.
+ *
+ * Uses a lazy dynamic import of the router to avoid a static import cycle
+ * (router → stores/auth → http). Falls back to a hard redirect if the
+ * router cannot be resolved (e.g. very early during bootstrap).
+ */
+async function redirectToLogin(): Promise<void> {
+  try {
+    const { default: router } = await import('../router')
+    if (router.currentRoute.value.name !== 'login') {
+      await router.push({ name: 'login' })
+    }
+  } catch {
+    window.location.href = '/login'
+  }
+}
+
 // Response interceptor: auto-refresh on 401
 http.interceptors.response.use(
   (response) => response,
@@ -77,10 +97,21 @@ http.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${resp.data.access_token}`
         return http(originalRequest)
       } catch {
+        // Token refresh failed: clear the session, surface a consistent
+        // localized "session expired" message via the Frontend_Error_Module,
+        // and navigate to the login view (Requirement 10.4, 10.5).
         clearTokens()
-        window.location.href = '/login'
+        const normalized: NormalizedError = sessionExpiredError()
+        redirectToLogin()
+        return Promise.reject(normalized)
       }
     }
+    // All other errors: reject the raw axios error untouched so each view (or
+    // the auth store) parses it once through the Frontend_Error_Module via
+    // normalizeError(e), displaying a consistent localized message without
+    // reading raw e.response.data.* (Requirement 10.1, 10.3). The branded
+    // session-expired NormalizedError above passes through normalizeError
+    // unchanged (idempotent), so views can uniformly call normalizeError(e).
     return Promise.reject(error)
   }
 )

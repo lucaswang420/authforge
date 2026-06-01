@@ -10,6 +10,11 @@
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/controllers/OAuth2StandardController.h>
 #include <oauth2/filters/OAuth2AuthFilter.h>
+#include <oauth2/error/ErrorCatalog.h>
+#include <oauth2/error/ErrorResponder.h>
+#include <oauth2/error/ErrorTypes.h>
+#include <oauth2/error/OAuth2ErrorHandler.h>
+#include <oauth2/error/RequestId.h>
 #include "controllers/SessionController.h"
 #include "SchemaManager.h"
 
@@ -202,6 +207,14 @@ int main()
     // Setup CORS support
     setupCors();
 
+    // Fail fast on a defective Error Catalog: validate the single source of
+    // truth invariants at startup (Requirement 3.5). A violation aborts the
+    // process so a defective build is never released.
+    drogon::app().registerBeginningAdvice([]() {
+        common::error::ErrorCatalog::validateInvariants();
+        LOG_INFO << "ErrorCatalog invariants validated";
+    });
+
     // Global Security Headers
     drogon::app().registerPostHandlingAdvice(
       [](const drogon::HttpRequestPtr &req, const drogon::HttpResponsePtr &resp) {
@@ -345,23 +358,46 @@ int main()
       ) {
           LOG_ERROR << "Unhandled exception: " << e.what() << " on path: " << req->path();
 
-          Json::Value errorJson;
-          errorJson["error"] = "server_error";
-          errorJson["error_description"] = "An internal server error occurred.";
+          // Branch by request path: OAuth2 protocol endpoints must keep emitting
+          // an RFC 6749 §5.2 `server_error` body; every other Application_Endpoint
+          // gets a unified Error Envelope (INTERNAL_ERROR). The existing CORS
+          // header injection is preserved on both branches (Requirement 7.7).
+          const std::string &path = req->path();
+          const bool isOAuth2Protocol =
+            path.rfind("/oauth2/", 0) == 0 ||
+            path == "/.well-known/oauth-authorization-server" ||
+            path == "/.well-known/openid-configuration" || path == "/.well-known/jwks.json";
 
-          auto resp = drogon::HttpResponse::newHttpJsonResponse(errorJson);
-          resp->setStatusCode(drogon::k500InternalServerError);
-          resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+          // Wrap the callback so CORS headers are injected on whichever response
+          // the chosen branch produces (mirrors the prior behavior).
+          auto withCors =
+            [req, callback = std::move(callback)](const drogon::HttpResponsePtr &resp) {
+                const auto &origin = req->getHeader("Origin");
+                if (!origin.empty())
+                {
+                    resp->addHeader("Access-Control-Allow-Origin", origin);
+                    resp->addHeader("Access-Control-Allow-Credentials", "true");
+                }
+                callback(resp);
+            };
 
-          // Add CORS headers for the error response
-          const auto &origin = req->getHeader("Origin");
-          if (!origin.empty())
+          if (isOAuth2Protocol)
           {
-              resp->addHeader("Access-Control-Allow-Origin", origin);
-              resp->addHeader("Access-Control-Allow-Credentials", "true");
+              // RFC 6749 §5.2 protocol error: { "error": "server_error", ... }
+              // driven by the Catalog (default error_description, status 500).
+              common::error::OAuth2ErrorHandler::sendErrorResponse(
+                std::move(withCors), common::error::OAuth2ErrorHandler::SERVER_ERROR
+              );
+              return;
           }
 
-          callback(resp);
+          // Application path: unified Error Envelope with INTERNAL_ERROR.
+          common::error::Error error = common::error::Error::fromCode(
+            std::string(common::error::ErrorCatalog::internalError().code),
+            common::error::RequestId::resolve(req)
+          );
+          auto resp = common::error::ErrorResponder::buildResponse(req, error);
+          withCors(resp);
       }
     );
 

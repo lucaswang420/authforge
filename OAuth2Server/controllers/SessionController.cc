@@ -16,6 +16,7 @@
 #include <oauth2/validation/HttpResponder.h>
 #include <oauth2/types/OAuth2Types.h>
 #include <oauth2/storage/IOAuth2Storage.h>
+#include <oauth2/error/ErrorResponder.h>
 
 using namespace oauth2;
 using namespace services;
@@ -33,6 +34,25 @@ drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
         return drogon::k401Unauthorized;  // 401
     }
     return drogon::k400BadRequest;  // 400
+}
+
+// Emit an Application error via the unified ErrorResponder entry point so the
+// response body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5). The
+// callback is taken by value so callers that have already moved their callback
+// into an enclosing lambda can pass a copy.
+void respondError(
+  const drogon::HttpRequestPtr &req,
+  std::function<void(const drogon::HttpResponsePtr &)> cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb = std::move(cb)](const drogon::HttpResponsePtr &r) { cb(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
 }
 }  // namespace
 
@@ -301,13 +321,8 @@ void SessionController::showLoginPage(
     }
     catch (const std::exception &e)
     {
-        LOG_ERROR << "Failed to render login page: " << e.what();
-        Json::Value jsonErr;
-        jsonErr["error"] = "server_error";
-        jsonErr["error_description"] = "Failed to render login page";
-        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-        resp->setStatusCode(k500InternalServerError);
-        callback(resp);
+        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                     std::string("Failed to render login page: ") + e.what());
     }
 }
 
@@ -406,12 +421,8 @@ void SessionController::login(
               }
               if (requireEmailVerification && !authResult->emailVerified)
               {
-                  Json::Value err;
-                  err["error"] = "email_not_verified";
-                  err["error_description"] = "Please verify your email address before logging in";
-                  auto resp = HttpResponse::newHttpJsonResponse(err);
-                  resp->setStatusCode(k403Forbidden);
-                  callback(resp);
+                  respondError(req, std::move(callback), "AUTHZ_ACCESS_DENIED",
+                               "login: email not verified");
                   return;
               }
 
@@ -444,25 +455,16 @@ void SessionController::login(
                   // Check will be done after getClient - for now log warning
                   LOG_WARN << "[SECURITY] PUBLIC client " << clientId
                            << " login without PKCE (enforcement enabled)";
-                  Json::Value err;
-                  err["error"] = "invalid_request";
-                  err["error_description"] =
-                    "PKCE (code_challenge) is required for public clients. Use "
-                    "code_challenge_method=S256.";
-                  auto resp = HttpResponse::newHttpJsonResponse(err);
-                  resp->setStatusCode(k400BadRequest);
-                  callback(resp);
+                  respondError(req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
+                               "login: PKCE (code_challenge) is required for public clients");
                   return;
               }
 
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
-                  LOG_ERROR << "OAuth2 Plugin not loaded during login";
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k500InternalServerError);
-                  resp->setBody("Internal Server Error: Plugin not loaded");
-                  callback(resp);
+                  respondError(req, std::move(callback), "INTERNAL_ERROR",
+                               "login: OAuth2 Plugin not loaded");
                   return;
               }
 
@@ -483,13 +485,8 @@ void SessionController::login(
                    std::move(callback)](bool success, std::string code, std::string error) mutable {
                     if (!success)
                     {
-                        LOG_ERROR << "Failed to generate authorization code: " << error;
-                        Json::Value jsonErr;
-                        jsonErr["error"] = "server_error";
-                        jsonErr["error_description"] = "Failed to generate authorization code";
-                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                        resp->setStatusCode(k500InternalServerError);
-                        callback(resp);
+                        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                                     "login: failed to generate authorization code: " + error);
                         return;
                     }
 
@@ -518,10 +515,8 @@ void SessionController::login(
               // Audit: login failure
               oauth2::observability::AuditLogger::log("login_failure", "failure", req, username, "user", username);
 
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k401Unauthorized);
-              resp->setBody("Login Failed: Invalid Credentials");
-              callback(resp);
+              respondError(req, std::move(callback), "AUTH_INVALID_CREDENTIALS",
+                           "login: invalid credentials");
           }
       }
     );
@@ -561,10 +556,8 @@ void SessionController::consent(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k500InternalServerError);
-        resp->setBody("OAuth2 Plugin not loaded");
-        callback(resp);
+        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                     "consent: OAuth2 Plugin not loaded");
         return;
     }
 
@@ -580,13 +573,12 @@ void SessionController::consent(
        codeChallenge,
        codeChallengeMethod,
        nonce,
+       req,
        callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
           if (!internalUserId)
           {
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k500InternalServerError);
-              resp->setBody("Failed to get user mapping");
-              callback(resp);
+              respondError(req, std::move(callback), "INTERNAL_ERROR",
+                           "consent: failed to get user mapping");
               return;
           }
 
@@ -623,14 +615,12 @@ void SessionController::consent(
                  nonce,
                  firstScope,
                  scopes,
+                 req,
                  callback = std::move(callback)](bool success) mutable {
                     if (!success)
                     {
-                        LOG_ERROR << "Failed to save user consent for scope: " << firstScope;
-                        auto resp = HttpResponse::newHttpResponse();
-                        resp->setStatusCode(k500InternalServerError);
-                        resp->setBody("Failed to save consent");
-                        callback(resp);
+                        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                                     "consent: failed to save user consent for scope: " + firstScope);
                         return;
                     }
 
@@ -650,21 +640,13 @@ void SessionController::consent(
                       codeChallenge,
                       codeChallengeMethod,
                       nonce,
-                      [clientId, redirectUri, state, callback = std::move(callback)](
+                      [clientId, redirectUri, state, req, callback = std::move(callback)](
                         bool success, std::string code, std::string error
                       ) mutable {
                           if (!success)
                           {
-                              LOG_ERROR << "Failed to generate "
-                                           "authorization code: "
-                                        << error;
-                              Json::Value jsonErr;
-                              jsonErr["error"] = "server_error";
-                              jsonErr["error_description"] =
-                                "Failed to generate authorization code";
-                              auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                              resp->setStatusCode(k500InternalServerError);
-                              callback(resp);
+                              respondError(req, std::move(callback), "INTERNAL_ERROR",
+                                           "consent: failed to generate authorization code: " + error);
                               return;
                           }
 
@@ -690,18 +672,13 @@ void SessionController::consent(
                 codeChallenge,
                 codeChallengeMethod,
                 nonce,
-                [clientId, redirectUri, state, callback = std::move(callback)](
+                [clientId, redirectUri, state, req, callback = std::move(callback)](
                   bool success, std::string code, std::string error
                 ) mutable {
                     if (!success)
                     {
-                        LOG_ERROR << "Failed to generate authorization code: " << error;
-                        Json::Value jsonErr;
-                        jsonErr["error"] = "server_error";
-                        jsonErr["error_description"] = "Failed to generate authorization code";
-                        auto resp = HttpResponse::newHttpJsonResponse(jsonErr);
-                        resp->setStatusCode(k500InternalServerError);
-                        callback(resp);
+                        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                                     "consent: failed to generate authorization code: " + error);
                         return;
                     }
 
@@ -729,10 +706,8 @@ void SessionController::logout(
     auto authHeader = req->getHeader("Authorization");
     if (authHeader.empty() || authHeader.length() < 8 || authHeader.substr(0, 7) != "Bearer ")
     {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k401Unauthorized);
-        resp->setBody("Missing or invalid Authorization header");
-        callback(resp);
+        respondError(req, std::move(callback), "AUTH_TOKEN_INVALID",
+                     "logout: missing or invalid Authorization header");
         return;
     }
 
@@ -746,11 +721,8 @@ void SessionController::logout(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        LOG_ERROR << "OAuth2 Plugin not loaded during logout";
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k500InternalServerError);
-        resp->setBody("Internal Server Error: Plugin not loaded");
-        callback(resp);
+        respondError(req, std::move(callback), "INTERNAL_ERROR",
+                     "logout: OAuth2 Plugin not loaded");
         return;
     }
 
@@ -787,7 +759,7 @@ void SessionController::registerUser(
     std::string email = params["email"];
 
     AuthService::registerUser(
-      username, password, email, [callback, email](const std::string &error) {
+      username, password, email, [callback, email, req](const std::string &error) {
           if (error.empty())
           {
               Json::Value json;
@@ -799,12 +771,8 @@ void SessionController::registerUser(
           }
           else
           {
-              Json::Value errJson;
-              errJson["error"] = "registration_failed";
-              errJson["error_description"] = error;
-              auto resp = HttpResponse::newHttpJsonResponse(errJson);
-              resp->setStatusCode(k400BadRequest);
-              callback(resp);
+              respondError(req, callback, "VALIDATION_INVALID_INPUT",
+                           "registerUser failed: " + error);
           }
       }
     );

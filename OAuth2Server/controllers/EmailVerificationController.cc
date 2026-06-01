@@ -2,6 +2,7 @@
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/utils/EmailService.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
+#include <oauth2/error/ErrorResponder.h>
 #include <drogon/drogon.h>
 #include <chrono>
 
@@ -10,6 +11,23 @@ using namespace drogon::orm;
 
 namespace
 {
+// Emit an Application error via the unified ErrorResponder entry point so the
+// body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5).
+void respondError(
+  const HttpRequestPtr &req,
+  const std::shared_ptr<std::function<void(const HttpResponsePtr &)>> &cb,
+  std::string code,
+  std::string detailForLog = ""
+)
+{
+    common::error::ErrorResponder::respond(
+      req,
+      [cb](const HttpResponsePtr &r) { (*cb)(r); },
+      std::move(code),
+      std::move(detailForLog)
+    );
+}
+
 struct EmailVerificationControllerDocs
 {
     EmailVerificationControllerDocs()
@@ -88,20 +106,16 @@ void EmailVerificationController::verify(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
     std::string token = req->getParameter("token");
     if (token.empty())
     {
-        Json::Value error;
-        error["error"] = "invalid_request";
-        error["error_description"] = "token parameter is required";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k400BadRequest);
-        callback(resp);
+        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+                     "verify: token parameter is required");
         return;
     }
-
-    auto sharedCb =
-      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     std::string tokenHash = oauth2::utils::hashToken(token);
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -116,15 +130,11 @@ void EmailVerificationController::verify(
       "DELETE FROM email_verification_tokens "
       "WHERE token_hash = $1 AND expires_at > $2 "
       "RETURNING user_id, email",
-      [sharedCb, db](const Result &r) {
+      [sharedCb, db, req](const Result &r) {
           if (r.empty())
           {
-              Json::Value error;
-              error["error"] = "invalid_grant";
-              error["error_description"] = "Token is invalid or expired";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k400BadRequest);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                           "verify: token is invalid or expired");
               return;
           }
 
@@ -139,24 +149,16 @@ void EmailVerificationController::verify(
                 auto resp = HttpResponse::newHttpJsonResponse(json);
                 (*sharedCb)(resp);
             },
-            [sharedCb](const DrogonDbException &e) {
-                LOG_ERROR << "Failed to update email_verified: " << e.base().what();
-                Json::Value error;
-                error["error"] = "server_error";
-                auto resp = HttpResponse::newHttpJsonResponse(error);
-                resp->setStatusCode(k500InternalServerError);
-                (*sharedCb)(resp);
+            [sharedCb, req](const DrogonDbException &e) {
+                respondError(req, sharedCb, "DB_QUERY_ERROR",
+                             std::string("Failed to update email_verified: ") + e.base().what());
             },
             userId
           );
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "Email verification failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("Email verification failed: ") + e.base().what());
       },
       tokenHash,
       now
@@ -168,30 +170,24 @@ void EmailVerificationController::resend(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
+    auto sharedCb =
+      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
     // Get userId from OAuth2Middleware attributes
     std::string userId = req->getAttributes()->get<std::string>("userId");
     if (userId.empty())
     {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k401Unauthorized);
-        callback(resp);
+        respondError(req, sharedCb, "AUTH_TOKEN_INVALID", "resend: missing authenticated user");
         return;
     }
-
-    auto sharedCb =
-      std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
 
     auto db = app().getDbClient();
     db->execSqlAsync(
       "SELECT id, email, email_verified FROM users WHERE public_sub::text = $1::text",
-      [sharedCb](const Result &r) {
+      [sharedCb, req](const Result &r) {
           if (r.empty())
           {
-              Json::Value error;
-              error["error"] = "not_found";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k404NotFound);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "resend: user not found");
               return;
           }
 
@@ -209,12 +205,8 @@ void EmailVerificationController::resend(
 
           if (email.empty())
           {
-              Json::Value error;
-              error["error"] = "invalid_request";
-              error["error_description"] = "No email address on file";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k400BadRequest);
-              (*sharedCb)(resp);
+              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                           "resend: no email address on file");
               return;
           }
 
@@ -225,13 +217,9 @@ void EmailVerificationController::resend(
           auto resp = HttpResponse::newHttpJsonResponse(json);
           (*sharedCb)(resp);
       },
-      [sharedCb](const DrogonDbException &e) {
-          LOG_ERROR << "Resend verification failed: " << e.base().what();
-          Json::Value error;
-          error["error"] = "server_error";
-          auto resp = HttpResponse::newHttpJsonResponse(error);
-          resp->setStatusCode(k500InternalServerError);
-          (*sharedCb)(resp);
+      [sharedCb, req](const DrogonDbException &e) {
+          respondError(req, sharedCb, "DB_QUERY_ERROR",
+                       std::string("Resend verification failed: ") + e.base().what());
       },
       userId
     );
