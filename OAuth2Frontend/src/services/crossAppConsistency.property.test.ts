@@ -24,7 +24,8 @@ import { getErrorMessage } from './messages'
 
 const RUNS = { numRuns: 100 } as const
 
-// 完整的后端 Error_Code 目录（design.md「Error_Catalog 初始条目」14 条）。
+// 完整的后端 Error_Code 目录（初始 14 条 + 方案 A 新增的
+// VALIDATION_RESOURCE_NOT_FOUND/CONFLICT 共 16 条）。
 const BACKEND_ERROR_CODES = [
   'NET_CONNECTION_FAILED',
   'NET_TIMEOUT',
@@ -34,6 +35,8 @@ const BACKEND_ERROR_CODES = [
   'VALIDATION_INVALID_INPUT',
   'VALIDATION_MISSING_REQUIRED_FIELD',
   'VALIDATION_FORMAT_ERROR',
+  'VALIDATION_RESOURCE_NOT_FOUND',
+  'VALIDATION_RESOURCE_CONFLICT',
   'AUTH_INVALID_CREDENTIALS',
   'AUTH_TOKEN_EXPIRED',
   'AUTH_TOKEN_INVALID',

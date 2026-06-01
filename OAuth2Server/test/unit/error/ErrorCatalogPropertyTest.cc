@@ -297,7 +297,17 @@ DROGON_TEST(Property5_ErrorCatalog_RandomizedSamplingHoldsInvariants)
 // NETWORK 且其他->502；进而属于同一 Error_Category 的全部 code 返回相同状态码
 // （NETWORK 类别按数值码区分 504/502 除外），同一 code 在任意一次调用下状态码保持相同。
 //
-// Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.6, 4.7, 4.8, 4.9, 2.7, 7.4, 12.2
+// 放宽（方案 A / 需求 11.4，保留迁移前状态码）：少数面向资源语义的 VALIDATION 条目
+// 通过「条目级 httpStatus 显式覆盖」保留其迁移前的 HTTP 状态码，而非沿用 VALIDATION
+// 类别默认的 400：
+//   - VALIDATION_RESOURCE_NOT_FOUND -> 404
+//   - VALIDATION_RESOURCE_CONFLICT  -> 409
+// 因此本属性的「类别默认映射」与「同类别一致」两条子断言改为只对*未显式覆盖*的条目
+// 成立；被覆盖的条目则断言其登记值等于该条目登记的覆盖状态码。核心子断言
+// （运行时状态码 == Catalog 登记值，需求 4.7）对所有条目（含被覆盖者）依然成立，
+// 仍能捕获真实的不一致。
+//
+// Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.6, 4.7, 4.8, 4.9, 2.7, 7.4, 12.2, 11.4
 //
 // The catalog is a finite static table, so the rules are first asserted by an
 // exhaustive sweep over allEntries(). A randomized sampling loop (>=100
@@ -312,11 +322,44 @@ namespace
 // (Requirements 4.5/4.6). Registered as NET_TIMEOUT in the catalog.
 constexpr int kTimeoutNumericCode = 1002;
 
-// Expected HTTP status for a catalog entry derived purely from the
-// category/numeric mapping rules of Requirement 4. This is the independent
-// oracle the registered httpStatus is checked against.
+// Entries whose HTTP status is *explicitly overridden* in the catalog to preserve
+// a pre-migration status that differs from their Error_Category default (方案 A /
+// Requirement 11.4). For these, the category-default mapping does NOT apply; the
+// override value below is the oracle instead.
+//
+// Returns the overridden HTTP status for an entry, or 0 if the entry uses the
+// plain category/numeric mapping. Keep this in sync with the explicit
+// httpStatusOverride values registered in ErrorCatalog.cc.
+int httpStatusOverrideFor(const CatalogEntry &e)
+{
+    if (e.code == "VALIDATION_RESOURCE_NOT_FOUND")
+    {
+        return 404;
+    }
+    if (e.code == "VALIDATION_RESOURCE_CONFLICT")
+    {
+        return 409;
+    }
+    return 0;
+}
+
+// True iff the entry carries an explicit per-entry httpStatus override.
+bool isOverridden(const CatalogEntry &e)
+{
+    return httpStatusOverrideFor(e) != 0;
+}
+
+// Expected HTTP status for a catalog entry. For overridden entries it is the
+// explicit override (方案 A / Requirement 11.4); otherwise it is derived purely
+// from the category/numeric mapping rules of Requirement 4. This is the
+// independent oracle the registered httpStatus is checked against.
 int expectedHttpStatusFor(const CatalogEntry &e)
 {
+    if (const int overrideStatus = httpStatusOverrideFor(e); overrideStatus != 0)
+    {
+        return overrideStatus;
+    }
+
     switch (e.category)
     {
         case ErrorCategory::VALIDATION:
@@ -360,7 +403,10 @@ DROGON_TEST(Property4_HttpStatus_RuntimeEqualsCatalogRegisteredValue)
 }
 
 // --- Catalog httpStatus satisfies the category/numeric mapping rules (Req 4.1- -
-//     4.4, 4.6, 4.8 and 4.5 for NET_TIMEOUT->504).
+//     4.4, 4.6, 4.8 and 4.5 for NET_TIMEOUT->504). For entries with an explicit
+//     per-entry override (方案 A / Requirement 11.4) the oracle is the declared
+//     override value instead of the category default, so 404/409 resource codes
+//     are accepted while every other code is still pinned to its category rule.
 DROGON_TEST(Property4_HttpStatus_CatalogValueMatchesCategoryMapping)
 {
     const auto &entries = ErrorCatalog::allEntries();
@@ -379,8 +425,13 @@ DROGON_TEST(Property4_HttpStatus_CatalogValueMatchesCategoryMapping)
     }
 }
 
-// --- Same-category consistency (Requirement 4.9). All codes of a category share -
-//     one status, EXCEPT NETWORK which splits 504 (numeric 1002) vs 502.
+// --- Same-category consistency (Requirement 4.9). All *non-overridden* codes of -
+//     a category share one status, EXCEPT NETWORK which splits 504 (numeric 1002)
+//     vs 502. Entries carrying an explicit per-entry httpStatus override (方案 A /
+//     Requirement 11.4, e.g. VALIDATION_RESOURCE_NOT_FOUND->404,
+//     VALIDATION_RESOURCE_CONFLICT->409) are exempt from the single-status rule;
+//     they are instead asserted to equal their registered override value so the
+//     test still catches a genuinely wrong override.
 DROGON_TEST(Property4_HttpStatus_SameCategoryConsistency)
 {
     const auto &entries = ErrorCatalog::allEntries();
@@ -393,6 +444,22 @@ DROGON_TEST(Property4_HttpStatus_SameCategoryConsistency)
 
     for (const auto &e : entries)
     {
+        // Overridden entries are intentionally exempt from the same-category
+        // single-status invariant; verify they match their declared override
+        // (which also equals the catalog httpStatus) and move on.
+        if (isOverridden(e))
+        {
+            const bool overrideConsistent = e.httpStatus == httpStatusOverrideFor(e);
+            if (!overrideConsistent)
+            {
+                LOG_ERROR << "Property 4 violation: overridden code '" << std::string(e.code)
+                          << "' status " << e.httpStatus << " != declared override "
+                          << httpStatusOverrideFor(e);
+            }
+            CHECK(overrideConsistent);
+            continue;
+        }
+
         if (e.category == ErrorCategory::NETWORK)
         {
             const bool isTimeout = e.numericCode == kTimeoutNumericCode;

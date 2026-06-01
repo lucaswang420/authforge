@@ -103,7 +103,7 @@ void UserSelfServiceController::getProfile(
           [sharedCb, req](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "getProfile: user not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "getProfile: user not found");
                   return;
               }
 
@@ -173,7 +173,7 @@ void UserSelfServiceController::changePassword(
           [sharedCb, oldPassword, newPassword, userId, req](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "changePassword: user not found");
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "changePassword: user not found");
                   return;
               }
 
@@ -365,7 +365,7 @@ void UserSelfServiceController::revokeAuthorizedApp(
           [sharedCb, userId, clientId, req, db](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND",
                                "revokeAuthorizedApp: user not found");
                   return;
               }
@@ -466,7 +466,7 @@ void UserSelfServiceController::deleteAccount(
                       [sharedCb, userId, req](const Result &result) {
                           if (result.affectedRows() == 0)
                           {
-                              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
+                              respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND",
                                            "deleteAccount: user not found");
                               return;
                           }

@@ -60,9 +60,10 @@ void ApiDocController::openApiSpec(
         {
             // Error responses are emitted as JSON Error Envelopes via the unified
             // entry point so no non-JSON / ad-hoc body is returned (Requirement
-            // 7.1 / 7.3 / 7.5). A missing spec file is a server-side condition.
+            // 7.1 / 7.3 / 7.5). A missing spec file is reported as 404 Not Found,
+            // preserving the pre-migration status (Requirement 11.4).
             common::error::ErrorResponder::respond(
-              req, std::move(callback), "INTERNAL_ERROR",
+              req, std::move(callback), "VALIDATION_RESOURCE_NOT_FOUND",
               "openApiSpec: OpenAPI specification not found at " + filePath
             );
             return;
@@ -110,9 +111,10 @@ void ApiDocController::swaggerUi(
             // The previous implementation returned an HTML error page here. Error
             // responses must be JSON Error Envelopes (Requirement 7.3): the
             // successful response is still HTML, but errors go through the unified
-            // entry point. A missing UI asset is a server-side condition.
+            // entry point. A missing UI asset is reported as 404 Not Found,
+            // preserving the pre-migration status (Requirement 11.4).
             common::error::ErrorResponder::respond(
-              req, std::move(callback), "INTERNAL_ERROR",
+              req, std::move(callback), "VALIDATION_RESOURCE_NOT_FOUND",
               "swaggerUi: Swagger UI not found at " + filePath
             );
             return;

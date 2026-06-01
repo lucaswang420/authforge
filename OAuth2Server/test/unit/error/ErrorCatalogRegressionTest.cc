@@ -52,8 +52,12 @@ DROGON_TEST(Unit_P0_ErrorCatalog_Regression_ExistingNumericCodesUnchanged)
         CHECK(std::string(byNumeric->code) == std::string(exp.code));
     }
 
-    // Exactly these 14 Application codes are registered (no extras introduced).
-    CHECK(ErrorCatalog::allEntries().size() == kExpected.size());
+    // The 14 pre-existing codes above keep their integer values (verified in the
+    // loop). 方案 A adds exactly 2 resource-oriented VALIDATION codes
+    // (VALIDATION_RESOURCE_NOT_FOUND/CONFLICT, Requirement 11.4) to preserve the
+    // pre-migration 404/409 statuses, for a total of 16 registered Application
+    // codes; no others may be introduced silently.
+    CHECK(ErrorCatalog::allEntries().size() == kExpected.size() + 2);
 }
 
 // --- Requirement 3.6: every Application numeric code falls inside its segment.
