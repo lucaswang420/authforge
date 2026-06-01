@@ -24,7 +24,9 @@ export async function setupMocks(page: Page) {
   await page.route('**/oauth2/login', async (route) => {
     const body = route.request().postData() || ''
     if (body.includes('password=wrong')) {
-      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'invalid_credentials', error_description: 'Invalid username or password' }) })
+      // Post-standardization backend returns the unified Error Envelope; the
+      // frontend maps error.code -> localized message via the shared catalog.
+      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: { code: 'AUTH_INVALID_CREDENTIALS', category: 'AUTHENTICATION', message: '用户名或密码错误', numeric_code: 4001, request_id: 'req-e2e-invalid-credentials' } }) })
     } else {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 'mock-auth-code-12345' }) })
     }

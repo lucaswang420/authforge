@@ -26,12 +26,14 @@ test.describe('Authentication', () => {
   })
 
   test('shows error on login failure', async ({ page }) => {
-    // Override login mock to return error
+    // Override login mock to return error. Post-standardization the backend
+    // returns the unified Error Envelope; the admin app maps error.code ->
+    // localized message via the shared catalog (AUTH_INVALID_CREDENTIALS).
     await page.route('**/oauth2/login', async (route) => {
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'invalid_credentials', error_description: 'Invalid username or password' }),
+        body: JSON.stringify({ error: { code: 'AUTH_INVALID_CREDENTIALS', category: 'AUTHENTICATION', message: '用户名或密码错误', numeric_code: 4001, request_id: 'req-e2e-invalid-credentials' } }),
       })
     })
 
@@ -41,7 +43,7 @@ test.describe('Authentication', () => {
     await page.click('button[type="submit"]')
 
     await expect(page.locator('.bg-red-50')).toBeVisible()
-    await expect(page.locator('.text-red-600')).toContainText('Invalid username or password')
+    await expect(page.locator('.text-red-600')).toContainText('用户名或密码错误')
   })
 
   test('denies access for non-admin users', async ({ page }) => {
