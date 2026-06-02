@@ -18,12 +18,13 @@ namespace common::error
  */
 struct CatalogEntry
 {
-    std::string_view code;            ///< Stable string Error_Code, unique in catalog.
-    int numericCode;                  ///< Numeric_Error_Code, unique, inside category segment.
-    ErrorCategory category;           ///< Error classification.
-    int httpStatus;                   ///< 100..599, generated per Requirement 4 rules.
-    std::string_view defaultMessage;  ///< Default Client_Safe_Message (non-empty, no Internal_Detail).
-    std::string_view description;     ///< Short description, length 1..200.
+    std::string_view code;   ///< Stable string Error_Code, unique in catalog.
+    int numericCode;         ///< Numeric_Error_Code, unique, inside category segment.
+    ErrorCategory category;  ///< Error classification.
+    int httpStatus;          ///< 100..599, generated per Requirement 4 rules.
+    std::string_view
+      defaultMessage;              ///< Default Client_Safe_Message (non-empty, no Internal_Detail).
+    std::string_view description;  ///< Short description, length 1..200.
 };
 
 /**

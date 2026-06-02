@@ -9,7 +9,12 @@ class AdminController : public drogon::HttpController<AdminController>
   public:
     METHOD_LIST_BEGIN
     // Dashboard (merged from old AdminController)
-    ADD_METHOD_TO(AdminController::dashboard, "/api/admin/dashboard", Get, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::dashboard,
+      "/api/admin/dashboard",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
     // Client Management
     ADD_METHOD_TO(
       AdminController::listClients,
@@ -61,7 +66,12 @@ class AdminController : public drogon::HttpController<AdminController>
     );
 
     // User Management
-    ADD_METHOD_TO(AdminController::listUsers, "/api/admin/users", Get, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::listUsers,
+      "/api/admin/users",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
     ADD_METHOD_TO(
       AdminController::disableUser,
       "/api/admin/users/{userId}/disable",
@@ -76,13 +86,28 @@ class AdminController : public drogon::HttpController<AdminController>
     );
 
     // Scope Management
-    ADD_METHOD_TO(AdminController::listScopes, "/api/admin/scopes", Get, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::listScopes,
+      "/api/admin/scopes",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
 
     // Audit Logs
-    ADD_METHOD_TO(AdminController::listLogs, "/api/admin/logs", Get, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::listLogs,
+      "/api/admin/logs",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
 
     // Token Management
-    ADD_METHOD_TO(AdminController::listTokens, "/api/admin/tokens", Get, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::listTokens,
+      "/api/admin/tokens",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
     ADD_METHOD_TO(
       AdminController::revokeTokensByClient,
       "/api/admin/tokens/revoke-by-client",
@@ -129,8 +154,18 @@ class AdminController : public drogon::HttpController<AdminController>
     );
 
     // Role Management
-    ADD_METHOD_TO(AdminController::listRoles, "/api/admin/roles", Get, "oauth2::filters::AuthorizationFilter");
-    ADD_METHOD_TO(AdminController::createRole, "/api/admin/roles", Post, "oauth2::filters::AuthorizationFilter");
+    ADD_METHOD_TO(
+      AdminController::listRoles,
+      "/api/admin/roles",
+      Get,
+      "oauth2::filters::AuthorizationFilter"
+    );
+    ADD_METHOD_TO(
+      AdminController::createRole,
+      "/api/admin/roles",
+      Post,
+      "oauth2::filters::AuthorizationFilter"
+    );
     ADD_METHOD_TO(
       AdminController::updateRole,
       "/api/admin/roles/{roleId}",
@@ -351,5 +386,8 @@ class AdminController : public drogon::HttpController<AdminController>
       const HttpRequestPtr &req,
       std::function<void(const HttpResponsePtr &)> &&callback
     );
-    void dashboard(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void dashboard(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
 };

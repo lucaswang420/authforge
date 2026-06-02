@@ -534,15 +534,17 @@ void RedisOAuth2Storage::atomicRevokeRefreshToken(
 {
     // Redis doesn't have native CAS, but we can use HSETNX-like logic
     // For simplicity, get then set (acceptable for Redis single-threaded model)
-    getRefreshToken(token, [self = shared_from_this(), this, token, cb = std::move(cb)](auto rt) mutable {
-        if (!rt || rt->revoked)
-        {
-            cb(std::nullopt);
-            return;
-        }
-        auto captured = *rt;
-        revokeRefreshToken(token, [cb = std::move(cb), captured]() { cb(captured); });
-    });
+    getRefreshToken(
+      token, [self = shared_from_this(), this, token, cb = std::move(cb)](auto rt) mutable {
+          if (!rt || rt->revoked)
+          {
+              cb(std::nullopt);
+              return;
+          }
+          auto captured = *rt;
+          revokeRefreshToken(token, [cb = std::move(cb), captured]() { cb(captured); });
+      }
+    );
 }
 
 void RedisOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)

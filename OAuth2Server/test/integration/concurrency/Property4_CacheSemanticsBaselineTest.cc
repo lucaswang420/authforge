@@ -57,7 +57,7 @@
 #include <oauth2/storage/MemoryOAuth2Storage.h>
 
 #include "CategoryC_DeferredStorageSupport.h"  // makeLiveAccessToken / makeLiveClient / farFutureExpiry
-#include "Property4_PreservationSupport.h"      // PreservationInputGen / CacheOp
+#include "Property4_PreservationSupport.h"  // PreservationInputGen / CacheOp
 
 using namespace oauth2::test::concurrency;
 using oauth2::CachedOAuth2Storage;

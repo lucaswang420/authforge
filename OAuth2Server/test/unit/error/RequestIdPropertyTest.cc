@@ -34,19 +34,51 @@ namespace
 constexpr unsigned int kSeed = 0x5EED'1D10u;
 
 // The agreed Request_ID character set: ASCII alphanumerics plus '-' and '_'.
-const std::string kValidChars =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const std::string kValidChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 // Out-of-set characters used to build invalid samples. Deliberately excludes
 // CR/LF/NUL (which are illegal in HTTP header values and would not round-trip
 // through the request object), while still covering spaces, punctuation and
 // non-ASCII bytes as required by Requirement 6.5.
-const std::vector<char> kInvalidChars = {
-  ' ',  '\t', '!',  '@',  '#',  '$',  '%',  '^',  '&',  '*',  '(',  ')',
-  '+',  '=',  '.',  ',',  ';',  ':',  '/',  '\\', '\'', '"',  '<',  '>',
-  '?',  '[',  ']',  '{',  '}',  '|',  '~',  '`',
-  static_cast<char>(0x80), static_cast<char>(0xC3), static_cast<char>(0xA9),
-  static_cast<char>(0xE4), static_cast<char>(0xBD), static_cast<char>(0xA0)};
+const std::vector<char> kInvalidChars =
+  {' ',
+   '\t',
+   '!',
+   '@',
+   '#',
+   '$',
+   '%',
+   '^',
+   '&',
+   '*',
+   '(',
+   ')',
+   '+',
+   '=',
+   '.',
+   ',',
+   ';',
+   ':',
+   '/',
+   '\\',
+   '\'',
+   '"',
+   '<',
+   '>',
+   '?',
+   '[',
+   ']',
+   '{',
+   '}',
+   '|',
+   '~',
+   '`',
+   static_cast<char>(0x80),
+   static_cast<char>(0xC3),
+   static_cast<char>(0xA9),
+   static_cast<char>(0xE4),
+   static_cast<char>(0xBD),
+   static_cast<char>(0xA0)};
 
 // Render a (possibly non-printable) sample for diagnostics.
 std::string escapeForLog(const std::string &s)
@@ -121,8 +153,7 @@ DROGON_TEST(Property10_RequestId_ResolveAndGenerate)
             if (!RequestId::isValid(sample))
             {
                 LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                          << "] expected valid sample but isValid==false: "
-                          << escapeForLog(sample);
+                          << "] expected valid sample but isValid==false: " << escapeForLog(sample);
             }
             CHECK(RequestId::isValid(sample) == true);
 
@@ -164,8 +195,10 @@ DROGON_TEST(Property10_RequestId_ResolveAndGenerate)
                 for (std::size_t k = 0; k < injects; ++k)
                 {
                     std::uniform_int_distribution<std::size_t> posPick(0, sample.size());
-                    sample.insert(sample.begin() + static_cast<std::ptrdiff_t>(posPick(gen)),
-                                  kInvalidChars[badPick(gen)]);
+                    sample.insert(
+                      sample.begin() + static_cast<std::ptrdiff_t>(posPick(gen)),
+                      kInvalidChars[badPick(gen)]
+                    );
                 }
                 label = "bad-chars";
             }
@@ -183,23 +216,23 @@ DROGON_TEST(Property10_RequestId_ResolveAndGenerate)
                 if (RequestId::isValid(sample))
                 {
                     LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                              << " cat=" << label
-                              << "] expected invalid sample but isValid==true: "
+                              << " cat=" << label << "] expected invalid sample but isValid==true: "
                               << escapeForLog(sample);
                 }
                 CHECK(RequestId::isValid(sample) == false);
             }
 
-            auto req = headerPresent ? makeRequestWithHeader(sample)
-                                     : drogon::HttpRequest::newHttpRequest();
+            auto req =
+              headerPresent ? makeRequestWithHeader(sample) : drogon::HttpRequest::newHttpRequest();
             const std::string resolved = RequestId::resolve(req);
 
             // Resolution must be a freshly generated, valid id (Req 6.1 / 6.4).
             if (!RequestId::isValid(resolved))
             {
                 LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                          << " cat=" << label << "] resolved id is not valid: "
-                          << escapeForLog(resolved) << " (sample=" << escapeForLog(sample) << ")";
+                          << " cat=" << label
+                          << "] resolved id is not valid: " << escapeForLog(resolved)
+                          << " (sample=" << escapeForLog(sample) << ")";
             }
             CHECK(RequestId::isValid(resolved) == true);
 
@@ -243,8 +276,8 @@ DROGON_TEST(Property10_RequestId_ResolveAndGenerate)
     if (generatedIds.size() != generatedCount)
     {
         LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec
-                  << "] generated id collision: produced " << generatedCount
-                  << " ids but only " << generatedIds.size() << " unique";
+                  << "] generated id collision: produced " << generatedCount << " ids but only "
+                  << generatedIds.size() << " unique";
     }
     CHECK(generatedIds.size() == generatedCount);
 }

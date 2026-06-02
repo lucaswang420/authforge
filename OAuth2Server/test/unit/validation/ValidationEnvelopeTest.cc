@@ -210,8 +210,8 @@ DROGON_TEST(Unit_P0_ValidationEnvelope_RespondWithErrorSingleField)
 
     HttpResponsePtr captured;
     HttpResponder::respondWithError(
-      "password", "too short",
-      [&captured](const HttpResponsePtr &resp) { captured = resp; });
+      "password", "too short", [&captured](const HttpResponsePtr &resp) { captured = resp; }
+    );
     REQUIRE(captured != nullptr);
 
     CHECK(captured->getStatusCode() == k400BadRequest);

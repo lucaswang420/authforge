@@ -43,13 +43,16 @@ std::string joinFieldErrors(const std::vector<std::string> &errors)
 
 }  // namespace
 
-Json::Value HttpResponder::buildErrorJson(const std::vector<std::string> &errors, const drogon::HttpRequestPtr &req)
+Json::Value HttpResponder::buildErrorJson(
+  const std::vector<std::string> &errors,
+  const drogon::HttpRequestPtr &req
+)
 {
     // VALIDATION-class Error Envelope: code VALIDATION_INVALID_INPUT, category
     // VALIDATION, HTTP 400 (Requirement 7.4). The message is the catalog default
     // Client_Safe_Message; the legacy aliases (`VALIDATION_ERROR`, `reason`,
     // `error_description`, `timestamp`) are intentionally gone (Requirement 7.5).
-    
+
     // Use RequestId::resolve(req) to reuse inbound X-Request-ID if present (Req 6.3).
     std::string requestId = req ? RequestId::resolve(req) : RequestId::generate();
     Error error = Error::fromCode("VALIDATION_INVALID_INPUT", std::move(requestId));

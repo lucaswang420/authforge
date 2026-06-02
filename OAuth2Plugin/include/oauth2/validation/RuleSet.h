@@ -16,12 +16,18 @@ class RuleSet
 {
   public:
     static std::optional<std::string> validateField(
-      const std::string &value, const std::string &fieldName, const Rule &rule);
+      const std::string &value,
+      const std::string &fieldName,
+      const Rule &rule
+    );
     static std::vector<std::string> validateFields(
       const std::vector<std::pair<std::string, std::string>> &fieldsAndValues,
-      const std::vector<Rule> &rules);
+      const std::vector<Rule> &rules
+    );
     static std::vector<std::string> validateRequest(
-      const drogon::HttpRequestPtr &req, const std::vector<Rule> &rules);
+      const drogon::HttpRequestPtr &req,
+      const std::vector<Rule> &rules
+    );
 
     static std::optional<std::string> validateClientId(const std::string &clientId);
     static std::optional<std::string> validateClientSecret(const std::string &secret);
@@ -39,9 +45,15 @@ class RuleSet
 
   private:
     static std::string extractFieldValue(
-      const drogon::HttpRequestPtr &req, const std::string &field, const std::string &source);
+      const drogon::HttpRequestPtr &req,
+      const std::string &field,
+      const std::string &source
+    );
     static std::string getValueFromSource(
-      const drogon::HttpRequestPtr &req, const std::string &field, const std::string &source);
+      const drogon::HttpRequestPtr &req,
+      const std::string &field,
+      const std::string &source
+    );
 };
 
 }  // namespace oauth2::validation

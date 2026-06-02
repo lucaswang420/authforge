@@ -23,10 +23,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -103,8 +100,9 @@ void MfaController::setup(
           (*sharedCb)(resp);
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("MFA setup failed: ") + e.base().what());
+          respondError(
+            req, sharedCb, "DB_QUERY_ERROR", std::string("MFA setup failed: ") + e.base().what()
+          );
       },
       secret,
       userId
@@ -132,8 +130,11 @@ void MfaController::verifySetup(
     if (code.empty() || code.length() != 6)
     {
         common::error::ErrorResponder::respond(
-          req, std::move(callback), "VALIDATION_FORMAT_ERROR",
-          "verifySetup: 6-digit TOTP code is required");
+          req,
+          std::move(callback),
+          "VALIDATION_FORMAT_ERROR",
+          "verifySetup: 6-digit TOTP code is required"
+        );
         return;
     }
 
@@ -146,8 +147,12 @@ void MfaController::verifySetup(
       [sharedCb, code, userId, db, req](const Result &r) {
           if (r.empty() || r[0]["mfa_secret"].isNull())
           {
-              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                           "verifySetup: MFA not set up. Call /api/me/mfa/setup first");
+              respondError(
+                req,
+                sharedCb,
+                "VALIDATION_INVALID_INPUT",
+                "verifySetup: MFA not set up. Call /api/me/mfa/setup first"
+              );
               return;
           }
 
@@ -156,8 +161,9 @@ void MfaController::verifySetup(
           // Verify the TOTP code
           if (!oauth2::utils::TotpUtils::verifyCode(secret, code))
           {
-              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
-                           "verifySetup: TOTP code is incorrect");
+              respondError(
+                req, sharedCb, "AUTH_INVALID_CREDENTIALS", "verifySetup: TOTP code is incorrect"
+              );
               return;
           }
 
@@ -180,7 +186,9 @@ void MfaController::verifySetup(
             "UPDATE users SET mfa_enabled = true, mfa_backup_codes = $1 "
             "WHERE public_sub::text = $2::text",
             [sharedCb, codesJson, userId, req](const Result &) {
-                oauth2::observability::AuditLogger::log("mfa_enabled", "success", req, userId, "user", userId);
+                oauth2::observability::AuditLogger::log(
+                  "mfa_enabled", "success", req, userId, "user", userId
+                );
                 Json::Value json;
                 json["message"] = "MFA enabled successfully";
                 json["backup_codes"] = codesJson;
@@ -189,16 +197,24 @@ void MfaController::verifySetup(
                 (*sharedCb)(resp);
             },
             [sharedCb, req](const DrogonDbException &e) {
-                respondError(req, sharedCb, "DB_QUERY_ERROR",
-                             std::string("MFA enable failed: ") + e.base().what());
+                respondError(
+                  req,
+                  sharedCb,
+                  "DB_QUERY_ERROR",
+                  std::string("MFA enable failed: ") + e.base().what()
+                );
             },
             hashedCodesStr,
             userId
           );
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("MFA verify setup failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("MFA verify setup failed: ") + e.base().what()
+          );
       },
       userId
     );
@@ -225,8 +241,9 @@ void MfaController::disable(
           (*sharedCb)(resp);
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("MFA disable failed: ") + e.base().what());
+          respondError(
+            req, sharedCb, "DB_QUERY_ERROR", std::string("MFA disable failed: ") + e.base().what()
+          );
       },
       userId
     );
@@ -258,8 +275,11 @@ void MfaController::verifyLogin(
     if (mfaToken.empty() || code.empty())
     {
         common::error::ErrorResponder::respond(
-          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
-          "verifyLogin: mfa_token and code are required");
+          req,
+          std::move(callback),
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "verifyLogin: mfa_token and code are required"
+        );
         return;
     }
 
@@ -275,8 +295,9 @@ void MfaController::verifyLogin(
       [sharedCb, code, mfaToken, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
-                           "verifyLogin: invalid MFA session");
+              respondError(
+                req, sharedCb, "AUTH_INVALID_CREDENTIALS", "verifyLogin: invalid MFA session"
+              );
               return;
           }
 
@@ -304,12 +325,17 @@ void MfaController::verifyLogin(
 
           // Try backup code
           // (simplified: in production, parse JSON array and check each hashed code)
-          respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
-                       "verifyLogin: TOTP code is incorrect");
+          respondError(
+            req, sharedCb, "AUTH_INVALID_CREDENTIALS", "verifyLogin: TOTP code is incorrect"
+          );
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("MFA login verify failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("MFA login verify failed: ") + e.base().what()
+          );
       },
       mfaToken
     );

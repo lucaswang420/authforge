@@ -54,8 +54,7 @@ enum class CacheOp
 class PreservationInputGen
 {
   public:
-    explicit PreservationInputGen(std::uint32_t seed)
-      : rng_(seed)
+    explicit PreservationInputGen(std::uint32_t seed) : rng_(seed)
     {
     }
 
@@ -88,42 +87,38 @@ class PreservationInputGen
     // Random client id from a small fixed pool (random client combos).
     std::string clientId()
     {
-        static const std::vector<std::string> kClients = {
-          "test-client", "vue-client", "svc-client", "mobile-client"};
+        static const std::vector<std::string> kClients =
+          {"test-client", "vue-client", "svc-client", "mobile-client"};
         return kClients[pick(kClients.size())];
     }
 
     // Random scope combo (random scope combos). Always OIDC-valid subsets.
     std::string scope()
     {
-        static const std::vector<std::string> kScopes = {
-          "openid",
-          "openid profile",
-          "openid email",
-          "openid profile email",
-          "profile"};
+        static const std::vector<std::string> kScopes =
+          {"openid", "openid profile", "openid email", "openid profile email", "profile"};
         return kScopes[pick(kScopes.size())];
     }
 
     // Random grant type (random grant combos).
     std::string grantType()
     {
-        static const std::vector<std::string> kGrants = {
-          "authorization_code", "refresh_token", "client_credentials"};
+        static const std::vector<std::string> kGrants =
+          {"authorization_code", "refresh_token", "client_credentials"};
         return kGrants[pick(kGrants.size())];
     }
 
     // Random request path used by the RBAC / public-path baselines (3.7).
     std::string requestPath()
     {
-        static const std::vector<std::string> kPaths = {
-          "/api/admin/users",
-          "/api/admin/settings/reset",
-          "/api/user/profile",
-          "/api/user/orders/42",
-          "/api/public/health",
-          "/oauth2/token",
-          "/random/unmatched/path"};
+        static const std::vector<std::string> kPaths =
+          {"/api/admin/users",
+           "/api/admin/settings/reset",
+           "/api/user/profile",
+           "/api/user/orders/42",
+           "/api/public/health",
+           "/oauth2/token",
+           "/random/unmatched/path"};
         return kPaths[pick(kPaths.size())];
     }
 

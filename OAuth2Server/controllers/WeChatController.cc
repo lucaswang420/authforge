@@ -137,8 +137,11 @@ void WeChatController::login(
     if (code.empty())
     {
         common::error::ErrorResponder::respond(
-          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
-          "wechat login: missing code parameter");
+          req,
+          std::move(callback),
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "wechat login: missing code parameter"
+        );
         return;
     }
 
@@ -160,16 +163,24 @@ void WeChatController::login(
       request, [callbackPtr, client, req](ReqResult result, const HttpResponsePtr &response) {
           if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
           {
-              respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
-                           "wechat login: failed to contact WeChat API");
+              respondError(
+                req,
+                callbackPtr,
+                "NET_CONNECTION_FAILED",
+                "wechat login: failed to contact WeChat API"
+              );
               return;
           }
 
           auto json = *response->getJsonObject();
           if (json.isMember("errcode") && json["errcode"].asInt() != 0)
           {
-              respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT",
-                           "wechat login: WeChat error: " + json["errmsg"].asString());
+              respondError(
+                req,
+                callbackPtr,
+                "VALIDATION_INVALID_INPUT",
+                "wechat login: WeChat error: " + json["errmsg"].asString()
+              );
               return;
           }
 
@@ -183,29 +194,34 @@ void WeChatController::login(
           auto req2 = HttpRequest::newHttpRequest();
           req2->setPath("/sns/userinfo?access_token=" + accessToken + "&openid=" + openid);
 
-          client2->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
-              if (res2 != ReqResult::Ok || !resp2)
-              {
-                  respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
-                               "wechat login: failed to fetch WeChat UserInfo");
-                  return;
-              }
+          client2
+            ->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
+                if (res2 != ReqResult::Ok || !resp2)
+                {
+                    respondError(
+                      req,
+                      callbackPtr,
+                      "NET_CONNECTION_FAILED",
+                      "wechat login: failed to fetch WeChat UserInfo"
+                    );
+                    return;
+                }
 
-              // Filter response to only include necessary fields
-              // (security best practice)
-              auto wechatData = resp2->getJsonObject();
-              Json::Value filteredJson;
-              filteredJson["openid"] = (*wechatData).get("openid", "").asString();
-              filteredJson["nickname"] = (*wechatData).get("nickname", "").asString();
-              filteredJson["headimgurl"] = (*wechatData).get("headimgurl", "").asString();
-              filteredJson["sex"] = (*wechatData).get("sex", 0).asInt();
-              filteredJson["city"] = (*wechatData).get("city", "").asString();
-              filteredJson["province"] = (*wechatData).get("province", "").asString();
-              filteredJson["country"] = (*wechatData).get("country", "").asString();
+                // Filter response to only include necessary fields
+                // (security best practice)
+                auto wechatData = resp2->getJsonObject();
+                Json::Value filteredJson;
+                filteredJson["openid"] = (*wechatData).get("openid", "").asString();
+                filteredJson["nickname"] = (*wechatData).get("nickname", "").asString();
+                filteredJson["headimgurl"] = (*wechatData).get("headimgurl", "").asString();
+                filteredJson["sex"] = (*wechatData).get("sex", 0).asInt();
+                filteredJson["city"] = (*wechatData).get("city", "").asString();
+                filteredJson["province"] = (*wechatData).get("province", "").asString();
+                filteredJson["country"] = (*wechatData).get("country", "").asString();
 
-              auto finalResp = HttpResponse::newHttpJsonResponse(filteredJson);
-              (*callbackPtr)(finalResp);
-          });
+                auto finalResp = HttpResponse::newHttpJsonResponse(filteredJson);
+                (*callbackPtr)(finalResp);
+            });
       }
     );
 }

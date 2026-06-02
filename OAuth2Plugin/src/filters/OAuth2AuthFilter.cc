@@ -14,7 +14,8 @@ void oauth2::filters::OAuth2AuthFilter::doFilter(
     if (!plugin)
     {
         LOG_ERROR << "OAuth2AuthFilter: OAuth2Plugin not found";
-        auto error = common::error::Error::fromCode("INTERNAL_ERROR", common::error::RequestId::resolve(req));
+        auto error =
+          common::error::Error::fromCode("INTERNAL_ERROR", common::error::RequestId::resolve(req));
         error.message = "OAuth2 plugin not available";
         auto resp = common::error::ErrorResponder::buildResponse(req, error);
         fcb(resp);
@@ -31,7 +32,9 @@ void oauth2::filters::OAuth2AuthFilter::doFilter(
     if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ")
     {
         LOG_WARN << "OAuth2AuthFilter: Missing or invalid Authorization header";
-        auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+        auto error = common::error::Error::fromCode(
+          "AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req)
+        );
         error.message = "Missing or invalid Authorization header";
         auto resp = common::error::ErrorResponder::buildResponse(req, error);
         fcb(resp);
@@ -49,7 +52,9 @@ void oauth2::filters::OAuth2AuthFilter::doFilter(
           if (!tokenInfo)
           {
               LOG_WARN << "OAuth2AuthFilter: Token validation failed";
-              auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+              auto error = common::error::Error::fromCode(
+                "AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req)
+              );
               error.message = "Invalid or expired token";
               auto resp = common::error::ErrorResponder::buildResponse(req, error);
               fcb(resp);

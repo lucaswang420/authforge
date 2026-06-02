@@ -9,7 +9,8 @@
 
 using namespace drogon;
 
-namespace oauth2::filters {
+namespace oauth2::filters
+{
 
 class AuthorizationFilter : public HttpFilter<AuthorizationFilter>
 {

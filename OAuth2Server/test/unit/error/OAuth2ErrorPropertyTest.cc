@@ -78,8 +78,9 @@ bool parseBody(const HttpResponsePtr &resp, Json::Value &out)
 
 std::string toLower(std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
     return s;
 }
 
@@ -91,9 +92,19 @@ bool containsInternalDetail(const std::string &value)
     const std::string lower = toLower(value);
 
     // SQL / database driver markers.
-    static const char *kSqlMarkers[] = {
-      "select ", "insert ", "update ", "delete ", "drop ", " from ", " where ",
-      " join ", "sqlstate", "syntax error", "duplicate key", "constraint \""};
+    static const char *kSqlMarkers[] =
+      {"select ",
+       "insert ",
+       "update ",
+       "delete ",
+       "drop ",
+       " from ",
+       " where ",
+       " join ",
+       "sqlstate",
+       "syntax error",
+       "duplicate key",
+       "constraint \""};
     for (const char *m : kSqlMarkers)
     {
         if (lower.find(m) != std::string::npos)
@@ -103,8 +114,8 @@ bool containsInternalDetail(const std::string &value)
     }
 
     // File-system path / source-location markers.
-    static const char *kPathMarkers[] = {
-      ".cc", ".cpp", ".hpp", "/var/", "/home/", "/usr/", "/etc/", "c:\\", "\\src\\"};
+    static const char *kPathMarkers[] =
+      {".cc", ".cpp", ".hpp", "/var/", "/home/", "/usr/", "/etc/", "c:\\", "\\src\\"};
     for (const char *m : kPathMarkers)
     {
         if (lower.find(m) != std::string::npos)
@@ -160,8 +171,8 @@ DROGON_TEST(Property9_OAuth2Error_Rfc6749Compliance)
 
     std::mt19937 gen(kSeed);
     std::uniform_int_distribution<std::size_t> codeDist(0, oauthEntries.size() - 1);
-    std::uniform_int_distribution<int> descModeDist(0, 1);   // 0 = empty (fallback), 1 = custom.
-    std::uniform_int_distribution<int> uriModeDist(0, 1);    // 0 = none, 1 = custom.
+    std::uniform_int_distribution<int> descModeDist(0, 1);  // 0 = empty (fallback), 1 = custom.
+    std::uniform_int_distribution<int> uriModeDist(0, 1);   // 0 = none, 1 = custom.
     std::uniform_int_distribution<std::size_t> descPickDist(0, cleanDescriptions().size() - 1);
 
     constexpr int kIterations = 200;  // >= 100 per the PBT convention.
@@ -205,8 +216,7 @@ DROGON_TEST(Property9_OAuth2Error_Rfc6749Compliance)
         if (resp->getHeader("Cache-Control") != "no-store")
         {
             LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                      << "] code=" << code
-                      << " Cache-Control=" << resp->getHeader("Cache-Control");
+                      << "] code=" << code << " Cache-Control=" << resp->getHeader("Cache-Control");
         }
         CHECK(resp->getHeader("Cache-Control") == "no-store");
         CHECK(resp->getHeader("Pragma") == "no-cache");

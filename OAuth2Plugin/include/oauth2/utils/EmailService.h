@@ -54,7 +54,9 @@ class SmtpEmailService : public IEmailService
         bool useSsl = true;
     };
 
-    explicit SmtpEmailService(const Config &config) : config_(config) {}
+    explicit SmtpEmailService(const Config &config) : config_(config)
+    {
+    }
 
     void sendEmail(
       const std::string &to,

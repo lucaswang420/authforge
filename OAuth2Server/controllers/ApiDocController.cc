@@ -63,7 +63,9 @@ void ApiDocController::openApiSpec(
             // 7.1 / 7.3 / 7.5). A missing spec file is reported as 404 Not Found,
             // preserving the pre-migration status (Requirement 11.4).
             common::error::ErrorResponder::respond(
-              req, std::move(callback), "VALIDATION_RESOURCE_NOT_FOUND",
+              req,
+              std::move(callback),
+              "VALIDATION_RESOURCE_NOT_FOUND",
               "openApiSpec: OpenAPI specification not found at " + filePath
             );
             return;
@@ -114,7 +116,9 @@ void ApiDocController::swaggerUi(
             // entry point. A missing UI asset is reported as 404 Not Found,
             // preserving the pre-migration status (Requirement 11.4).
             common::error::ErrorResponder::respond(
-              req, std::move(callback), "VALIDATION_RESOURCE_NOT_FOUND",
+              req,
+              std::move(callback),
+              "VALIDATION_RESOURCE_NOT_FOUND",
               "swaggerUi: Swagger UI not found at " + filePath
             );
             return;

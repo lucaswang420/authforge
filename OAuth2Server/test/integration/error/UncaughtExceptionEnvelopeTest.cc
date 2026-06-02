@@ -66,8 +66,7 @@ namespace
 //     path == "/.well-known/openid-configuration" || path == "/.well-known/jwks.json";
 bool isOAuth2ProtocolPath(const std::string &path)
 {
-    return path.rfind("/oauth2/", 0) == 0 ||
-           path == "/.well-known/oauth-authorization-server" ||
+    return path.rfind("/oauth2/", 0) == 0 || path == "/.well-known/oauth-authorization-server" ||
            path == "/.well-known/openid-configuration" || path == "/.well-known/jwks.json";
 }
 
@@ -81,8 +80,7 @@ bool isOAuth2ProtocolPath(const std::string &path)
 //   * Application path       -> ErrorResponder::buildResponse(req,
 //                              Error::fromCode("INTERNAL_ERROR", resolve(req)))
 //                              (Requirement 1 Error Envelope).
-HttpResponsePtr simulateUncaughtExceptionResponse(const std::string &path,
-                                                   const std::exception &e)
+HttpResponsePtr simulateUncaughtExceptionResponse(const std::string &path, const std::exception &e)
 {
     auto req = HttpRequest::newHttpRequest();
     req->setPath(path);
@@ -101,9 +99,8 @@ HttpResponsePtr simulateUncaughtExceptionResponse(const std::string &path,
         return captured;
     }
 
-    Error error = Error::fromCode(
-      std::string(ErrorCatalog::internalError().code), RequestId::resolve(req)
-    );
+    Error error =
+      Error::fromCode(std::string(ErrorCatalog::internalError().code), RequestId::resolve(req));
     return ErrorResponder::buildResponse(req, error);
 }
 
@@ -271,8 +268,8 @@ DROGON_TEST(Integration_UncaughtException_OAuth2Path_ReturnsRfc6749ServerError)
         const bool parsed = parseBody(resp, root);
         if (!parsed)
         {
-            LOG_ERROR << "path=" << path << " protocol body is not parseable JSON: "
-                      << resp->getBody();
+            LOG_ERROR << "path=" << path
+                      << " protocol body is not parseable JSON: " << resp->getBody();
         }
         REQUIRE(parsed);
         REQUIRE(root.isObject());

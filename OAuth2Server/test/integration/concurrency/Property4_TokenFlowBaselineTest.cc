@@ -96,16 +96,24 @@ std::string issueAuthCode(
   const std::string &subject,
   const std::string &scope,
   const std::string &redirectUri,
-  const std::string &nonce = "")
+  const std::string &nonce = ""
+)
 {
     std::string rawCode;
     bool ok = false;
     svc.generateAuthorizationCode(
-      clientId, subject, scope, redirectUri, "", "", nonce,
+      clientId,
+      subject,
+      scope,
+      redirectUri,
+      "",
+      "",
+      nonce,
       [&](bool success, std::string code, std::string /*err*/) {
           ok = success;
           rawCode = std::move(code);
-      });
+      }
+    );
     (void)ok;
     return rawCode;
 }
@@ -126,11 +134,11 @@ DROGON_TEST(Property4_3_2_ExchangeCode_HappyPath_Shape_Baseline)
     Json::Value result;
     bool called = false;
     svc->exchangeCodeForToken(
-      rawCode, "test-client", "secret", redirectUri, "",
-      [&](const Json::Value &json) {
+      rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &json) {
           result = json;
           called = true;
-      });
+      }
+    );
 
     REQUIRE(called);
     // Frozen success shape (3.2):
@@ -181,11 +189,11 @@ DROGON_TEST(Property4_3_2_ExchangeCode_WithOpenId_IssuesIdToken_Baseline)
     Json::Value result;
     bool called = false;
     svc->exchangeCodeForToken(
-      rawCode, "test-client", "secret", redirectUri, "",
-      [&](const Json::Value &json) {
+      rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &json) {
           result = json;
           called = true;
-      });
+      }
+    );
 
     REQUIRE(called);
     REQUIRE(result.isMember("id_token"));
@@ -207,16 +215,20 @@ DROGON_TEST(Property4_3_2_ExchangeCode_ErrorCodes_Baseline)
     {
         std::string rawCode = issueAuthCode(*svc, "test-client", "alice", "openid", redirectUri);
         Json::Value r;
-        svc->exchangeCodeForToken(rawCode, "test-client", "WRONG", redirectUri, "",
-                                  [&](const Json::Value &j) { r = j; });
+        svc->exchangeCodeForToken(
+          rawCode, "test-client", "WRONG", redirectUri, "", [&](const Json::Value &j) { r = j; }
+        );
         CHECK(r["error"].asString() == "invalid_client");
         CHECK(r["error_description"].asString() == "Client authentication failed");
     }
     // (b) invalid_grant: unknown / already-consumed code.
     {
         Json::Value r;
-        svc->exchangeCodeForToken("does-not-exist", "test-client", "secret", redirectUri, "",
-                                  [&](const Json::Value &j) { r = j; });
+        svc->exchangeCodeForToken(
+          "does-not-exist", "test-client", "secret", redirectUri, "", [&](const Json::Value &j) {
+              r = j;
+          }
+        );
         CHECK(r["error"].asString() == "invalid_grant");
         CHECK(r["error_description"].asString() == "Invalid authorization code");
     }
@@ -242,8 +254,9 @@ DROGON_TEST(Property4_3_2_ExchangeCode_ErrorCodes_Baseline)
         auto svc2 = std::make_shared<TokenService>(storage2);
         std::string rawCode = issueAuthCode(*svc2, "test-client", "alice", "openid", redirectUri);
         Json::Value r;
-        svc2->exchangeCodeForToken(rawCode, "other-client", "secret2", redirectUri, "",
-                                   [&](const Json::Value &j) { r = j; });
+        svc2->exchangeCodeForToken(
+          rawCode, "other-client", "secret2", redirectUri, "", [&](const Json::Value &j) { r = j; }
+        );
         CHECK(r["error"].asString() == "invalid_client");
         CHECK(r["error_description"].asString() == "Client ID mismatch");
     }
@@ -262,8 +275,11 @@ DROGON_TEST(Property4_3_2_RefreshToken_HappyPathAndReuse_Baseline)
     // Mint an initial token pair via the code exchange.
     std::string rawCode = issueAuthCode(*svc, "test-client", "alice", "openid", redirectUri);
     Json::Value exchanged;
-    svc->exchangeCodeForToken(rawCode, "test-client", "secret", redirectUri, "",
-                              [&](const Json::Value &j) { exchanged = j; });
+    svc->exchangeCodeForToken(
+      rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &j) {
+          exchanged = j;
+      }
+    );
     REQUIRE(exchanged.isMember("refresh_token"));
     const std::string rt = exchanged["refresh_token"].asString();
 
@@ -306,8 +322,11 @@ DROGON_TEST(Property4_3_2_Introspect_ActiveAndInactive_Baseline)
     std::string rawCode =
       issueAuthCode(*svc, "test-client", "alice", "openid profile", redirectUri);
     Json::Value exchanged;
-    svc->exchangeCodeForToken(rawCode, "test-client", "secret", redirectUri, "",
-                              [&](const Json::Value &j) { exchanged = j; });
+    svc->exchangeCodeForToken(
+      rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &j) {
+          exchanged = j;
+      }
+    );
     const std::string accessToken = exchanged["access_token"].asString();
 
     // Active token.
@@ -345,8 +364,11 @@ DROGON_TEST(Property4_3_2_RevokeAccessToken_ThenInvalid_Baseline)
 
     std::string rawCode = issueAuthCode(*svc, "test-client", "alice", "openid", redirectUri);
     Json::Value exchanged;
-    svc->exchangeCodeForToken(rawCode, "test-client", "secret", redirectUri, "",
-                              [&](const Json::Value &j) { exchanged = j; });
+    svc->exchangeCodeForToken(
+      rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &j) {
+          exchanged = j;
+      }
+    );
     const std::string accessToken = exchanged["access_token"].asString();
 
     // Token validates before revocation.
@@ -391,11 +413,12 @@ DROGON_TEST(Property4_3_2_ExchangeCode_RandomizedCombos_ShapeStable_Baseline)
 
         Json::Value result;
         bool called = false;
-        svc->exchangeCodeForToken(rawCode, "test-client", "secret", redirectUri, "",
-                                  [&](const Json::Value &j) {
-                                      result = j;
-                                      called = true;
-                                  });
+        svc->exchangeCodeForToken(
+          rawCode, "test-client", "secret", redirectUri, "", [&](const Json::Value &j) {
+              result = j;
+              called = true;
+          }
+        );
         REQUIRE(called);
         // Shape invariant across all normal combos.
         CHECK(result.isMember("access_token"));

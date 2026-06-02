@@ -72,26 +72,26 @@
 
 // Compile-time ThreadSanitizer detection.
 #if defined(__SANITIZE_THREAD__)
-#  define OAUTH2_TSAN_ENABLED 1
+#define OAUTH2_TSAN_ENABLED 1
 #elif defined(__has_feature)
-#  if __has_feature(thread_sanitizer)
-#    define OAUTH2_TSAN_ENABLED 1
-#  endif
+#if __has_feature(thread_sanitizer)
+#define OAUTH2_TSAN_ENABLED 1
+#endif
 #endif
 #ifndef OAUTH2_TSAN_ENABLED
-#  define OAUTH2_TSAN_ENABLED 0
+#define OAUTH2_TSAN_ENABLED 0
 #endif
 
 // Compile-time AddressSanitizer detection (analogue of the TSan macro above).
 #if defined(__SANITIZE_ADDRESS__)
-#  define OAUTH2_ASAN_ENABLED 1
+#define OAUTH2_ASAN_ENABLED 1
 #elif defined(__has_feature)
-#  if __has_feature(address_sanitizer)
-#    define OAUTH2_ASAN_ENABLED 1
-#  endif
+#if __has_feature(address_sanitizer)
+#define OAUTH2_ASAN_ENABLED 1
+#endif
 #endif
 #ifndef OAUTH2_ASAN_ENABLED
-#  define OAUTH2_ASAN_ENABLED 0
+#define OAUTH2_ASAN_ENABLED 0
 #endif
 
 namespace oauth2::test::concurrency
@@ -181,8 +181,7 @@ struct PendingCallbacks
 class SpinBarrier
 {
   public:
-    explicit SpinBarrier(int participants)
-      : remaining_(participants)
+    explicit SpinBarrier(int participants) : remaining_(participants)
     {
     }
 
@@ -214,8 +213,7 @@ class SpinBarrier
 class InterleavingGenerator
 {
   public:
-    explicit InterleavingGenerator(std::uint32_t seed)
-      : rng_(seed)
+    explicit InterleavingGenerator(std::uint32_t seed) : rng_(seed)
     {
     }
 

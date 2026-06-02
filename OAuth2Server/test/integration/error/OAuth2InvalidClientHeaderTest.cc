@@ -93,7 +93,9 @@ DROGON_TEST(Integration_OAuth2InvalidClient_IntrospectReturnsWWWAuthenticateHead
 
     client->sendRequest(
       req,
-      [&testComplete, &testPassed, &drogon_test_ctx_](ReqResult result, const HttpResponsePtr &resp) {
+      [&testComplete,
+       &testPassed,
+       &drogon_test_ctx_](ReqResult result, const HttpResponsePtr &resp) {
           testComplete = true;
 
           if (result != ReqResult::Ok || !resp)
@@ -164,7 +166,9 @@ DROGON_TEST(Integration_OAuth2InvalidClient_RevokeReturnsWWWAuthenticateHeader)
 
     client->sendRequest(
       req,
-      [&testComplete, &testPassed, &drogon_test_ctx_](ReqResult result, const HttpResponsePtr &resp) {
+      [&testComplete,
+       &testPassed,
+       &drogon_test_ctx_](ReqResult result, const HttpResponsePtr &resp) {
           testComplete = true;
 
           if (result != ReqResult::Ok || !resp)

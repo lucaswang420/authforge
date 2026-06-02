@@ -25,10 +25,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -60,7 +57,10 @@ PasswordResetControllerDocs docs_;
 }  // namespace
 
 // Lazy accessor - avoids static init order crash (see P5 bugfix).
-static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
+static oauth2::IEmailService &getEmailSvc()
+{
+    return oauth2::getEmailService();
+}
 
 void PasswordResetController::request(
   const HttpRequestPtr &req,
@@ -85,8 +85,12 @@ void PasswordResetController::request(
 
     if (email.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "password-reset request: email is required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "password-reset request: email is required"
+        );
         return;
     }
 
@@ -192,15 +196,23 @@ void PasswordResetController::confirm(
 
     if (token.empty() || newPassword.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "password-reset confirm: token and new_password are required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "password-reset confirm: token and new_password are required"
+        );
         return;
     }
 
     if (newPassword.length() < 8)
     {
-        respondError(req, sharedCb, "VALIDATION_FORMAT_ERROR",
-                     "password-reset confirm: password must be at least 8 characters");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_FORMAT_ERROR",
+          "password-reset confirm: password must be at least 8 characters"
+        );
         return;
     }
 
@@ -221,8 +233,12 @@ void PasswordResetController::confirm(
       [sharedCb, newPassword, db, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                           "password-reset confirm: token is invalid, expired, or already used");
+              respondError(
+                req,
+                sharedCb,
+                "VALIDATION_INVALID_INPUT",
+                "password-reset confirm: token is invalid, expired, or already used"
+              );
               return;
           }
 
@@ -236,8 +252,9 @@ void PasswordResetController::confirm(
           }
           catch (const std::exception &e)
           {
-              respondError(req, sharedCb, "INTERNAL_ERROR",
-                           std::string("Password hashing failed: ") + e.what());
+              respondError(
+                req, sharedCb, "INTERNAL_ERROR", std::string("Password hashing failed: ") + e.what()
+              );
               return;
           }
 
@@ -302,16 +319,24 @@ void PasswordResetController::confirm(
                 );
             },
             [sharedCb, req](const DrogonDbException &e) {
-                respondError(req, sharedCb, "DB_QUERY_ERROR",
-                             std::string("Failed to update password: ") + e.base().what());
+                respondError(
+                  req,
+                  sharedCb,
+                  "DB_QUERY_ERROR",
+                  std::string("Failed to update password: ") + e.base().what()
+                );
             },
             newHash,
             userId
           );
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("Reset token lookup failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("Reset token lookup failed: ") + e.base().what()
+          );
       },
       tokenHash,
       now

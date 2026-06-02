@@ -97,16 +97,16 @@ bool checkApplicationEntryInvariants(const CatalogEntry &e)
     if (e.numericCode < seg.min || e.numericCode > seg.max)
     {
         LOG_ERROR << "Property 5 violation: numeric_code " << e.numericCode << " for code '"
-                  << codeStr << "' out of " << categoryName(e.category) << " segment ["
-                  << seg.min << "," << seg.max << "]";
+                  << codeStr << "' out of " << categoryName(e.category) << " segment [" << seg.min
+                  << "," << seg.max << "]";
         return false;
     }
 
     // httpStatus in [100, 599] (Requirement 3.1).
     if (e.httpStatus < 100 || e.httpStatus > 599)
     {
-        LOG_ERROR << "Property 5 violation: httpStatus " << e.httpStatus << " for code '"
-                  << codeStr << "' out of [100,599]";
+        LOG_ERROR << "Property 5 violation: httpStatus " << e.httpStatus << " for code '" << codeStr
+                  << "' out of [100,599]";
         return false;
     }
 
@@ -269,8 +269,10 @@ DROGON_TEST(Property5_ErrorCatalog_RandomizedSamplingHoldsInvariants)
             LOG_ERROR << "Property 5 failed: seed=0x" << std::hex << kSeed << std::dec
                       << " iteration=" << i << " appEntryIndex=" << appIdx
                       << " code=" << std::string(appEntry.code);
-            FAULT("Property5 randomized sampling found an invalid Application entry; "
-                  "seed=0xCA7A106 (see log for offending entry)");
+            FAULT(
+              "Property5 randomized sampling found an invalid Application entry; "
+              "seed=0xCA7A106 (see log for offending entry)"
+            );
         }
 
         // Sample a random OAuth2 entry and re-check its well-formedness.
@@ -283,8 +285,10 @@ DROGON_TEST(Property5_ErrorCatalog_RandomizedSamplingHoldsInvariants)
             LOG_ERROR << "Property 5 failed: seed=0x" << std::hex << kSeed << std::dec
                       << " iteration=" << i << " oauthEntryIndex=" << oauthIdx
                       << " error=" << std::string(oauthEntry.error);
-            FAULT("Property5 randomized sampling found an invalid OAuth2 entry; "
-                  "seed=0xCA7A106 (see log for offending entry)");
+            FAULT(
+              "Property5 randomized sampling found an invalid OAuth2 entry; "
+              "seed=0xCA7A106 (see log for offending entry)"
+            );
         }
     }
 }
@@ -396,8 +400,8 @@ DROGON_TEST(Property4_HttpStatus_RuntimeEqualsCatalogRegisteredValue)
         if (runtimeStatus != e.httpStatus)
         {
             LOG_ERROR << "Property 4 violation: code '" << std::string(e.code)
-                      << "' runtime status " << runtimeStatus
-                      << " != catalog httpStatus " << e.httpStatus;
+                      << "' runtime status " << runtimeStatus << " != catalog httpStatus "
+                      << e.httpStatus;
         }
         CHECK(runtimeStatus == e.httpStatus);
     }
@@ -418,8 +422,8 @@ DROGON_TEST(Property4_HttpStatus_CatalogValueMatchesCategoryMapping)
         const int expected = expectedHttpStatusFor(e);
         if (e.httpStatus != expected)
         {
-            LOG_ERROR << "Property 4 violation: code '" << std::string(e.code)
-                      << "' (" << categoryName(e.category) << ", numeric " << e.numericCode
+            LOG_ERROR << "Property 4 violation: code '" << std::string(e.code) << "' ("
+                      << categoryName(e.category) << ", numeric " << e.numericCode
                       << ") httpStatus " << e.httpStatus << " != expected " << expected;
         }
         CHECK(e.httpStatus == expected);
@@ -441,7 +445,7 @@ DROGON_TEST(Property4_HttpStatus_SameCategoryConsistency)
     // Non-NETWORK categories: the first status seen pins the whole category.
     std::unordered_map<int, int> categoryStatus;  // category ordinal -> status
     // NETWORK splits by the TIMEOUT classification (is numeric == 1002).
-    std::unordered_map<bool, int> networkStatus;   // isTimeout -> status
+    std::unordered_map<bool, int> networkStatus;  // isTimeout -> status
 
     for (const auto &e : entries)
     {
@@ -541,8 +545,10 @@ DROGON_TEST(Property4_HttpStatus_RandomizedSamplingHoldsInvariants)
                       << " code=" << std::string(e.code) << " (" << categoryName(e.category)
                       << ", numeric " << e.numericCode << ") runtimeStatus=" << runtimeStatus
                       << " catalogHttpStatus=" << e.httpStatus << " expectedMapping=" << expected;
-            FAULT("Property4 randomized sampling found an inconsistent HTTP status; "
-                  "seed=0x4040C0DE (see log for offending entry)");
+            FAULT(
+              "Property4 randomized sampling found an inconsistent HTTP status; "
+              "seed=0x4040C0DE (see log for offending entry)"
+            );
         }
     }
 }

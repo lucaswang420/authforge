@@ -15,8 +15,8 @@ bool RequestId::isValid(const std::string &v)
     // Only ASCII alphanumerics and `-`/`_` are permitted.
     for (const unsigned char c : v)
     {
-        const bool isAlnum = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
-                             (c >= 'a' && c <= 'z');
+        const bool isAlnum =
+          (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
         if (!isAlnum && c != '-' && c != '_')
         {
             return false;

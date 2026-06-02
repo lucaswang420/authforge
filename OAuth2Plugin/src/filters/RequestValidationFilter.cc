@@ -7,8 +7,8 @@ using namespace oauth2::validation;
 
 // 构建完整的验证规则集（合并构造与一次性填充）。
 // 返回完整 map，供函数内静态访问器 rules() 首次访问时初始化。
-std::map<std::string, RequestValidationFilter::RouteValidationRules>
-RequestValidationFilter::buildRules()
+std::map<std::string, RequestValidationFilter::RouteValidationRules> RequestValidationFilter::
+  buildRules()
 {
     std::map<std::string, RouteValidationRules> rules;
 

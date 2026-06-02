@@ -117,8 +117,8 @@ DROGON_TEST(Unit_InitOrder_1_1_OpenApiTokenEndpoint_Snapshot_Baseline)
         paramNames.insert(p["name"].asString());
         CHECK(p["in"].asString() == "query");
     }
-    const std::set<std::string> expectedParams = {
-      "grant_type", "code", "refresh_token", "client_id", "client_secret", "redirect_uri"};
+    const std::set<std::string> expectedParams =
+      {"grant_type", "code", "refresh_token", "client_id", "client_secret", "redirect_uri"};
     CHECK(paramNames == expectedParams);
 
     // grant_type advertises its enum values (completeness of param metadata).
@@ -137,7 +137,8 @@ DROGON_TEST(Unit_InitOrder_1_1_OpenApiTokenEndpoint_Snapshot_Baseline)
     CHECK(token["responses"].isMember("400"));
     CHECK(token["responses"].isMember("401"));
     CHECK(
-      token["responses"]["200"]["content"]["application/json"]["example"].isMember("access_token"));
+      token["responses"]["200"]["content"]["application/json"]["example"].isMember("access_token")
+    );
 }
 
 // 1.1 BASELINE: discovery + JWKS endpoints registered (these are the endpoints
@@ -200,9 +201,7 @@ FilterOutcome runValidation(const drogon::HttpRequestPtr &req)
     RequestValidationFilter filter;
     FilterOutcome outcome = FilterOutcome::Neither;
 
-    auto fcb = [&outcome](const drogon::HttpResponsePtr &) {
-        outcome = FilterOutcome::Rejected;
-    };
+    auto fcb = [&outcome](const drogon::HttpResponsePtr &) { outcome = FilterOutcome::Rejected; };
     auto fccb = [&outcome]() { outcome = FilterOutcome::Passed; };
 
     filter.doFilter(req, std::move(fcb), std::move(fccb));

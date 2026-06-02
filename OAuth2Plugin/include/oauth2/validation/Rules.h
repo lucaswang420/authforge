@@ -40,7 +40,7 @@ enum class RuleType
 struct Rule
 {
     std::string field;
-    std::string source;   // "query", "body", "header"
+    std::string source;  // "query", "body", "header"
     bool required;
     size_t minLength = 0;
     size_t maxLength = 0;

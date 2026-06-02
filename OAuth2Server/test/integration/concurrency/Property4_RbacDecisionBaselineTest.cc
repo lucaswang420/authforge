@@ -83,9 +83,9 @@ namespace
 // task's "allow / 401 / 403" contract.
 enum class RbacOutcome
 {
-    Allow,             // FilterChainCallback fired (request passes / allow)
-    Unauthorized401,   // 401 {"error":"unauthorized" | "invalid_token"}
-    Forbidden403       // 403 {"error":"forbidden"}
+    Allow,            // FilterChainCallback fired (request passes / allow)
+    Unauthorized401,  // 401 {"error":"unauthorized" | "invalid_token"}
+    Forbidden403      // 403 {"error":"forbidden"}
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -146,6 +146,7 @@ class RbacDecisionModel
         std::regex pathPattern;
         std::vector<std::string> allowedRoles;
     };
+
     std::vector<Rule> rules_;
     std::vector<std::regex> publicPaths_;
 };
@@ -156,7 +157,8 @@ RbacOutcome decide(
   const RbacDecisionModel &model,
   bool hasValidToken,
   const std::vector<std::string> &roles,
-  const std::string &path)
+  const std::string &path
+)
 {
     if (!hasValidToken)
         return RbacOutcome::Unauthorized401;
@@ -222,14 +224,16 @@ RealFilterResult driveRealFilterNoToken(const std::string &path)
             result.outcome = RbacOutcome::Unauthorized401;
         else if (result.statusCode == static_cast<int>(drogon::k403Forbidden))
             result.outcome = RbacOutcome::Forbidden403;
-        
+
         // Parse JSON manually from body - Error Envelope format: {"error": {"code": "..."}}
         auto body = std::string(resp->getBody());
         if (!body.empty())
         {
             Json::Value json;
             Json::Reader reader;
-            if (reader.parse(body, json) && json.isMember("error") && json["error"].isMember("code"))
+            if (
+              reader.parse(body, json) && json.isMember("error") && json["error"].isMember("code")
+            )
             {
                 result.errorField = json["error"]["code"].asString();
             }

@@ -191,7 +191,14 @@ void TokenService::exchangeCodeForToken(
                       storage_->saveTokenPair(
                         token,
                         refreshToken,
-                        [self, this, callback, tokenStr, refreshTokenStr, rolesJson, authCode, now]() {
+                        [self,
+                         this,
+                         callback,
+                         tokenStr,
+                         refreshTokenStr,
+                         rolesJson,
+                         authCode,
+                         now]() {
                             Json::Value json;
                             json["access_token"] = tokenStr;
                             json["token_type"] = "Bearer";
@@ -281,7 +288,8 @@ void TokenService::refreshAccessToken(
               // Try to get the token to check if it exists but is revoked
               storage_->getRefreshToken(
                 hashedRt,
-                [self, this,
+                [self,
+                 this,
                  callback = std::move(callback)](std::optional<OAuth2RefreshToken> maybeRevoked) {
                     if (maybeRevoked && maybeRevoked->revoked && !maybeRevoked->familyId.empty())
                     {

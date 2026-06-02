@@ -84,9 +84,7 @@ void OAuth2ErrorHandler::sendErrorResponse(
     // scheme the client used. HTTP 401 is preserved by getHttpStatusCode.
     if (errorCode == INVALID_CLIENT && !authScheme.empty())
     {
-        resp->addHeader(
-          "WWW-Authenticate", authScheme + " realm=\"OAuth2 Client Authentication\""
-        );
+        resp->addHeader("WWW-Authenticate", authScheme + " realm=\"OAuth2 Client Authentication\"");
     }
 
     callback(resp);

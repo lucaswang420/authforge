@@ -27,24 +27,34 @@ namespace oauth2::validation
 class HttpResponder
 {
   public:
-    static drogon::HttpResponsePtr buildErrorResponse(const std::vector<std::string> &errors, const drogon::HttpRequestPtr &req = nullptr);
+    static drogon::HttpResponsePtr buildErrorResponse(
+      const std::vector<std::string> &errors,
+      const drogon::HttpRequestPtr &req = nullptr
+    );
     static void respondWithError(
-      const std::string &field, const std::string &reason,
+      const std::string &field,
+      const std::string &reason,
       std::function<void(const drogon::HttpResponsePtr &)> &&callback,
-      const drogon::HttpRequestPtr &req = nullptr);
+      const drogon::HttpRequestPtr &req = nullptr
+    );
     static void respondWithErrors(
       const std::vector<std::string> &errors,
       std::function<void(const drogon::HttpResponsePtr &)> &&callback,
-      const drogon::HttpRequestPtr &req = nullptr);
+      const drogon::HttpRequestPtr &req = nullptr
+    );
     static bool respondIfErrors(
       const std::vector<std::string> &errors,
       std::function<void(const drogon::HttpResponsePtr &)> &&callback,
-      const drogon::HttpRequestPtr &req = nullptr);
+      const drogon::HttpRequestPtr &req = nullptr
+    );
 
   private:
     // Builds the VALIDATION-class Error Envelope JSON for the given validation
     // error strings, delegating to common::error::Error / ErrorContext.
-    static Json::Value buildErrorJson(const std::vector<std::string> &errors, const drogon::HttpRequestPtr &req = nullptr);
+    static Json::Value buildErrorJson(
+      const std::vector<std::string> &errors,
+      const drogon::HttpRequestPtr &req = nullptr
+    );
 };
 
 }  // namespace oauth2::validation

@@ -17,10 +17,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -93,7 +90,9 @@ void OrganizationController::list(
       },
       [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           respondError(
-            req, sharedCb, "DB_QUERY_ERROR",
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
             std::string("list organizations failed: ") + e.base().what()
           );
       }
@@ -125,7 +124,9 @@ void OrganizationController::create(
     if (!std::regex_match(slug, slugPattern))
     {
         respondError(
-          req, sharedCb, "VALIDATION_FORMAT_ERROR",
+          req,
+          sharedCb,
+          "VALIDATION_FORMAT_ERROR",
           "create org: slug must be 3-50 chars, lowercase alphanumeric + hyphens"
         );
         return;
@@ -159,7 +160,9 @@ void OrganizationController::create(
       },
       [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           respondError(
-            req, sharedCb, "VALIDATION_RESOURCE_CONFLICT",
+            req,
+            sharedCb,
+            "VALIDATION_RESOURCE_CONFLICT",
             std::string("create org: slug already exists or DB error: ") + e.base().what()
           );
       },
@@ -205,8 +208,7 @@ void OrganizationController::getBySlug(
       },
       [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           respondError(
-            req, sharedCb, "DB_QUERY_ERROR",
-            std::string("get org failed: ") + e.base().what()
+            req, sharedCb, "DB_QUERY_ERROR", std::string("get org failed: ") + e.base().what()
           );
       },
       slug

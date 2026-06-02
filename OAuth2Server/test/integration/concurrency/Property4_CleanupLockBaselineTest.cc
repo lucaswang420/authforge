@@ -61,12 +61,10 @@ namespace
 {
 int64_t nowSeconds()
 {
-    return static_cast<int64_t>(
-      std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-      )
-        .count()
-    );
+    return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                  std::chrono::system_clock::now().time_since_epoch()
+    )
+                                  .count());
 }
 
 oauth2::OAuth2AccessToken accessToken(const std::string &name, int64_t expiresAt, bool revoked)
@@ -87,16 +85,18 @@ oauth2::OAuth2AccessToken accessToken(const std::string &name, int64_t expiresAt
 // The model holds a raw storage pointer exactly like the production class.
 enum class RedisOutcome
 {
-    Unavailable,    // getRedisClient threw → catch → single-instance clean
-    CommandError,   // execCommandAsync error callback → single-instance clean
-    LockAcquired,   // SET NX returned a value → lock acquired → clean
-    LockNotAcquired // SET NX returned nil → another instance running → SKIP
+    Unavailable,     // getRedisClient threw → catch → single-instance clean
+    CommandError,    // execCommandAsync error callback → single-instance clean
+    LockAcquired,    // SET NX returned a value → lock acquired → clean
+    LockNotAcquired  // SET NX returned nil → another instance running → SKIP
 };
 
 class CleanupLockDecisionModel
 {
   public:
-    explicit CleanupLockDecisionModel(oauth2::IOAuth2Storage *storage) : storage_(storage) {}
+    explicit CleanupLockDecisionModel(oauth2::IOAuth2Storage *storage) : storage_(storage)
+    {
+    }
 
     // Mirrors runCleanup() branch-for-branch. Returns true iff a cleanup ran.
     bool runCleanup(RedisOutcome outcome)
@@ -249,10 +249,18 @@ DROGON_TEST(Property4_3_6_RandomizedLockOutcomes_CleanupCountMatches_Baseline)
             RedisOutcome outcome;
             switch (gen.intInRange(0, 3))
             {
-                case 0: outcome = RedisOutcome::LockAcquired; break;
-                case 1: outcome = RedisOutcome::LockNotAcquired; break;
-                case 2: outcome = RedisOutcome::Unavailable; break;
-                default: outcome = RedisOutcome::CommandError; break;
+                case 0:
+                    outcome = RedisOutcome::LockAcquired;
+                    break;
+                case 1:
+                    outcome = RedisOutcome::LockNotAcquired;
+                    break;
+                case 2:
+                    outcome = RedisOutcome::Unavailable;
+                    break;
+                default:
+                    outcome = RedisOutcome::CommandError;
+                    break;
             }
             const bool cleaned = svc.runCleanup(outcome);
             if (outcome == RedisOutcome::LockNotAcquired)
