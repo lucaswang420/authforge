@@ -42,8 +42,8 @@ echo ""
 
 # Step 1: 停止并删除所有容器
 echo "📦 停止并删除所有容器..."
-docker-compose -f ../docker-compose.yml down --remove-orphans
-docker-compose -f ../docker-compose.debug.yml down --remove-orphans
+docker-compose -f ../deploy/docker/docker-compose.yml down --remove-orphans
+docker-compose -f ../deploy/docker/docker-compose.debug.yml down --remove-orphans
 
 # Step 2: 删除所有相关的 volumes
 echo "🗑️  删除所有相关 volumes..."
