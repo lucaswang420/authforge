@@ -739,7 +739,7 @@ git commit -m "feat: add platform-specific diagnostics and cache statistics repo
 Add this badge at the top of README.md after the title:
 
 ```markdown
-![Multi-Platform CI](https://github.com/YOUR_USERNAME/OAuth2-plugin-example/workflows/Multi-Platform%20CI/badge.svg)
+![Multi-Platform CI](https://github.com/YOUR_USERNAME/authforge/workflows/Multi-Platform%20CI/badge.svg)
 ```
 
 Add/update the CI/CD section in README.md:

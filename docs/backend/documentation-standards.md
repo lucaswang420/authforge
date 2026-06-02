@@ -5,7 +5,7 @@
 This project uses a hierarchical documentation organization to maintain clarity and consistency.
 
 ```
-OAuth2-plugin-example/
+authforge/
 ├── docs/                              # Project-level documentation (if needed)
 │   └── (overall project design docs)
 │

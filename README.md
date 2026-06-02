@@ -1,8 +1,8 @@
 # Drogon OAuth2.0 Provider — 全栈授权服务器
 
-![Linux CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-linux.yml/badge.svg)
-![Windows CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-windows.yml/badge.svg)
-![macOS CI](https://github.com/lucaswang420/OAuth2-plugin-example/actions/workflows/ci-macos.yml/badge.svg)
+![Linux CI](https://github.com/lucaswang420/authforge/actions/workflows/ci-linux.yml/badge.svg)
+![Windows CI](https://github.com/lucaswang420/authforge/actions/workflows/ci-windows.yml/badge.svg)
+![macOS CI](https://github.com/lucaswang420/authforge/actions/workflows/ci-macos.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 生产级 OAuth2.0/OIDC 授权服务器，完整支持 RFC 6749、RFC 7662、RFC 7009、RFC 8414 标准。包含管理后台、前端客户端和完整的测试体系。
@@ -12,7 +12,7 @@
 ## 项目架构
 
 ```
-OAuth2-plugin-example/
+authforge/
 ├── OAuth2Plugin/       # 核心插件库（独立 CMake 库，可供第三方项目集成）
 ├── OAuth2Server/       # 授权服务器后端（Drogon C++ 框架）
 ├── OAuth2Admin/        # 管理后台前端（Vue 3 + TailwindCSS）

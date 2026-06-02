@@ -4,7 +4,7 @@
 
 > 引言 / Introduction
 
-本需求文档由 `design.md`（设计先行 / Design-First 工作流）反向派生而来，用于把仓库结构重构（spec 名 `repo-structure-refactor`）的技术决策固化为可机械验证的验收标准。改造目标仓库为 `OAuth2-plugin-example`（Drogon C++ OAuth2 Plugin + Server + Admin Vue3 控制台 + Frontend Vue3 用户站点），重构覆盖：公共 include 镜像化、验证层 4 类整合、Filter / Middleware 命名统一、Admin / OAuth2 controller 合并与拆分、可观测性子层抽取、CMake 兼容层抽取、部署文件 (`Dockerfile` / `docker-compose*.yml` / `prometheus.yml`) 进入 `deploy/`、Windows / Linux / macOS 脚本对等、文档 kebab-case 重组、`.gitignore` 整合，以及 forwarding shim 的延迟移除（详见 design §1.1 / §1.2 / §2.8）。
+本需求文档由 `design.md`（设计先行 / Design-First 工作流）反向派生而来，用于把仓库结构重构（spec 名 `repo-structure-refactor`）的技术决策固化为可机械验证的验收标准。改造目标仓库为 `authforge`（Drogon C++ OAuth2 Plugin + Server + Admin Vue3 控制台 + Frontend Vue3 用户站点），重构覆盖：公共 include 镜像化、验证层 4 类整合、Filter / Middleware 命名统一、Admin / OAuth2 controller 合并与拆分、可观测性子层抽取、CMake 兼容层抽取、部署文件 (`Dockerfile` / `docker-compose*.yml` / `prometheus.yml`) 进入 `deploy/`、Windows / Linux / macOS 脚本对等、文档 kebab-case 重组、`.gitignore` 整合，以及 forwarding shim 的延迟移除（详见 design §1.1 / §1.2 / §2.8）。
 
 为什么做：当前公共头扁平、命名重叠（`Validator` / `ValidationHelper` / `ValidatorHelper` / `ValidationFilter` 四件套语义模糊；`AdminController` 与 `AdminApiController` 同存；`OAuth2Controller`(Server) 与 `OAuth2StandardController`(Plugin) 边界不清）、部署文件散落根目录、脚本仅 Windows 一等公民、文档碎片严重，导致新贡献者上手成本高且 CI / 文档极易产生悬挂引用（design §2.1 痛点）。重构目标态严格遵循依赖单向、`include/oauth2/**` 镜像 `src/**`、`deploy/` 集中、跨平台脚本对等（design §2.2 / §2.3 / §2.6）。
 

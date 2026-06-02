@@ -1,5 +1,5 @@
 # ==========================================
-# Unified Dockerfile for OAuth2-plugin-example
+# Unified Dockerfile for authforge
 # Supports multiple targets: backend-dev, backend-runtime, frontend-runtime
 # ==========================================
 

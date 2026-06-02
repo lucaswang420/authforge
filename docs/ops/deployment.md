@@ -50,7 +50,7 @@
 
 ```bash
 git clone <repo-url>
-cd OAuth2-plugin-example
+cd authforge
 ```
 
 ### 2. 生成密钥
