@@ -70,11 +70,11 @@ echo ========================================
 
 REM Stop any existing containers
 echo Stopping existing containers...
-docker-compose -f "%PROJECT_DIR%\docker-compose.yml" down >nul 2>&1
+docker-compose -f "%PROJECT_DIR%\deploy\docker\docker-compose.yml" down >nul 2>&1
 
 REM Start PostgreSQL and Redis containers
 echo Starting PostgreSQL and Redis containers...
-docker-compose -f "%PROJECT_DIR%\docker-compose.yml" up -d oauth2-postgres oauth2-redis
+docker-compose -f "%PROJECT_DIR%\deploy\docker\docker-compose.yml" up -d oauth2-postgres oauth2-redis
 if %ERRORLEVEL% neq 0 (
     echo [FAILED] Failed to start containers
     goto cleanup_and_exit
@@ -298,7 +298,7 @@ REM ========================================
 echo ========================================
 echo Step 10: Stopping Docker containers
 echo ========================================
-docker-compose -f "%PROJECT_DIR%\docker-compose.yml" down
+docker-compose -f "%PROJECT_DIR%\deploy\docker\docker-compose.yml" down
 echo [SUCCESS] Docker containers stopped
 echo.
 
@@ -346,7 +346,7 @@ if "%ERRORLEVEL%"=="0" (
 
 REM Stop Docker containers
 echo Stopping Docker containers...
-docker-compose -f "%PROJECT_DIR%\docker-compose.yml" down >nul 2>&1
+docker-compose -f "%PROJECT_DIR%\deploy\docker\docker-compose.yml" down >nul 2>&1
 
 REM Pause before exit
 echo.
