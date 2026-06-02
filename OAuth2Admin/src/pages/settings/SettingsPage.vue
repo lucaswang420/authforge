@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '@/services/errorAdapter'
 
 const scopes = ref<any[]>([])
 const loading = ref(true)
+const errorMessage = ref('')
 
 interface OidcKeyInfo {
   kid: string
@@ -18,14 +20,18 @@ interface OidcKeyInfo {
 
 const oidcKeys = ref<OidcKeyInfo | null>(null)
 const oidcLoading = ref(true)
+const oidcErrorMessage = ref('')
 const copySuccess = ref('')
 
 async function fetchScopes() {
   loading.value = true
+  errorMessage.value = ''
   try {
     const resp = await axios.get('/api/admin/scopes')
     scopes.value = resp.data.scopes || []
   } catch (e) {
+    const normalized = normalizeError(e)
+    errorMessage.value = normalized.message
     console.error('Failed to fetch scopes:', e)
   } finally {
     loading.value = false
@@ -34,10 +40,13 @@ async function fetchScopes() {
 
 async function fetchOidcKeys() {
   oidcLoading.value = true
+  oidcErrorMessage.value = ''
   try {
     const resp = await axios.get('/api/admin/oidc/keys')
     oidcKeys.value = resp.data
   } catch (e) {
+    const normalized = normalizeError(e)
+    oidcErrorMessage.value = normalized.message
     console.error('Failed to fetch OIDC keys:', e)
   } finally {
     oidcLoading.value = false
@@ -65,6 +74,20 @@ onMounted(() => {
 <template>
   <div>
     <h2 class="text-2xl font-bold text-gray-900 mb-6">Settings & Scopes</h2>
+
+    <!-- Error Banner for Scopes -->
+    <div v-if="errorMessage" class="mb-6 rounded-md bg-red-50 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Scopes Section -->
     <div class="bg-white shadow rounded-lg overflow-hidden">
@@ -106,6 +129,20 @@ onMounted(() => {
     <div class="bg-white shadow rounded-lg overflow-hidden mt-8">
       <div class="px-6 py-4 border-b">
         <h3 class="text-lg font-medium text-gray-900">OIDC Signing Keys</h3>
+      </div>
+
+      <!-- Error Banner for OIDC Keys -->
+      <div v-if="oidcErrorMessage" class="m-6 rounded-md bg-red-50 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-red-800">{{ oidcErrorMessage }}</p>
+          </div>
+        </div>
       </div>
 
       <div v-if="oidcLoading" class="p-6 text-center text-gray-500">Loading...</div>

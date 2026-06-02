@@ -24,18 +24,6 @@ using namespace oauth2::observability::openapi;
 
 namespace
 {
-/**
- * @brief Get HTTP status code for OAuth2 error
- */
-drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
-{
-    if (errorCode == "invalid_client" || errorCode == "unauthorized_client")
-    {
-        return drogon::k401Unauthorized;  // 401
-    }
-    return drogon::k400BadRequest;  // 400
-}
-
 // Emit an Application error via the unified ErrorResponder entry point so the
 // response body is always an Error Envelope (Requirement 7.1 / 7.3 / 7.5). The
 // callback is taken by value so callers that have already moved their callback

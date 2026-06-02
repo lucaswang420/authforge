@@ -44,6 +44,7 @@ export const zhCN: Record<string, string> = {
   invalid_scope: '请求的 scope 无效',
   server_error: '服务器内部错误',
   temporarily_unavailable: '服务暂时不可用',
+  access_denied: '授权请求被拒绝',
 
   // --- RFC 7009 (token revocation) §2.2.1 ---
   unsupported_token_type: '不支持的令牌类型',

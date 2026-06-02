@@ -222,9 +222,18 @@ RealFilterResult driveRealFilterNoToken(const std::string &path)
             result.outcome = RbacOutcome::Unauthorized401;
         else if (result.statusCode == static_cast<int>(drogon::k403Forbidden))
             result.outcome = RbacOutcome::Forbidden403;
-        auto json = resp->getJsonObject();
-        if (json && json->isMember("error"))
-            result.errorField = (*json)["error"].asString();
+        
+        // Parse JSON manually from body - Error Envelope format: {"error": {"code": "..."}}
+        auto body = std::string(resp->getBody());
+        if (!body.empty())
+        {
+            Json::Value json;
+            Json::Reader reader;
+            if (reader.parse(body, json) && json.isMember("error") && json["error"].isMember("code"))
+            {
+                result.errorField = json["error"]["code"].asString();
+            }
+        }
     };
     auto allow = [&result]() { result.outcome = RbacOutcome::Allow; };
 
@@ -244,7 +253,7 @@ DROGON_TEST(Property4_3_7_RealFilter_NoToken_Returns401_Baseline)
         auto r = driveRealFilterNoToken(path);
         CHECK(r.outcome == RbacOutcome::Unauthorized401);
         CHECK(r.statusCode == static_cast<int>(drogon::k401Unauthorized));
-        CHECK(r.errorField == "unauthorized");
+        CHECK(r.errorField == "AUTH_TOKEN_INVALID");
     }
 }
 

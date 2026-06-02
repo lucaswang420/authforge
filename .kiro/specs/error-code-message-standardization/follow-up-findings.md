@@ -17,7 +17,7 @@
 
 ## 🔴 Major
 
-### F1 ⬜ 两个鉴权过滤器从未迁移，受保护端点返回旧格式 / 纯文本错误
+### F1 ✅ 两个鉴权过滤器从未迁移，受保护端点返回旧格式 / 纯文本错误
 - **严重度**：Major（契约破坏，影响面大）
 - **位置**：
   - `OAuth2Plugin/src/filters/AuthorizationFilter.cc`
@@ -42,7 +42,7 @@
   - 500 plugin 缺失 → `INTERNAL_ERROR`
   注意过滤器回调签名与控制器不同，需用 `buildResponse(req, Error)` 直接构体（而非 `respond(...)` 的 cb 形态）。
 
-### F2 ⬜ Req 2.9 `WWW-Authenticate` 能力空转（introspect/revoke 不传 authScheme）
+### F2 ✅ Req 2.9 `WWW-Authenticate` 能力空转（introspect/revoke 不传 authScheme）
 - **严重度**：Major（验收点未真正落地）
 - **位置**：`OAuth2Plugin/src/controllers/OAuth2StandardController.cc`
   introspect `:357` / `:395`、revoke `:480` / `:517` 四处 `invalid_client` 调用。
@@ -55,7 +55,7 @@
   `WWW-Authenticate` challenge。
 - **建议修复**：在这 4 处（以及检测到 Basic 头时）传 `"Basic"`；可由 `extractClientCredentials` 顺带返回所用 scheme。
 
-### F3 ⬜ Req 2.9 真实控制器路径无集成测试（致 F2 漏网）
+### F3 ✅ Req 2.9 真实控制器路径无集成测试（致 F2 漏网）
 - **严重度**：Major（测试盲区）
 - **位置**：`OAuth2Server/test/unit/error/OAuth2InvalidClientHeaderTest.cc`
 - **现状**：该测试只**直接调** `OAuth2ErrorHandler` 并传 `authScheme` 验证 header 生成，
@@ -68,14 +68,14 @@
 
 ## 🟡 Minor
 
-### F4 ⬜ 校验错误响应不复用入站 X-Request-ID
+### F4 ✅ 校验错误响应不复用入站 X-Request-ID
 - **严重度**：Minor（Req 6.3 部分未满足）
 - **位置**：`OAuth2Plugin/src/validation/HttpResponder.cc:50`（`buildErrorJson`）
 - **现状**：用 `RequestId::generate()`（新 UUID）而非 `RequestId::resolve(req)`，因此校验错误响应
   不复用入站 `X-Request-ID` 头。根因：`buildErrorJson` / `buildErrorResponse` 签名不接 `req`。
 - **建议修复**：透传 `req` 或新增接收 `req` 的重载，改用 `RequestId::resolve(req)`。
 
-### F5 ⬜ Admin 四个数据页失败时不展示本地化错误
+### F5 ✅ Admin 四个数据页失败时不展示本地化错误
 - **严重度**：Minor（Req 10.1/10.2 的 UX 覆盖缺口；未违反 10.3）
 - **位置**：`OAuth2Admin/src/pages/` 下 `dashboard/DashboardPage.vue`、`logs/LogsPage.vue`、
   `settings/SettingsPage.vue`、`tokens/TokensPage.vue`
@@ -85,7 +85,7 @@
 - 说明：`OAuth2Frontend` 的 `ForgotPasswordPage.vue`（catch 后强制 success，反枚举）与
   `oauth/ConsentPage.vue`（catch 仅处理 302 重定向）属合理设计，无需改。
 
-### F6 ⬜ api-reference §5.3 速查表 invalid_client 状态码错误
+### F6 ✅ api-reference §5.3 速查表 invalid_client 状态码错误
 - **严重度**：Minor（文档一致性）
 - **位置**：`docs/backend/api-reference.md`（§5.3「HTTP 状态码速查」，约 `:266` 行 `400` 一行）
 - **现状**：§5.3 把 `invalid_client` 列在 `400` 行的原因示例里，但 §5.2 表与 `ErrorCatalog`
@@ -97,7 +97,7 @@
 
 ## 🔴 Major（来源：Claude Code 评审，已逐条核实代码确认真实存在）
 
-### F7 ⬜ token 端点本地 `getHttpStatusCodeForError()` 把 `unauthorized_client` 映射为 401，与 ErrorCatalog 的 400 矛盾
+### F7 ✅ token 端点本地 `getHttpStatusCodeForError()` 把 `unauthorized_client` 映射为 401，与 ErrorCatalog 的 400 矛盾
 - **严重度**：Major（与单一权威来源矛盾，违反 Req 2.2 / 2.7）
 - **位置**：`OAuth2Plugin/src/controllers/OAuth2StandardController.cc`
   - 本地函数 `getHttpStatusCodeForError()` `:26-34`：`if (errorCode == "invalid_client" || errorCode == "unauthorized_client") return k401Unauthorized; return k400BadRequest;`
@@ -107,7 +107,7 @@
 - **为何是问题**：违反 Req 2.2/2.7（协议错误响应的 HTTP 状态码须等于 Catalog 登记值）；同一协议码在不同端点（token vs introspect/revoke 经 `OAuth2ErrorHandler`）状态码不一致。
 - **建议修复**：删除本地 `getHttpStatusCodeForError()`，token 路径改用 `OAuth2ErrorHandler::getHttpStatusCode()`（查 Catalog）或直接经 `OAuth2ErrorHandler::sendErrorResponse()` 产出协议错误体。
 
-### F8 ⬜ `authorize()` 对"用户缺少角色"硬编码 `unauthorized_client` + HTTP 403（状态码不一致 + 语义误用）
+### F8 ✅ `authorize()` 对"用户缺少角色"硬编码 `unauthorized_client` + HTTP 403（状态码不一致 + 语义误用）
 - **严重度**：Major（状态码与 Catalog 不一致 + RFC 语义误用）
 - **位置**：`OAuth2Plugin/src/controllers/OAuth2StandardController.cc:955-962`
   —— 用户角色校验失败时 `jsonErr["error"]="unauthorized_client"; resp->setStatusCode(k403Forbidden);`
@@ -117,7 +117,7 @@
 - **为何是问题**：违反 Req 2.7 状态码一致性；协议错误码语义误用会误导集成方。
 - **建议修复**：改经 `OAuth2ErrorHandler::sendErrorResponse()` 保持一致；并复核应使用的协议码（倾向 `access_denied`，而非 `unauthorized_client`）。注意 `authorize` 是重定向端点，错误处理方式与 token 端点不同，需确认是直接 JSON 错误体还是重定向错误参数。
 
-### F9 ⬜ `ErrorHandler::generateRequestId()` 格式与 `RequestId::generate()` 不一致，且 DB/校验异常路径绕过 `RequestId::resolve()`
+### F9 ✅ `ErrorHandler::generateRequestId()` 格式与 `RequestId::generate()` 不一致，且 DB/校验异常路径绕过 `RequestId::resolve()`
 - **严重度**：Major（违反 Req 6 / Req 6.3；与 F4 同根因的不同站点）
 - **位置**：`OAuth2Plugin/src/error/ErrorHandler.cc`
   - `generateRequestId()` `:224-234`：产出 `"req_" + 8 位十六进制`

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '@/services/errorAdapter'
 
 const health = ref<any>(null)
 const stats = ref<any>(null)
 const loading = ref(true)
+const errorMessage = ref('')
 
 onMounted(async () => {
   try {
@@ -15,6 +17,8 @@ onMounted(async () => {
     health.value = healthResp.data
     stats.value = statsResp.data
   } catch (e) {
+    const normalized = normalizeError(e)
+    errorMessage.value = normalized.message
     health.value = { status: 'error' }
   } finally {
     loading.value = false
@@ -25,6 +29,20 @@ onMounted(async () => {
 <template>
   <div>
     <h2 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
+
+    <!-- Error Banner -->
+    <div v-if="errorMessage" class="mb-6 rounded-md bg-red-50 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

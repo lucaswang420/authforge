@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { normalizeError } from '../services/errorAdapter'
+import { normalizeError } from '@/services/errorAdapter'
 
 const router = useRouter()
 const auth = useAuthStore()

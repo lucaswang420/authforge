@@ -1,5 +1,6 @@
 ﻿#include <oauth2/error/ErrorHandler.h>
 #include <oauth2/error/ErrorCatalog.h>
+#include <oauth2/error/RequestId.h>
 #include <drogon/utils/Utilities.h>
 #include <random>
 #include <sstream>
@@ -223,16 +224,12 @@ void ErrorHandler::logError(const Error &error, const std::string &context)
 
 std::string ErrorHandler::generateRequestId()
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(100000, 999999);
-
-    std::stringstream ss;
-    ss << "req_" << std::hex << std::setw(8) << std::setfill('0') << dis(gen);
-    return ss.str();
+    // Delegate to RequestId::generate() for consistent UUID format.
+    // This function is deprecated; new code should call RequestId::generate() directly.
+    return RequestId::generate();
 }
 
-Error ErrorHandler::handleDbException(const DrogonDbException &e)
+Error ErrorHandler::handleDbException(const DrogonDbException &e, const drogon::HttpRequestPtr &req)
 {
     const std::string errStr = e.base().what();
 
@@ -250,16 +247,22 @@ Error ErrorHandler::handleDbException(const DrogonDbException &e)
         code = "DB_QUERY_ERROR";
     }
 
+    // Use RequestId::resolve(req) to reuse inbound X-Request-ID if present (Req 6.3).
+    std::string requestId = req ? RequestId::resolve(req) : RequestId::generate();
+
     // fromCode sets category and the default Client_Safe_Message from the
     // catalog; the raw driver text is kept only as Internal_Detail (details).
-    Error error = Error::fromCode(code, generateRequestId());
+    Error error = Error::fromCode(code, std::move(requestId));
     error.details = errStr;
     return error;
 }
 
-Error ErrorHandler::handleValidationError(const std::string &field, const std::string &reason)
+Error ErrorHandler::handleValidationError(const std::string &field, const std::string &reason, const drogon::HttpRequestPtr &req)
 {
-    Error error = Error::fromCode("VALIDATION_INVALID_INPUT", generateRequestId());
+    // Use RequestId::resolve(req) to reuse inbound X-Request-ID if present (Req 6.3).
+    std::string requestId = req ? RequestId::resolve(req) : RequestId::generate();
+
+    Error error = Error::fromCode("VALIDATION_INVALID_INPUT", std::move(requestId));
     error.message = reason;
     error.details = "field: " + field;
     return error;
