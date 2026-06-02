@@ -10,8 +10,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
+      - ../../deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../deploy/nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       oauth2-backend:
         condition: service_healthy
@@ -24,7 +24,7 @@ services:
 
   oauth2-frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: deploy/docker/Dockerfile
       target: frontend-runtime
     container_name: oauth2-frontend
@@ -36,7 +36,7 @@ services:
 
   oauth2-admin:
     build:
-      context: ./OAuth2Admin
+      context: ../../OAuth2Admin
       dockerfile: Dockerfile
     container_name: oauth2-admin
     restart: always
@@ -47,7 +47,7 @@ services:
 
   oauth2-backend:
     build:
-      context: .
+      context: ../..
       dockerfile: deploy/docker/Dockerfile
       target: backend-runtime
     container_name: oauth2-backend
@@ -68,9 +68,9 @@ services:
       - OAUTH2_JWT_KEY_PATH=/app/keys/signing.pem
       - OAUTH2_AUTO_MIGRATE=true
     volumes:
-      - ./deploy/keys:/app/keys:ro
-      - ./OAuth2Server/sql/migrations:/app/sql/migrations:ro
-      - ./OAuth2Server/sql/seed:/app/sql/seed:ro
+      - ../../deploy/keys:/app/keys:ro
+      - ../../OAuth2Server/sql/migrations:/app/sql/migrations:ro
+      - ../../OAuth2Server/sql/seed:/app/sql/seed:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5555/health"]
       interval: 10s
@@ -115,7 +115,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - promdata:/prometheus
     networks:
       - oauth2-net

@@ -42,7 +42,7 @@ services:
     container_name: oauth2-backend-debug
     volumes:
       # Mount the entire project directory
-      - .:/app:cached
+      - ../..:/app:cached
       # Build cache to speed up rebuilds
       - oauth2-build-cache:/build-cache
     working_dir: /app
