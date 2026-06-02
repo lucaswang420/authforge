@@ -130,9 +130,9 @@ bool checkApplicationEntryInvariants(const CatalogEntry &e)
 
 // RFC 6749 §5.2 base set plus RFC 7009/8628 codes that must each be registered
 // exactly once (Requirement 2.6).
-const std::array<std::string_view, 12> &requiredOAuthCodes()
+const std::array<std::string_view, 13> &requiredOAuthCodes()
 {
-    static const std::array<std::string_view, 12> kCodes = {{
+    static const std::array<std::string_view, 13> kCodes = {{
       "invalid_request",
       "invalid_client",
       "invalid_grant",
@@ -141,6 +141,7 @@ const std::array<std::string_view, 12> &requiredOAuthCodes()
       "invalid_scope",
       "server_error",
       "temporarily_unavailable",
+      "access_denied",
       "unsupported_token_type",
       "authorization_pending",
       "slow_down",

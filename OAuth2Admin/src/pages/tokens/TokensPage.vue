@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { normalizeError } from '@/services/errorAdapter'
 
 interface Token {
   token_prefix: string
@@ -16,6 +17,7 @@ const loading = ref(true)
 const page = ref(1)
 const perPage = ref(50)
 const total = ref(0)
+const errorMessage = ref('')
 
 // Filters
 const clientIdFilter = ref('')
@@ -36,6 +38,7 @@ const uniqueClientIds = computed(() => {
 
 async function fetchTokens() {
   loading.value = true
+  errorMessage.value = ''
   try {
     const params: Record<string, string | number> = { page: page.value, per_page: perPage.value }
     if (clientIdFilter.value) params.client_id = clientIdFilter.value
@@ -45,6 +48,8 @@ async function fetchTokens() {
     tokens.value = resp.data.tokens || []
     total.value = resp.data.total || 0
   } catch (e) {
+    const normalized = normalizeError(e)
+    errorMessage.value = normalized.message
     console.error('Failed to fetch tokens:', e)
   } finally {
     loading.value = false
@@ -88,6 +93,8 @@ async function revokeToken(tokenPrefix: string) {
       await axios.delete(`/api/admin/tokens/${tokenPrefix}`)
       await fetchTokens()
     } catch (e) {
+      const normalized = normalizeError(e)
+      errorMessage.value = normalized.message
       console.error('Failed to revoke token:', e)
     }
   })
@@ -100,6 +107,8 @@ async function revokeByClient(clientId: string) {
       await axios.post('/api/admin/tokens/revoke-by-client', { client_id: clientId })
       await fetchTokens()
     } catch (e) {
+      const normalized = normalizeError(e)
+      errorMessage.value = normalized.message
       console.error('Failed to revoke tokens by client:', e)
     }
   })
@@ -112,6 +121,8 @@ async function revokeByUser() {
       await axios.post('/api/admin/tokens/revoke-by-user', { user_id: userIdFilter.value })
       await fetchTokens()
     } catch (e) {
+      const normalized = normalizeError(e)
+      errorMessage.value = normalized.message
       console.error('Failed to revoke tokens by user:', e)
     }
   })
@@ -153,6 +164,20 @@ onMounted(fetchTokens)
               No clients in current results
             </p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    <div v-if="errorMessage" class="mb-6 rounded-md bg-red-50 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
         </div>
       </div>
     </div>

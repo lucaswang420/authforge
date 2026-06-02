@@ -18,21 +18,6 @@ using namespace oauth2;
 using namespace oauth2::controllers;
 using namespace oauth2::observability::openapi;
 
-namespace
-{
-/**
- * @brief Get HTTP status code for OAuth2 error
- */
-drogon::HttpStatusCode getHttpStatusCodeForError(const std::string &errorCode)
-{
-    if (errorCode == "invalid_client" || errorCode == "unauthorized_client")
-    {
-        return drogon::k401Unauthorized;  // 401
-    }
-    return drogon::k400BadRequest;  // 400
-}
-}  // namespace
-
 namespace oauth2::controllers
 {
 
@@ -304,16 +289,17 @@ drogon::HttpResponsePtr OAuth2StandardController::createSuccessResponse()
     return resp;
 }
 
-std::pair<std::string, std::string> OAuth2StandardController::extractClientCredentials(
+ClientCredentials OAuth2StandardController::extractClientCredentials(
   const drogon::HttpRequestPtr &req
 )
 {
-    std::string clientId, clientSecret;
+    std::string clientId, clientSecret, authScheme;
 
     // Prefer HTTP Basic Auth
     auto authHeader = req->getHeader("Authorization");
     if (!authHeader.empty() && authHeader.find("Basic ") == 0)
     {
+        authScheme = "Basic";
         auto basicAuth = authHeader.substr(6);
         try
         {
@@ -337,7 +323,7 @@ std::pair<std::string, std::string> OAuth2StandardController::extractClientCrede
         clientSecret = req->getParameter("client_secret");
     }
 
-    return {clientId, clientSecret};
+    return {clientId, clientSecret, authScheme};
 }
 
 void OAuth2StandardController::introspect(
@@ -349,13 +335,14 @@ void OAuth2StandardController::introspect(
 
     // Extract client credentials
     auto credentials = extractClientCredentials(req);
-    auto clientId = credentials.first;
-    auto clientSecret = credentials.second;
+    auto clientId = credentials.clientId;
+    auto clientSecret = credentials.clientSecret;
+    auto authScheme = credentials.authScheme;
 
     if (clientId.empty() || clientSecret.empty())
     {
         common::error::OAuth2ErrorHandler::sendErrorResponse(
-          std::move(callback), "invalid_client", "Client authentication required"
+          std::move(callback), "invalid_client", "Client authentication required", "", authScheme
         );
         return;
     }
@@ -388,12 +375,12 @@ void OAuth2StandardController::introspect(
     plugin->validateClient(
       clientId,
       clientSecret,
-      [plugin, token, clientId, callback = std::move(callback)](bool valid) mutable {
+      [plugin, token, clientId, authScheme, callback = std::move(callback)](bool valid) mutable {
           if (!valid)
           {
               oauth2::observability::Metrics::incrementIntrospectErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed"
+                std::move(callback), "invalid_client", "Client authentication failed", "", authScheme
               );
               return;
           }
@@ -472,13 +459,14 @@ void OAuth2StandardController::revoke(
 
     // Extract client credentials
     auto credentials = extractClientCredentials(req);
-    auto clientId = credentials.first;
-    auto clientSecret = credentials.second;
+    auto clientId = credentials.clientId;
+    auto clientSecret = credentials.clientSecret;
+    auto authScheme = credentials.authScheme;
 
     if (clientId.empty() || clientSecret.empty())
     {
         common::error::OAuth2ErrorHandler::sendErrorResponse(
-          std::move(callback), "invalid_client", "Client authentication required"
+          std::move(callback), "invalid_client", "Client authentication required", "", authScheme
         );
         return;
     }
@@ -510,12 +498,12 @@ void OAuth2StandardController::revoke(
     plugin->validateClient(
       clientId,
       clientSecret,
-      [plugin, token, clientId, callback = std::move(callback)](bool valid) mutable {
+      [plugin, token, clientId, authScheme, callback = std::move(callback)](bool valid) mutable {
           if (!valid)
           {
               oauth2::observability::Metrics::incrementRevocationErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed"
+                std::move(callback), "invalid_client", "Client authentication failed", "", authScheme
               );
               return;
           }
@@ -523,7 +511,7 @@ void OAuth2StandardController::revoke(
           // Check token ownership (permission control)
           plugin->introspectToken(
             token,
-            [plugin, clientId, callback = std::move(callback), token](
+            [plugin, token, clientId, callback = std::move(callback)](
               std::optional<oauth2::TokenIntrospection> introspection
             ) mutable {
                 if (!introspection || !introspection->active)
@@ -953,10 +941,10 @@ void OAuth2StandardController::authorize(
                                 {
                                     LOG_WARN << "User role validation failed: " << roleError;
                                     Json::Value jsonErr;
-                                    jsonErr["error"] = "unauthorized_client";
+                                    jsonErr["error"] = "access_denied";
                                     jsonErr["error_description"] = roleError;
                                     auto resp = drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                                    resp->setStatusCode(drogon::k403Forbidden);
+                                    resp->setStatusCode(common::error::OAuth2ErrorHandler::getHttpStatusCode("access_denied"));
                                     callback(resp);
                                     return;
                                 }
@@ -1168,7 +1156,7 @@ void OAuth2StandardController::token(
               {
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
                   std::string errorCode = result.get("error", "").asString();
-                  drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
+                  drogon::HttpStatusCode statusCode = common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
                   resp->setStatusCode(statusCode);
                   observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);
@@ -1191,7 +1179,7 @@ void OAuth2StandardController::token(
               {
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
                   std::string errorCode = result.get("error", "").asString();
-                  drogon::HttpStatusCode statusCode = getHttpStatusCodeForError(errorCode);
+                  drogon::HttpStatusCode statusCode = common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
                   resp->setStatusCode(statusCode);
                   observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);

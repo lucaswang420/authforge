@@ -55,6 +55,11 @@ const OAUTH2_PROTOCOL_CODES = [
   'invalid_scope',
   'server_error',
   'temporarily_unavailable',
+  'access_denied',
+  'unsupported_token_type',
+  'authorization_pending',
+  'slow_down',
+  'expired_token',
 ] as const
 
 // 保留回退键，亦应在两应用间一致映射。

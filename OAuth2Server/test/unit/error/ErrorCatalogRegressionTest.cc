@@ -85,6 +85,7 @@ DROGON_TEST(Unit_P0_ErrorCatalog_Regression_OAuthProtocolCodeSetComplete)
       "invalid_scope",
       "server_error",
       "temporarily_unavailable",
+      "access_denied",
       "unsupported_token_type",
       "authorization_pending",
       "slow_down",

@@ -1,5 +1,8 @@
 #include <oauth2/filters/AuthorizationFilter.h>
 #include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/error/ErrorResponder.h>
+#include <oauth2/error/ErrorTypes.h>
+#include <oauth2/error/RequestId.h>
 #include <drogon/drogon.h>
 
 
@@ -93,10 +96,11 @@ void AuthorizationFilter::doFilter(
 
     if (token.empty())
     {
-        Json::Value error;
-        error["error"] = "unauthorized";
-        auto resp = HttpResponse::newHttpJsonResponse(error);
-        resp->setStatusCode(k401Unauthorized);
+        // Session not found or invalid - use Error Envelope (Req 7.1/7.3)
+        LOG_WARN << "Authorization failed: token missing";
+        auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+        error.message = "Authentication required";
+        auto resp = common::error::ErrorResponder::buildResponse(req, error);
         fcb(resp);  // Return response -> Use fcb
         return;
     }
@@ -106,12 +110,10 @@ void AuthorizationFilter::doFilter(
     if (!plugin)
     {
         LOG_ERROR << "OAuth2Plugin not found!";
-        fcb(
-          HttpResponse::newHttpResponse(
-            k500InternalServerError,
-            ContentType::CT_TEXT_PLAIN
-          )
-        );  // Return response -> Use fcb
+        auto error = common::error::Error::fromCode("INTERNAL_ERROR", common::error::RequestId::resolve(req));
+        error.message = "OAuth2 plugin not available";
+        auto resp = common::error::ErrorResponder::buildResponse(req, error);
+        fcb(resp);  // Return response -> Use fcb
         return;
     }
 
@@ -128,10 +130,10 @@ void AuthorizationFilter::doFilter(
       ) mutable {
           if (!at)
           {
-              Json::Value error;
-              error["error"] = "invalid_token";
-              auto resp = HttpResponse::newHttpJsonResponse(error);
-              resp->setStatusCode(k401Unauthorized);
+              LOG_WARN << "Authorization failed: invalid or expired token";
+              auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+              error.message = "Invalid or expired token";
+              auto resp = common::error::ErrorResponder::buildResponse(req, error);
               (*denyCbPtr)(resp);
               return;
           }
@@ -146,11 +148,10 @@ void AuthorizationFilter::doFilter(
                 }
                 else
                 {
-                    Json::Value error;
-                    error["error"] = "forbidden";
-                    error["message"] = "Insufficient permissions";
-                    auto resp = HttpResponse::newHttpJsonResponse(error);
-                    resp->setStatusCode(k403Forbidden);
+                    LOG_WARN << "Authorization failed: insufficient permissions for path " << req->path();
+                    auto error = common::error::Error::fromCode("AUTHZ_INSUFFICIENT_PERMISSIONS", common::error::RequestId::resolve(req));
+                    error.message = "Insufficient permissions";
+                    auto resp = common::error::ErrorResponder::buildResponse(req, error);
                     (*denyCbPtr)(resp);  // DENY -> Return 403
                 }
             }

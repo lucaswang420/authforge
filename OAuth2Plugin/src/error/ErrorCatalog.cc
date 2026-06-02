@@ -116,9 +116,9 @@ const std::array<RawEntry, 16> &rawEntries()
 
 // OAuth2 protocol error codes (RFC 6749 §5.2 base set + RFC 7009/8628 codes).
 // httpStatus values are registered explicitly per their defining RFC.
-const std::array<OAuthCatalogEntry, 12> &rawOAuthEntries()
+const std::array<OAuthCatalogEntry, 13> &rawOAuthEntries()
 {
-    static const std::array<OAuthCatalogEntry, 12> kEntries = {{
+    static const std::array<OAuthCatalogEntry, 13> kEntries = {{
       // RFC 6749 §5.2 token endpoint error codes.
       {"invalid_request", 400, "请求参数缺失或无效", ""},
       {"invalid_client", 401, "客户端认证失败", ""},
@@ -128,6 +128,9 @@ const std::array<OAuthCatalogEntry, 12> &rawOAuthEntries()
       {"invalid_scope", 400, "请求的 scope 无效", ""},
       {"server_error", 500, "服务器内部错误", ""},
       {"temporarily_unavailable", 503, "服务暂时不可用", ""},
+
+      // RFC 6749 §4.1.2.1 authorization endpoint error code.
+      {"access_denied", 403, "授权请求被拒绝（用户无权或拒绝授权）", ""},
 
       // RFC 7009 (token revocation) §2.2.1.
       {"unsupported_token_type", 400, "不支持的令牌类型", ""},
@@ -373,7 +376,7 @@ void ErrorCatalog::validateInvariants()
         ++oauthCounts[o.error];
     }
 
-    static constexpr std::array<std::string_view, 12> kRequiredOAuthCodes = {{
+    static constexpr std::array<std::string_view, 13> kRequiredOAuthCodes = {{
       "invalid_request",
       "invalid_client",
       "invalid_grant",
@@ -382,6 +385,7 @@ void ErrorCatalog::validateInvariants()
       "invalid_scope",
       "server_error",
       "temporarily_unavailable",
+      "access_denied",
       "unsupported_token_type",
       "authorization_pending",
       "slow_down",

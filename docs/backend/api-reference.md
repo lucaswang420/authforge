@@ -252,6 +252,7 @@ OAuth2 协议端点（OAuth2_Protocol_Endpoint）保持 RFC 6749 §5.2 错误体
 | `invalid_scope` | 400 | 请求的 scope 无效 |
 | `server_error` | 500 | 服务器内部错误 |
 | `temporarily_unavailable` | 503 | 服务暂时不可用 |
+| `access_denied` | 403 | 授权请求被拒绝（用户无权或拒绝授权） |
 | `unsupported_token_type` | 400 | 不支持的令牌类型 |
 | `authorization_pending` | 400 | 授权尚未完成，请稍后重试 |
 | `slow_down` | 400 | 轮询过于频繁，请降低频率 |
@@ -263,9 +264,9 @@ OAuth2 协议端点（OAuth2_Protocol_Endpoint）保持 RFC 6749 §5.2 错误体
 |---|---|---|
 | `200` | OK | 请求成功 |
 | `302` | Found | 重定向 (如 OAuth2 授权跳转) |
-| `400` | Bad Request | 参数错误, `invalid_grant`, `invalid_client` |
-| `401` | Unauthorized | Token 无效或过期 |
-| `403` | Forbidden | **RBAC 拦截**: 用户已登录但缺少所需角色 |
+| `400` | Bad Request | 参数错误, `invalid_grant`, `unauthorized_client` |
+| `401` | Unauthorized | Token 无效或过期, `invalid_client` |
+| `403` | Forbidden | **RBAC 拦截**: 用户已登录但缺少所需角色, `access_denied` |
 | `429` | Too Many Requests | 触发限流 (Rate Limiting) |
 | `500` | Internal Server Error | 服务器内部错误 |
 

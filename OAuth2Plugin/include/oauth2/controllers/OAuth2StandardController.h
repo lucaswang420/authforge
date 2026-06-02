@@ -6,6 +6,14 @@
 namespace oauth2::controllers
 {
 
+// Helper struct to hold client credentials and authentication scheme
+struct ClientCredentials
+{
+    std::string clientId;
+    std::string clientSecret;
+    std::string authScheme;  // "Basic" if from Authorization header, empty otherwise
+};
+
 // Lifetime / concurrency contract (defect 1.11, design Property 3):
 //
 // Drogon controllers are process-wide singletons whose lifetime spans the entire
@@ -99,7 +107,7 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
 
     static drogon::HttpResponsePtr createSuccessResponse();
 
-    static std::pair<std::string, std::string> extractClientCredentials(
+    static ClientCredentials extractClientCredentials(
       const drogon::HttpRequestPtr &req
     );
 

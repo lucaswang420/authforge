@@ -43,13 +43,16 @@ std::string joinFieldErrors(const std::vector<std::string> &errors)
 
 }  // namespace
 
-Json::Value HttpResponder::buildErrorJson(const std::vector<std::string> &errors)
+Json::Value HttpResponder::buildErrorJson(const std::vector<std::string> &errors, const drogon::HttpRequestPtr &req)
 {
     // VALIDATION-class Error Envelope: code VALIDATION_INVALID_INPUT, category
     // VALIDATION, HTTP 400 (Requirement 7.4). The message is the catalog default
     // Client_Safe_Message; the legacy aliases (`VALIDATION_ERROR`, `reason`,
     // `error_description`, `timestamp`) are intentionally gone (Requirement 7.5).
-    Error error = Error::fromCode("VALIDATION_INVALID_INPUT", RequestId::generate());
+    
+    // Use RequestId::resolve(req) to reuse inbound X-Request-ID if present (Req 6.3).
+    std::string requestId = req ? RequestId::resolve(req) : RequestId::generate();
+    Error error = Error::fromCode("VALIDATION_INVALID_INPUT", std::move(requestId));
 
     // Field names + failure reasons are diagnostic detail. They are surfaced in
     // the Envelope `details` only when detailed errors are allowed
@@ -68,10 +71,11 @@ Json::Value HttpResponder::buildErrorJson(const std::vector<std::string> &errors
 }
 
 drogon::HttpResponsePtr HttpResponder::buildErrorResponse(
-  const std::vector<std::string> &errors
+  const std::vector<std::string> &errors,
+  const drogon::HttpRequestPtr &req
 )
 {
-    Json::Value root = buildErrorJson(errors);
+    Json::Value root = buildErrorJson(errors, req);
 
     auto resp = drogon::HttpResponse::newHttpJsonResponse(root);
     // HTTP 400 for the VALIDATION category (Requirement 7.4). Content-Type is set
@@ -84,33 +88,36 @@ drogon::HttpResponsePtr HttpResponder::buildErrorResponse(
 void HttpResponder::respondWithError(
   const std::string &field,
   const std::string &reason,
-  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback,
+  const drogon::HttpRequestPtr &req
 )
 {
     std::vector<std::string> errors;
     errors.push_back(field + ": " + reason);
 
-    auto resp = buildErrorResponse(errors);
+    auto resp = buildErrorResponse(errors, req);
     callback(resp);
 }
 
 void HttpResponder::respondWithErrors(
   const std::vector<std::string> &errors,
-  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback,
+  const drogon::HttpRequestPtr &req
 )
 {
-    auto resp = buildErrorResponse(errors);
+    auto resp = buildErrorResponse(errors, req);
     callback(resp);
 }
 
 bool HttpResponder::respondIfErrors(
   const std::vector<std::string> &errors,
-  std::function<void(const drogon::HttpResponsePtr &)> &&callback
+  std::function<void(const drogon::HttpResponsePtr &)> &&callback,
+  const drogon::HttpRequestPtr &req
 )
 {
     if (!errors.empty())
     {
-        respondWithErrors(errors, std::move(callback));
+        respondWithErrors(errors, std::move(callback), req);
         return true;
     }
     return false;

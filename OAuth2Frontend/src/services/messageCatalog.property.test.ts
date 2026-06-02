@@ -44,6 +44,7 @@ const BACKEND_ERROR_CODES = [
 
 // 后端 ErrorCatalog 登记的全部 OAuth2 协议字符串错误码：
 //   - RFC 6749 §5.2 基础集合（8 个）
+//   - RFC 6749 §4.1.2.1 授权端点: access_denied
 //   - RFC 7009（令牌撤销）: unsupported_token_type
 //   - RFC 8628（设备授权）: authorization_pending / slow_down / expired_token
 // 这些与后端 OAuth2Plugin/src/error/ErrorCatalog.cc 的 rawOAuthEntries() 一一对应。
@@ -56,6 +57,7 @@ const OAUTH2_PROTOCOL_CODES = [
   'invalid_scope',
   'server_error',
   'temporarily_unavailable',
+  'access_denied',
   'unsupported_token_type',
   'authorization_pending',
   'slow_down',
