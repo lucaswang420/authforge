@@ -113,7 +113,7 @@ Linux/macOS with a GCC/Clang toolchain (TSan and ASan are mutually exclusive —
 this is the TSan build):
 
 ```bash
-# From the repo root (OAuth2-plugin-example/)
+# From the repo root (authforge/)
 bash scripts/backend/build.sh --tsan        # == --sanitizer=thread, implies --debug
 
 # Run the full suite (ctest name OAuth2Tests) under TSan:

@@ -542,7 +542,7 @@ All platforms use consistent environment variables:
 ### 15.3 File Structure
 
 ```
-OAuth2-plugin-example/
+authforge/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                    # Legacy (keep backup)

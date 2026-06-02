@@ -118,7 +118,7 @@ echo "✅ Models backed up to $backup_dir"
 ```powershell
 # Windows PowerShell
 # 检查 OAuth2Server 目录结构
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example\OAuth2Server
+cd d:\work\development\Repos\backend\drogon-plugin\authforge\OAuth2Server
 
 # 创建 models 目录（如果不存在）
 if (!(Test-Path "models")) {
@@ -132,7 +132,7 @@ cd models
 
 ```bash
 # Linux/macOS
-cd /path/to/OAuth2-plugin-example/OAuth2Server
+cd /path/to/authforge/OAuth2Server
 
 # 创建 models 目录（如果不存在）
 mkdir -p models
@@ -161,7 +161,7 @@ echo "✅ Old model files removed"
 
 ```powershell
 # Windows PowerShell - 使用专项脚本
-cd d:\work\development\Repos\backend\drogon-plugin\OAuth2-plugin-example
+cd d:\work\development\Repos\backend\drogon-plugin\authforge
 scripts/backend/generate_models.bat -y
 
 # 此脚本会自动完成：
