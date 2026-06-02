@@ -44,7 +44,8 @@ void respondError(
 }
 }  // namespace
 
-static void sendBackchannelLogoutNotifications(const std::string &) {
+static void sendBackchannelLogoutNotifications(const std::string &)
+{
     LOG_DEBUG << "sendBackchannelLogoutNotifications: stub";
 }
 
@@ -255,8 +256,6 @@ struct OAuth2ControllerDocs
 OAuth2ControllerDocs docs_;
 }  // namespace
 
-
-
 void SessionController::showLoginPage(
   const HttpRequestPtr &req,
   std::function<void(const HttpResponsePtr &)> &&callback
@@ -309,8 +308,12 @@ void SessionController::showLoginPage(
     }
     catch (const std::exception &e)
     {
-        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                     std::string("Failed to render login page: ") + e.what());
+        respondError(
+          req,
+          std::move(callback),
+          "INTERNAL_ERROR",
+          std::string("Failed to render login page: ") + e.what()
+        );
     }
 }
 
@@ -323,9 +326,7 @@ void SessionController::login(
     auto errors = oauth2::validation::RuleSet::login(req);
 
     // Return validation errors if any
-    if (
-      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
-    )
+    if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
     {
         oauth2::observability::Metrics::incLoginFailure("validation_failed");
         return;
@@ -409,8 +410,9 @@ void SessionController::login(
               }
               if (requireEmailVerification && !authResult->emailVerified)
               {
-                  respondError(req, std::move(callback), "AUTHZ_ACCESS_DENIED",
-                               "login: email not verified");
+                  respondError(
+                    req, std::move(callback), "AUTHZ_ACCESS_DENIED", "login: email not verified"
+                  );
                   return;
               }
 
@@ -443,16 +445,21 @@ void SessionController::login(
                   // Check will be done after getClient - for now log warning
                   LOG_WARN << "[SECURITY] PUBLIC client " << clientId
                            << " login without PKCE (enforcement enabled)";
-                  respondError(req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
-                               "login: PKCE (code_challenge) is required for public clients");
+                  respondError(
+                    req,
+                    std::move(callback),
+                    "VALIDATION_MISSING_REQUIRED_FIELD",
+                    "login: PKCE (code_challenge) is required for public clients"
+                  );
                   return;
               }
 
               auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
               if (!plugin)
               {
-                  respondError(req, std::move(callback), "INTERNAL_ERROR",
-                               "login: OAuth2 Plugin not loaded");
+                  respondError(
+                    req, std::move(callback), "INTERNAL_ERROR", "login: OAuth2 Plugin not loaded"
+                  );
                   return;
               }
 
@@ -473,8 +480,12 @@ void SessionController::login(
                    std::move(callback)](bool success, std::string code, std::string error) mutable {
                     if (!success)
                     {
-                        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                                     "login: failed to generate authorization code: " + error);
+                        respondError(
+                          req,
+                          std::move(callback),
+                          "INTERNAL_ERROR",
+                          "login: failed to generate authorization code: " + error
+                        );
                         return;
                     }
 
@@ -501,15 +512,17 @@ void SessionController::login(
               oauth2::observability::Metrics::incLoginFailure("bad_credentials");
 
               // Audit: login failure
-              oauth2::observability::AuditLogger::log("login_failure", "failure", req, username, "user", username);
+              oauth2::observability::AuditLogger::log(
+                "login_failure", "failure", req, username, "user", username
+              );
 
-              respondError(req, std::move(callback), "AUTH_INVALID_CREDENTIALS",
-                           "login: invalid credentials");
+              respondError(
+                req, std::move(callback), "AUTH_INVALID_CREDENTIALS", "login: invalid credentials"
+              );
           }
       }
     );
 }
-
 
 void SessionController::consent(
   const HttpRequestPtr &req,
@@ -544,8 +557,9 @@ void SessionController::consent(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                     "consent: OAuth2 Plugin not loaded");
+        respondError(
+          req, std::move(callback), "INTERNAL_ERROR", "consent: OAuth2 Plugin not loaded"
+        );
         return;
     }
 
@@ -565,8 +579,9 @@ void SessionController::consent(
        callback = std::move(callback)](std::optional<int32_t> internalUserId) mutable {
           if (!internalUserId)
           {
-              respondError(req, std::move(callback), "INTERNAL_ERROR",
-                           "consent: failed to get user mapping");
+              respondError(
+                req, std::move(callback), "INTERNAL_ERROR", "consent: failed to get user mapping"
+              );
               return;
           }
 
@@ -607,8 +622,12 @@ void SessionController::consent(
                  callback = std::move(callback)](bool success) mutable {
                     if (!success)
                     {
-                        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                                     "consent: failed to save user consent for scope: " + firstScope);
+                        respondError(
+                          req,
+                          std::move(callback),
+                          "INTERNAL_ERROR",
+                          "consent: failed to save user consent for scope: " + firstScope
+                        );
                         return;
                     }
 
@@ -633,8 +652,12 @@ void SessionController::consent(
                       ) mutable {
                           if (!success)
                           {
-                              respondError(req, std::move(callback), "INTERNAL_ERROR",
-                                           "consent: failed to generate authorization code: " + error);
+                              respondError(
+                                req,
+                                std::move(callback),
+                                "INTERNAL_ERROR",
+                                "consent: failed to generate authorization code: " + error
+                              );
                               return;
                           }
 
@@ -665,8 +688,12 @@ void SessionController::consent(
                 ) mutable {
                     if (!success)
                     {
-                        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                                     "consent: failed to generate authorization code: " + error);
+                        respondError(
+                          req,
+                          std::move(callback),
+                          "INTERNAL_ERROR",
+                          "consent: failed to generate authorization code: " + error
+                        );
                         return;
                     }
 
@@ -683,7 +710,6 @@ void SessionController::consent(
     );
 }
 
-
 void SessionController::logout(
   const HttpRequestPtr &req,
   std::function<void(const HttpResponsePtr &)> &&callback
@@ -694,8 +720,12 @@ void SessionController::logout(
     auto authHeader = req->getHeader("Authorization");
     if (authHeader.empty() || authHeader.length() < 8 || authHeader.substr(0, 7) != "Bearer ")
     {
-        respondError(req, std::move(callback), "AUTH_TOKEN_INVALID",
-                     "logout: missing or invalid Authorization header");
+        respondError(
+          req,
+          std::move(callback),
+          "AUTH_TOKEN_INVALID",
+          "logout: missing or invalid Authorization header"
+        );
         return;
     }
 
@@ -709,8 +739,9 @@ void SessionController::logout(
     auto plugin = drogon::app().getPlugin<OAuth2Plugin>();
     if (!plugin)
     {
-        respondError(req, std::move(callback), "INTERNAL_ERROR",
-                     "logout: OAuth2 Plugin not loaded");
+        respondError(
+          req, std::move(callback), "INTERNAL_ERROR", "logout: OAuth2 Plugin not loaded"
+        );
         return;
     }
 
@@ -729,8 +760,6 @@ void SessionController::logout(
         callback(resp);
     });
 }
-
-
 
 void SessionController::registerUser(
   const HttpRequestPtr &req,
@@ -759,8 +788,9 @@ void SessionController::registerUser(
           }
           else
           {
-              respondError(req, callback, "VALIDATION_INVALID_INPUT",
-                           "registerUser failed: " + error);
+              respondError(
+                req, callback, "VALIDATION_INVALID_INPUT", "registerUser failed: " + error
+              );
           }
       }
     );

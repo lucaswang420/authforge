@@ -140,8 +140,11 @@ void GoogleController::login(
     if (code.empty())
     {
         common::error::ErrorResponder::respond(
-          req, std::move(callback), "VALIDATION_MISSING_REQUIRED_FIELD",
-          "google login: missing code parameter");
+          req,
+          std::move(callback),
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "google login: missing code parameter"
+        );
         return;
     }
 
@@ -164,16 +167,21 @@ void GoogleController::login(
       request, [callbackPtr, client, req](ReqResult result, const HttpResponsePtr &response) {
           if (result != ReqResult::Ok || !response || response->getStatusCode() != k200OK)
           {
-              respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
-                           "google login: failed to contact Google Token API");
+              respondError(
+                req,
+                callbackPtr,
+                "NET_CONNECTION_FAILED",
+                "google login: failed to contact Google Token API"
+              );
               return;
           }
 
           auto json = response->getJsonObject();
           if (!json || !json->isMember("access_token"))
           {
-              respondError(req, callbackPtr, "VALIDATION_INVALID_INPUT",
-                           "google login: invalid token response");
+              respondError(
+                req, callbackPtr, "VALIDATION_INVALID_INPUT", "google login: invalid token response"
+              );
               return;
           }
 
@@ -186,26 +194,31 @@ void GoogleController::login(
           req2->setPath("/oauth2/v3/userinfo");
           req2->addHeader("Authorization", "Bearer " + accessToken);
 
-          client2->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
-              if (res2 != ReqResult::Ok || !resp2)
-              {
-                  respondError(req, callbackPtr, "NET_CONNECTION_FAILED",
-                               "google login: failed to fetch Google UserInfo");
-                  return;
-              }
+          client2
+            ->sendRequest(req2, [callbackPtr, req](ReqResult res2, const HttpResponsePtr &resp2) {
+                if (res2 != ReqResult::Ok || !resp2)
+                {
+                    respondError(
+                      req,
+                      callbackPtr,
+                      "NET_CONNECTION_FAILED",
+                      "google login: failed to fetch Google UserInfo"
+                    );
+                    return;
+                }
 
-              // Filter response to only include necessary fields
-              // (security best practice)
-              auto googleData = resp2->getJsonObject();
-              Json::Value filteredJson;
-              filteredJson["sub"] = (*googleData).get("sub", "").asString();
-              filteredJson["name"] = (*googleData).get("name", "").asString();
-              filteredJson["email"] = (*googleData).get("email", "").asString();
-              filteredJson["picture"] = (*googleData).get("picture", "").asString();
+                // Filter response to only include necessary fields
+                // (security best practice)
+                auto googleData = resp2->getJsonObject();
+                Json::Value filteredJson;
+                filteredJson["sub"] = (*googleData).get("sub", "").asString();
+                filteredJson["name"] = (*googleData).get("name", "").asString();
+                filteredJson["email"] = (*googleData).get("email", "").asString();
+                filteredJson["picture"] = (*googleData).get("picture", "").asString();
 
-              auto finalResp = HttpResponse::newHttpJsonResponse(filteredJson);
-              (*callbackPtr)(finalResp);
-          });
+                auto finalResp = HttpResponse::newHttpJsonResponse(filteredJson);
+                (*callbackPtr)(finalResp);
+            });
       }
     );
 }

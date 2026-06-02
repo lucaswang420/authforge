@@ -95,7 +95,7 @@ class CleanupServiceRedisCallbackModel
       oauth2::IOAuth2Storage *storage,
       std::shared_ptr<PendingCallbacks> pending
     )
-      : storage_(storage), pending_(std::move(pending))
+        : storage_(storage), pending_(std::move(pending))
     {
     }
 

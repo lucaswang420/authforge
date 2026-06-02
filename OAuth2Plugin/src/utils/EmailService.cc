@@ -79,8 +79,8 @@ std::string sanitizeHeaderValue(const std::string &value)
 std::string rfc5322Date()
 {
     static const char *kDays[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-    static const char *kMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    static const char *kMonths[] =
+      {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::time_t now = std::time(nullptr);
     std::tm tmUtc{};
 #ifdef _WIN32
@@ -173,8 +173,7 @@ void SmtpEmailService::sendEmail(
     // behavior). All captured values are copies.
     std::thread([config, to, subject, body, cb]() {
         const std::string recipient = sanitizeHeaderValue(to);
-        std::string payload =
-          buildMimeMessage(to, subject, body, config.fromName, config.username);
+        std::string payload = buildMimeMessage(to, subject, body, config.fromName, config.username);
 
         CURL *curl = curl_easy_init();
         if (!curl)
@@ -226,8 +225,7 @@ void SmtpEmailService::sendEmail(
         {
             // Log ONLY the libcurl error string + recipient — never credentials
             // or the message payload.
-            LOG_ERROR << "SMTP: Failed to send to " << recipient << ": "
-                      << curl_easy_strerror(res);
+            LOG_ERROR << "SMTP: Failed to send to " << recipient << ": " << curl_easy_strerror(res);
             if (*cb)
                 (*cb)(false);
         }
@@ -249,8 +247,10 @@ IEmailService &getEmailService()
         const char *smtpUser = ConfigManager::getEnv("OAUTH2_SMTP_USER");
         const char *smtpPass = ConfigManager::getEnv("OAUTH2_SMTP_PASSWORD");
 
-        if (smtpHost && smtpUser && smtpPass &&
-            std::strlen(smtpHost) > 0 && std::strlen(smtpUser) > 0 && std::strlen(smtpPass) > 0)
+        if (
+          smtpHost && smtpUser && smtpPass && std::strlen(smtpHost) > 0 &&
+          std::strlen(smtpUser) > 0 && std::strlen(smtpPass) > 0
+        )
         {
             // libcurl global init must happen once, before any worker thread
             // uses the easy interface (curl_global_init is not thread-safe).
@@ -262,13 +262,16 @@ IEmailService &getEmailService()
             config.password = smtpPass;
 
             const char *smtpPort = ConfigManager::getEnv("OAUTH2_SMTP_PORT");
-            if (smtpPort) config.port = std::atoi(smtpPort);
+            if (smtpPort)
+                config.port = std::atoi(smtpPort);
 
             const char *smtpFrom = ConfigManager::getEnv("OAUTH2_SMTP_FROM_NAME");
-            if (smtpFrom) config.fromName = smtpFrom;
+            if (smtpFrom)
+                config.fromName = smtpFrom;
 
             const char *smtpSsl = ConfigManager::getEnv("OAUTH2_SMTP_SSL");
-            if (smtpSsl && std::string(smtpSsl) == "false") config.useSsl = false;
+            if (smtpSsl && std::string(smtpSsl) == "false")
+                config.useSsl = false;
 
             LOG_INFO << "Email service: SMTP (" << config.host << ":" << config.port << ")";
             instance = std::make_unique<SmtpEmailService>(config);

@@ -38,10 +38,9 @@ void CachedOAuth2Storage::getClient(const std::string &clientId, ClientCallback 
 
     impl_->getClient(
       clientId,
-      [self = shared_from_this(),
-       this,
-       clientId,
-       cb = std::move(cb)](const std::optional<OAuth2Client> &client) mutable {
+      [self = shared_from_this(), this, clientId, cb = std::move(cb)](
+        const std::optional<OAuth2Client> &client
+      ) mutable {
           if (client)
           {
               clientCache_.insert(clientId, *client, 60);  // Cache for 60 seconds
@@ -99,40 +98,42 @@ void CachedOAuth2Storage::saveAccessToken(const OAuth2AccessToken &token, VoidCa
     }
 
     // Write to DB first
-    impl_->saveAccessToken(token, [self = shared_from_this(), this, token, cb = std::move(cb), ttl]() mutable {
-        if (!redisClient_ || ttl <= 0)
-        {
-            if (cb)
-                cb();
-            return;
-        }
-
-        // Write-Through to Redis (L2)
-        Json::Value json;
-        json["token"] = token.token;
-        json["client_id"] = token.clientId;
-        json["user_id"] = token.userId;
-        json["scope"] = token.scope;
-        json["expires_at"] = (Json::Int64)token.expiresAt;
-        json["revoked"] = token.revoked;
-
-        std::string key = "oauth2:token:" + token.token;
-        redisClient_->execCommandAsync(
-          [cb](const drogon::nosql::RedisResult &r) {
+    impl_->saveAccessToken(
+      token, [self = shared_from_this(), this, token, cb = std::move(cb), ttl]() mutable {
+          if (!redisClient_ || ttl <= 0)
+          {
               if (cb)
                   cb();
-          },
-          [cb](const std::exception &e) {
-              LOG_ERROR << "Redis Write Error: " << e.what();
-              if (cb)
-                  cb();
-          },
-          "SET %s %s EX %d",
-          key.c_str(),
-          json.toStyledString().c_str(),
-          ttl
-        );
-    });
+              return;
+          }
+
+          // Write-Through to Redis (L2)
+          Json::Value json;
+          json["token"] = token.token;
+          json["client_id"] = token.clientId;
+          json["user_id"] = token.userId;
+          json["scope"] = token.scope;
+          json["expires_at"] = (Json::Int64)token.expiresAt;
+          json["revoked"] = token.revoked;
+
+          std::string key = "oauth2:token:" + token.token;
+          redisClient_->execCommandAsync(
+            [cb](const drogon::nosql::RedisResult &r) {
+                if (cb)
+                    cb();
+            },
+            [cb](const std::exception &e) {
+                LOG_ERROR << "Redis Write Error: " << e.what();
+                if (cb)
+                    cb();
+            },
+            "SET %s %s EX %d",
+            key.c_str(),
+            json.toStyledString().c_str(),
+            ttl
+          );
+      }
+    );
 }
 
 // Access Token - Read Side (Cache Look-Aside)
@@ -150,10 +151,9 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
     {
         impl_->getAccessToken(
           token,
-          [self = shared_from_this(),
-           this,
-           token,
-           cb = std::move(cb)](const std::optional<OAuth2AccessToken> &optToken) mutable {
+          [self = shared_from_this(), this, token, cb = std::move(cb)](
+            const std::optional<OAuth2AccessToken> &optToken
+          ) mutable {
               if (optToken)
               {
                   auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -179,7 +179,8 @@ void CachedOAuth2Storage::getAccessToken(const std::string &token, AccessTokenCa
           {
               // L2 Cache Miss -> Load from DB
               impl_->getAccessToken(
-                token, [self, this, token, sharedCb](const std::optional<OAuth2AccessToken> &optToken) {
+                token,
+                [self, this, token, sharedCb](const std::optional<OAuth2AccessToken> &optToken) {
                     if (optToken)
                     {
                         auto now = std::chrono::duration_cast<std::chrono::seconds>(
@@ -287,12 +288,14 @@ void CachedOAuth2Storage::atomicRevokeRefreshToken(
 
 void CachedOAuth2Storage::revokeTokenFamily(const std::string &familyId, VoidCallback &&cb)
 {
-    impl_->revokeTokenFamily(familyId, [self = shared_from_this(), this, familyId, cb = std::move(cb)]() {
-        // Evict all cached tokens (conservative approach)
-        // In production, could track family->token mappings for precise eviction
-        if (cb)
-            cb();
-    });
+    impl_->revokeTokenFamily(
+      familyId, [self = shared_from_this(), this, familyId, cb = std::move(cb)]() {
+          // Evict all cached tokens (conservative approach)
+          // In production, could track family->token mappings for precise eviction
+          if (cb)
+              cb();
+      }
+    );
 }
 
 void CachedOAuth2Storage::deleteExpiredData()
@@ -416,7 +419,8 @@ void CachedOAuth2Storage::revokeUserConsent(
           clientCache_.erase(clientId);
           if (cb)
               cb();
-      });
+      }
+    );
 }
 
 // ========== P1: Token Introspection (RFC 7662) ==========
@@ -448,34 +452,36 @@ void CachedOAuth2Storage::revokeAccessToken(
 )
 {
     // Revoke in implementation and invalidate cache
-    impl_->revokeAccessToken(token, revokedBy, [self = shared_from_this(), this, token, cb = std::move(cb)]() mutable {
-        // Invalidate L1 Cache
-        tokenCache_.erase(token);
+    impl_->revokeAccessToken(
+      token, revokedBy, [self = shared_from_this(), this, token, cb = std::move(cb)]() mutable {
+          // Invalidate L1 Cache
+          tokenCache_.erase(token);
 
-        // Invalidate L2 Cache after revocation
-        if (redisClient_)
-        {
-            std::string key = "oauth2:token:" + token;
-            redisClient_->execCommandAsync(
-              [cb](const drogon::nosql::RedisResult &) {
-                  if (cb)
-                      cb();
-              },
-              [cb](const std::exception &e) {
-                  LOG_ERROR << "Failed to invalidate revoked token cache: " << e.what();
-                  if (cb)
-                      cb();
-              },
-              "DEL %s",
-              key.c_str()
-            );
-        }
-        else
-        {
-            if (cb)
-                cb();
-        }
-    });
+          // Invalidate L2 Cache after revocation
+          if (redisClient_)
+          {
+              std::string key = "oauth2:token:" + token;
+              redisClient_->execCommandAsync(
+                [cb](const drogon::nosql::RedisResult &) {
+                    if (cb)
+                        cb();
+                },
+                [cb](const std::exception &e) {
+                    LOG_ERROR << "Failed to invalidate revoked token cache: " << e.what();
+                    if (cb)
+                        cb();
+                },
+                "DEL %s",
+                key.c_str()
+              );
+          }
+          else
+          {
+              if (cb)
+                  cb();
+          }
+      }
+    );
 }
 
 void CachedOAuth2Storage::getUserInfo(const std::string &userId, OptionalJsonCallback &&cb)

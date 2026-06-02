@@ -106,8 +106,13 @@ namespace
 const std::unordered_set<std::string> &categoryEnumSet()
 {
     static const std::unordered_set<std::string> kSet = {
-      "NETWORK", "DATABASE", "VALIDATION", "AUTHENTICATION",
-      "AUTHORIZATION", "INTERNAL", "UNKNOWN",
+      "NETWORK",
+      "DATABASE",
+      "VALIDATION",
+      "AUTHENTICATION",
+      "AUTHORIZATION",
+      "INTERNAL",
+      "UNKNOWN",
     };
     return kSet;
 }
@@ -131,9 +136,8 @@ const std::unordered_set<std::string> &catalogCodeSet()
 // + optional fields; no RFC aliases such as error_description / reason).
 bool isEnvelopeMember(const std::string &name)
 {
-    return name == "code" || name == "category" || name == "message" ||
-           name == "request_id" || name == "numeric_code" || name == "details" ||
-           name == "timestamp";
+    return name == "code" || name == "category" || name == "message" || name == "request_id" ||
+           name == "numeric_code" || name == "details" || name == "timestamp";
 }
 
 // Parse a response body as JSON. Returns false on parse failure (i.e. the body
@@ -301,9 +305,7 @@ DROGON_TEST(Integration_ApplicationEndpoint_ResponderEntries_AreEnvelopes)
         };
         HttpResponsePtr captured;
         ErrorResponder::respondValidation(
-          req,
-          [&captured](const HttpResponsePtr &r) { captured = r; },
-          fieldErrors
+          req, [&captured](const HttpResponsePtr &r) { captured = r; }, fieldErrors
         );
         assertErrorEnvelope(TEST_CTX, captured, "VALIDATION_INVALID_INPUT");
         CHECK(captured->getStatusCode() == k400BadRequest);
@@ -315,10 +317,7 @@ DROGON_TEST(Integration_ApplicationEndpoint_ResponderEntries_AreEnvelopes)
         const std::runtime_error boom("simulated unmapped failure: SELECT * FROM users; /var/x");
         HttpResponsePtr captured;
         ErrorResponder::respondException(
-          req,
-          [&captured](const HttpResponsePtr &r) { captured = r; },
-          boom,
-          ErrorCategory::UNKNOWN
+          req, [&captured](const HttpResponsePtr &r) { captured = r; }, boom, ErrorCategory::UNKNOWN
         );
         assertErrorEnvelope(TEST_CTX, captured, std::string(ErrorCatalog::internalError().code));
         CHECK(captured->getStatusCode() == k500InternalServerError);
@@ -339,9 +338,7 @@ DROGON_TEST(Integration_ApplicationEndpoint_UnregisteredCode_FallsBackToEnvelope
 
     HttpResponsePtr captured;
     ErrorResponder::respond(
-      req,
-      [&captured](const HttpResponsePtr &r) { captured = r; },
-      bogusCode
+      req, [&captured](const HttpResponsePtr &r) { captured = r; }, bogusCode
     );
 
     // Still a well-formed INTERNAL_ERROR Envelope.

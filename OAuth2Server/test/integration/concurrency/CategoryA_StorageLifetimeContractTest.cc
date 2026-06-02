@@ -52,8 +52,7 @@ namespace
 class FakeStorage
 {
   public:
-    explicit FakeStorage(std::shared_ptr<std::atomic<bool>> alive)
-      : alive_(std::move(alive))
+    explicit FakeStorage(std::shared_ptr<std::atomic<bool>> alive) : alive_(std::move(alive))
     {
         alive_->store(true);
     }
@@ -78,8 +77,7 @@ class FakeStorage
 class RawPtrService
 {
   public:
-    explicit RawPtrService(FakeStorage *storage)
-      : storage_(storage)
+    explicit RawPtrService(FakeStorage *storage) : storage_(storage)
     {
     }
 

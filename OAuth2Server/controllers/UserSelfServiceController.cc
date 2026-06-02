@@ -23,10 +23,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -103,7 +100,9 @@ void UserSelfServiceController::getProfile(
           [sharedCb, req](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "getProfile: user not found");
+                  respondError(
+                    req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "getProfile: user not found"
+                  );
                   return;
               }
 
@@ -119,8 +118,12 @@ void UserSelfServiceController::getProfile(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR",
-                           std::string("getProfile failed: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("getProfile failed: ") + e.base().what()
+              );
           },
           userId
         );
@@ -144,7 +147,9 @@ void UserSelfServiceController::changePassword(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT", "changePassword: JSON body is required");
+        respondError(
+          req, sharedCb, "VALIDATION_INVALID_INPUT", "changePassword: JSON body is required"
+        );
         return;
     }
 
@@ -153,15 +158,23 @@ void UserSelfServiceController::changePassword(
 
     if (oldPassword.empty() || newPassword.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "changePassword: old_password and new_password are required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "changePassword: old_password and new_password are required"
+        );
         return;
     }
 
     if (newPassword.length() < 8)
     {
-        respondError(req, sharedCb, "VALIDATION_FORMAT_ERROR",
-                     "changePassword: new password must be at least 8 characters");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_FORMAT_ERROR",
+          "changePassword: new password must be at least 8 characters"
+        );
         return;
     }
 
@@ -173,7 +186,9 @@ void UserSelfServiceController::changePassword(
           [sharedCb, oldPassword, newPassword, userId, req](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "changePassword: user not found");
+                  respondError(
+                    req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "changePassword: user not found"
+                  );
                   return;
               }
 
@@ -187,8 +202,12 @@ void UserSelfServiceController::changePassword(
                   oauth2::observability::AuditLogger::log(
                     "password_change_failed", "failure", req, userId, "user", userId
                   );
-                  respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
-                               "changePassword: current password is incorrect");
+                  respondError(
+                    req,
+                    sharedCb,
+                    "AUTH_INVALID_CREDENTIALS",
+                    "changePassword: current password is incorrect"
+                  );
                   return;
               }
 
@@ -200,8 +219,12 @@ void UserSelfServiceController::changePassword(
               }
               catch (const std::exception &e)
               {
-                  respondError(req, sharedCb, "INTERNAL_ERROR",
-                               std::string("Password hashing failed: ") + e.what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "INTERNAL_ERROR",
+                    std::string("Password hashing failed: ") + e.what()
+                  );
                   return;
               }
 
@@ -270,16 +293,24 @@ void UserSelfServiceController::changePassword(
                     );
                 },
                 [sharedCb, req](const DrogonDbException &e) {
-                    respondError(req, sharedCb, "DB_QUERY_ERROR",
-                                 std::string("Password update failed: ") + e.base().what());
+                    respondError(
+                      req,
+                      sharedCb,
+                      "DB_QUERY_ERROR",
+                      std::string("Password update failed: ") + e.base().what()
+                    );
                 },
                 newHash,
                 userId
               );
           },
           [sharedCb, req](const DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR",
-                           std::string("changePassword lookup failed: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("changePassword lookup failed: ") + e.base().what()
+              );
           },
           userId
         );
@@ -326,15 +357,21 @@ void UserSelfServiceController::listAuthorizedApps(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR",
-                           std::string("listAuthorizedApps failed: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("listAuthorizedApps failed: ") + e.base().what()
+              );
           },
           userId
         );
     }
     catch (...)
     {
-        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "listAuthorizedApps: database unavailable");
+        respondError(
+          req, sharedCb, "DB_CONNECTION_ERROR", "listAuthorizedApps: database unavailable"
+        );
     }
 }
 
@@ -350,8 +387,12 @@ void UserSelfServiceController::revokeAuthorizedApp(
 
     if (clientId.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "revokeAuthorizedApp: clientId is required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "revokeAuthorizedApp: clientId is required"
+        );
         return;
     }
 
@@ -365,8 +406,12 @@ void UserSelfServiceController::revokeAuthorizedApp(
           [sharedCb, userId, clientId, req, db](const Result &result) {
               if (result.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND",
-                               "revokeAuthorizedApp: user not found");
+                  respondError(
+                    req,
+                    sharedCb,
+                    "VALIDATION_RESOURCE_NOT_FOUND",
+                    "revokeAuthorizedApp: user not found"
+                  );
                   return;
               }
 
@@ -407,26 +452,33 @@ void UserSelfServiceController::revokeAuthorizedApp(
                     );
                 },
                 [sharedCb, req](const DrogonDbException &e) {
-                    respondError(req, sharedCb, "DB_QUERY_ERROR",
-                                 std::string("revokeAuthorizedApp consent delete failed: ") +
-                                   e.base().what());
+                    respondError(
+                      req,
+                      sharedCb,
+                      "DB_QUERY_ERROR",
+                      std::string("revokeAuthorizedApp consent delete failed: ") + e.base().what()
+                    );
                 },
                 internalUserId,
                 clientId
               );
           },
           [sharedCb, req](const DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR",
-                           std::string("revokeAuthorizedApp user lookup failed: ") +
-                             e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("revokeAuthorizedApp user lookup failed: ") + e.base().what()
+              );
           },
           userId
         );
     }
     catch (...)
     {
-        respondError(req, sharedCb, "DB_CONNECTION_ERROR",
-                     "revokeAuthorizedApp: database unavailable");
+        respondError(
+          req, sharedCb, "DB_CONNECTION_ERROR", "revokeAuthorizedApp: database unavailable"
+        );
     }
 }
 
@@ -466,8 +518,12 @@ void UserSelfServiceController::deleteAccount(
                       [sharedCb, userId, req](const Result &result) {
                           if (result.affectedRows() == 0)
                           {
-                              respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND",
-                                           "deleteAccount: user not found");
+                              respondError(
+                                req,
+                                sharedCb,
+                                "VALIDATION_RESOURCE_NOT_FOUND",
+                                "deleteAccount: user not found"
+                              );
                               return;
                           }
 
@@ -480,9 +536,12 @@ void UserSelfServiceController::deleteAccount(
                           (*sharedCb)(resp);
                       },
                       [sharedCb, req](const DrogonDbException &e) {
-                          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                                       std::string("deleteAccount user update failed: ") +
-                                         e.base().what());
+                          respondError(
+                            req,
+                            sharedCb,
+                            "DB_QUERY_ERROR",
+                            std::string("deleteAccount user update failed: ") + e.base().what()
+                          );
                       },
                       anonUsername,
                       userId
@@ -511,9 +570,12 @@ void UserSelfServiceController::deleteAccount(
                           (*sharedCb)(resp);
                       },
                       [sharedCb, req](const DrogonDbException &e) {
-                          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                                       std::string("deleteAccount user update failed: ") +
-                                         e.base().what());
+                          respondError(
+                            req,
+                            sharedCb,
+                            "DB_QUERY_ERROR",
+                            std::string("deleteAccount user update failed: ") + e.base().what()
+                          );
                       },
                       anonUsername,
                       userId
@@ -545,9 +607,12 @@ void UserSelfServiceController::deleteAccount(
                     (*sharedCb)(resp);
                 },
                 [sharedCb, req](const DrogonDbException &e) {
-                    respondError(req, sharedCb, "DB_QUERY_ERROR",
-                                 std::string("deleteAccount user update failed: ") +
-                                   e.base().what());
+                    respondError(
+                      req,
+                      sharedCb,
+                      "DB_QUERY_ERROR",
+                      std::string("deleteAccount user update failed: ") + e.base().what()
+                    );
                 },
                 anonUsername,
                 userId

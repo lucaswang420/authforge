@@ -30,9 +30,7 @@ void OAuth2StandardController::initApiDocs()
     // call_once flag makes registration happen exactly once even if invoked from
     // several call sites, so endpoints are never registered twice.
     static std::once_flag docsOnce;
-    std::call_once(docsOnce, [] {
-        initApiDocsImpl();
-    });
+    std::call_once(docsOnce, [] { initApiDocsImpl(); });
 }
 
 void OAuth2StandardController::initApiDocsImpl()
@@ -358,8 +356,7 @@ void OAuth2StandardController::introspect(
     }
 
     // Validate request parameters
-    auto validationErrors =
-      oauth2::validation::RuleSet::oauth2Introspect(req);
+    auto validationErrors = oauth2::validation::RuleSet::oauth2Introspect(req);
     if (!validationErrors.empty())
     {
         common::error::OAuth2ErrorHandler::sendErrorResponse(
@@ -380,7 +377,11 @@ void OAuth2StandardController::introspect(
           {
               oauth2::observability::Metrics::incrementIntrospectErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed", "", authScheme
+                std::move(callback),
+                "invalid_client",
+                "Client authentication failed",
+                "",
+                authScheme
               );
               return;
           }
@@ -503,7 +504,11 @@ void OAuth2StandardController::revoke(
           {
               oauth2::observability::Metrics::incrementRevocationErrors(clientId, "invalid_client");
               common::error::OAuth2ErrorHandler::sendErrorResponse(
-                std::move(callback), "invalid_client", "Client authentication failed", "", authScheme
+                std::move(callback),
+                "invalid_client",
+                "Client authentication failed",
+                "",
+                authScheme
               );
               return;
           }
@@ -526,7 +531,9 @@ void OAuth2StandardController::revoke(
                 // Check permission: only token owner can revoke
                 if (introspection->clientId != clientId)
                 {
-                    oauth2::observability::Metrics::incrementRevocationErrors(clientId, "unauthorized_client");
+                    oauth2::observability::Metrics::incrementRevocationErrors(
+                      clientId, "unauthorized_client"
+                    );
                     common::error::OAuth2ErrorHandler::sendErrorResponse(
                       std::move(callback),
                       "unauthorized_client",
@@ -750,9 +757,7 @@ void OAuth2StandardController::authorize(
     auto errors = oauth2::validation::RuleSet::oauth2Authorize(req);
 
     // Return validation errors if any
-    if (
-      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
-    )
+    if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
     {
         observability::Metrics::incRequest("authorize", 400);
         return;
@@ -944,7 +949,11 @@ void OAuth2StandardController::authorize(
                                     jsonErr["error"] = "access_denied";
                                     jsonErr["error_description"] = roleError;
                                     auto resp = drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                                    resp->setStatusCode(common::error::OAuth2ErrorHandler::getHttpStatusCode("access_denied"));
+                                    resp->setStatusCode(
+                                      common::error::OAuth2ErrorHandler::getHttpStatusCode(
+                                        "access_denied"
+                                      )
+                                    );
                                     callback(resp);
                                     return;
                                 }
@@ -1009,7 +1018,9 @@ void OAuth2StandardController::authorize(
                                                   drogon::HttpResponse::newRedirectionResponse(
                                                     location
                                                   );
-                                                observability::Metrics::incRequest("authorize", 302);
+                                                observability::Metrics::incRequest(
+                                                  "authorize", 302
+                                                );
                                                 callback(resp);
                                             }
                                           );
@@ -1070,9 +1081,7 @@ void OAuth2StandardController::token(
     auto errors = oauth2::validation::RuleSet::oauth2Token(req);
 
     // Return validation errors if any
-    if (
-      oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback))
-    )
+    if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
     {
         observability::Metrics::incRequest("token", 400);
         return;
@@ -1156,7 +1165,8 @@ void OAuth2StandardController::token(
               {
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
                   std::string errorCode = result.get("error", "").asString();
-                  drogon::HttpStatusCode statusCode = common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
+                  drogon::HttpStatusCode statusCode =
+                    common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
                   resp->setStatusCode(statusCode);
                   observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);
@@ -1179,7 +1189,8 @@ void OAuth2StandardController::token(
               {
                   auto resp = drogon::HttpResponse::newHttpJsonResponse(result);
                   std::string errorCode = result.get("error", "").asString();
-                  drogon::HttpStatusCode statusCode = common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
+                  drogon::HttpStatusCode statusCode =
+                    common::error::OAuth2ErrorHandler::getHttpStatusCode(errorCode);
                   resp->setStatusCode(statusCode);
                   observability::Metrics::incRequest("token", static_cast<int>(statusCode));
                   callback(resp);
@@ -1232,9 +1243,7 @@ void OAuth2StandardController::token(
               auto storage = plugin->getStorage();
               storage->getClient(
                 clientId,
-                [storage, clientId, req, sharedCb](
-                  std::optional<oauth2::OAuth2Client> client
-                ) {
+                [storage, clientId, req, sharedCb](std::optional<oauth2::OAuth2Client> client) {
                     if (!client)
                     {
                         Json::Value error;
@@ -1279,20 +1288,17 @@ void OAuth2StandardController::token(
                     // across this async hop) instead of re-fetching plugin->getStorage().
                     // Capture it into the saveAccessToken callback as well so the storage
                     // outlives the in-flight save operation.
-                    storage->saveAccessToken(
-                      token,
-                      [storage, sharedCb, tokenStr, grantedScope]() {
-                          Json::Value json;
-                          json["access_token"] = tokenStr;
-                          json["token_type"] = "Bearer";
-                          json["expires_in"] = 3600;
-                          json["scope"] = grantedScope;
-                          // No refresh_token for client_credentials
-                          auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
-                          observability::Metrics::incRequest("token", 200);
-                          (*sharedCb)(resp);
-                      }
-                    );
+                    storage->saveAccessToken(token, [storage, sharedCb, tokenStr, grantedScope]() {
+                        Json::Value json;
+                        json["access_token"] = tokenStr;
+                        json["token_type"] = "Bearer";
+                        json["expires_in"] = 3600;
+                        json["scope"] = grantedScope;
+                        // No refresh_token for client_credentials
+                        auto resp = drogon::HttpResponse::newHttpJsonResponse(json);
+                        observability::Metrics::incRequest("token", 200);
+                        (*sharedCb)(resp);
+                    });
                 }
               );
           });
@@ -1554,8 +1560,7 @@ void OAuth2StandardController::userInfo(
         // Capture the storage shared_ptr into the getUserInfo callback so the storage
         // is guaranteed alive across this async hop.
         storage->getUserInfo(
-          userId,
-          [storage, userId, roles, callback](std::optional<Json::Value> dbUserInfo) {
+          userId, [storage, userId, roles, callback](std::optional<Json::Value> dbUserInfo) {
               Json::Value userInfo;
               userInfo["sub"] = userId;
 
@@ -1588,7 +1593,8 @@ void OAuth2StandardController::userInfo(
 
               auto resp = drogon::HttpResponse::newHttpJsonResponse(userInfo);
               callback(resp);
-          });
+          }
+        );
     });
 }
 

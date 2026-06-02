@@ -321,8 +321,7 @@ DROGON_TEST(Integration_OAuth2TokenEndpoint_ClientCredentialsNoAuth_Rfc6749Inval
     if (resp == nullptr)
     {
         // Server not reachable in this run: skip the live-routing assertions.
-        LOG_WARN << "Skipping live /oauth2/token check: test server not reachable on "
-                 << kBaseUrl;
+        LOG_WARN << "Skipping live /oauth2/token check: test server not reachable on " << kBaseUrl;
         CHECK(true);
         return;
     }
@@ -341,8 +340,7 @@ DROGON_TEST(Integration_OAuth2TokenEndpoint_DeviceCodeMissingParams_Rfc6749Inval
       postForm("/oauth2/token", "grant_type=urn:ietf:params:oauth:grant-type:device_code");
     if (resp == nullptr)
     {
-        LOG_WARN << "Skipping live /oauth2/token check: test server not reachable on "
-                 << kBaseUrl;
+        LOG_WARN << "Skipping live /oauth2/token check: test server not reachable on " << kBaseUrl;
         CHECK(true);
         return;
     }

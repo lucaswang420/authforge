@@ -19,10 +19,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -347,7 +344,12 @@ void AdminController::listClients(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch clients: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch clients: ") + e.base().what()
+              );
           }
         );
     }
@@ -404,7 +406,12 @@ void AdminController::createClient(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to create client: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to create client: ") + e.base().what()
+              );
           },
           clientId,
           clientType,
@@ -483,7 +490,12 @@ void AdminController::getClient(
               );
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch client: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch client: ") + e.base().what()
+              );
           },
           clientId
         );
@@ -565,7 +577,9 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -575,7 +589,12 @@ void AdminController::updateClient(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update client: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update client: ") + e.base().what()
+                  );
               },
               params[0],
               params[1]
@@ -588,7 +607,9 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -598,7 +619,12 @@ void AdminController::updateClient(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update client: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update client: ") + e.base().what()
+                  );
               },
               params[0],
               params[1],
@@ -612,7 +638,9 @@ void AdminController::updateClient(
               [sharedCb, req, clientId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Client not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -622,7 +650,12 @@ void AdminController::updateClient(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update client: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update client: ") + e.base().what()
+                  );
               },
               params[0],
               params[1],
@@ -669,7 +702,12 @@ void AdminController::getClientScopes(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch client scopes: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch client scopes: ") + e.base().what()
+              );
           },
           clientId
         );
@@ -698,7 +736,12 @@ void AdminController::updateClientScopes(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("scopes") || !(*jsonBody)["scopes"].isArray())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain a 'scopes' array");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "Request body must contain a 'scopes' array"
+        );
         return;
     }
 
@@ -765,7 +808,12 @@ void AdminController::updateClientScopes(
                     [sharedCb, req, remaining](const drogon::orm::DrogonDbException &e) {
                         if (remaining->fetch_sub(1) == 1)
                         {
-                            respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to assign some scopes: ") + e.base().what());
+                            respondError(
+                              req,
+                              sharedCb,
+                              "DB_QUERY_ERROR",
+                              std::string("Failed to assign some scopes: ") + e.base().what()
+                            );
                         }
                     },
                     clientId,
@@ -774,7 +822,12 @@ void AdminController::updateClientScopes(
               }
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to clear existing scopes: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to clear existing scopes: ") + e.base().what()
+              );
           },
           clientId
         );
@@ -822,7 +875,12 @@ void AdminController::listUsers(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch users: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch users: ") + e.base().what()
+              );
           }
         );
     }
@@ -873,7 +931,12 @@ void AdminController::listScopes(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch scopes: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch scopes: ") + e.base().what()
+              );
           }
         );
     }
@@ -918,7 +981,12 @@ void AdminController::deleteClient(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to delete client: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to delete client: ") + e.base().what()
+              );
           },
           clientId
         );
@@ -964,7 +1032,12 @@ void AdminController::disableUser(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to disable user: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to disable user: ") + e.base().what()
+              );
           },
           userId
         );
@@ -993,7 +1066,12 @@ void AdminController::assignUserRoles(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("roles") || !(*jsonBody)["roles"].isArray())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain a 'roles' array");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "Request body must contain a 'roles' array"
+        );
         return;
     }
 
@@ -1066,7 +1144,12 @@ void AdminController::assignUserRoles(
                     [sharedCb, req, remaining](const drogon::orm::DrogonDbException &e) {
                         if (remaining->fetch_sub(1) == 1)
                         {
-                            respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to assign some roles: ") + e.base().what());
+                            respondError(
+                              req,
+                              sharedCb,
+                              "DB_QUERY_ERROR",
+                              std::string("Failed to assign some roles: ") + e.base().what()
+                            );
                         }
                     },
                     userId,
@@ -1075,7 +1158,12 @@ void AdminController::assignUserRoles(
               }
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to clear existing roles: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to clear existing roles: ") + e.base().what()
+              );
           },
           userId
         );
@@ -1127,7 +1215,12 @@ void AdminController::resetClientSecret(
               (*sharedCb)(resp);
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to reset client secret: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to reset client secret: ") + e.base().what()
+              );
           },
           newSecretHash,
           clientId
@@ -1250,7 +1343,12 @@ void AdminController::listLogs(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch audit logs: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch audit logs: ") + e.base().what()
+              );
           }
         );
     }
@@ -1373,14 +1471,24 @@ void AdminController::listTokens(
                         (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
                     },
                     [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                        respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch tokens: ") + e.base().what());
+                        respondError(
+                          req,
+                          sharedCb,
+                          "DB_QUERY_ERROR",
+                          std::string("Failed to fetch tokens: ") + e.base().what()
+                        );
                     },
                     clientIdFilter,
                     userIdFilter
                   );
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to count tokens: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to count tokens: ") + e.base().what()
+                  );
               },
               clientIdFilter,
               userIdFilter
@@ -1435,13 +1543,23 @@ void AdminController::listTokens(
                         (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
                     },
                     [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                        respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch tokens: ") + e.base().what());
+                        respondError(
+                          req,
+                          sharedCb,
+                          "DB_QUERY_ERROR",
+                          std::string("Failed to fetch tokens: ") + e.base().what()
+                        );
                     },
                     clientIdFilter
                   );
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to count tokens: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to count tokens: ") + e.base().what()
+                  );
               },
               clientIdFilter
             );
@@ -1495,13 +1613,23 @@ void AdminController::listTokens(
                         (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
                     },
                     [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                        respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch tokens: ") + e.base().what());
+                        respondError(
+                          req,
+                          sharedCb,
+                          "DB_QUERY_ERROR",
+                          std::string("Failed to fetch tokens: ") + e.base().what()
+                        );
                     },
                     userIdFilter
                   );
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to count tokens: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to count tokens: ") + e.base().what()
+                  );
               },
               userIdFilter
             );
@@ -1511,7 +1639,9 @@ void AdminController::listTokens(
             // No filters
             db->execSqlAsync(
               countQuery,
-              [sharedCb, req, dataQuery, page, perPage, db](const drogon::orm::Result &countResult) {
+              [sharedCb, req, dataQuery, page, perPage, db](
+                const drogon::orm::Result &countResult
+              ) {
                   int total = 0;
                   if (!countResult.empty())
                   {
@@ -1553,12 +1683,22 @@ void AdminController::listTokens(
                         (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
                     },
                     [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                        respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch tokens: ") + e.base().what());
+                        respondError(
+                          req,
+                          sharedCb,
+                          "DB_QUERY_ERROR",
+                          std::string("Failed to fetch tokens: ") + e.base().what()
+                        );
                     }
                   );
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to count tokens: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to count tokens: ") + e.base().what()
+                  );
               }
             );
         }
@@ -1604,7 +1744,12 @@ void AdminController::revokeToken(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to revoke token: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to revoke token: ") + e.base().what()
+              );
           },
           likePattern
         );
@@ -1626,14 +1771,21 @@ void AdminController::revokeTokensByClient(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("client_id"))
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'client_id'");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "Request body must contain 'client_id'"
+        );
         return;
     }
 
     std::string clientId = (*jsonBody)["client_id"].asString();
     if (clientId.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "client_id cannot be empty");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "client_id cannot be empty"
+        );
         return;
     }
 
@@ -1671,7 +1823,12 @@ void AdminController::revokeTokensByClient(
               );
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to revoke tokens: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to revoke tokens: ") + e.base().what()
+              );
           },
           clientId
         );
@@ -1693,7 +1850,9 @@ void AdminController::revokeTokensByUser(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("user_id"))
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'user_id'");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'user_id'"
+        );
         return;
     }
 
@@ -1738,7 +1897,12 @@ void AdminController::revokeTokensByUser(
               );
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to revoke tokens: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to revoke tokens: ") + e.base().what()
+              );
           },
           userId
         );
@@ -1849,7 +2013,12 @@ void AdminController::getUser(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch user: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch user: ") + e.base().what()
+              );
           },
           userId
         );
@@ -1923,7 +2092,9 @@ void AdminController::updateUser(
               [sharedCb, req, userId](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -1932,7 +2103,12 @@ void AdminController::updateUser(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update user: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update user: ") + e.base().what()
+                  );
               },
               params[0],
               params[1]
@@ -1945,7 +2121,9 @@ void AdminController::updateUser(
               [sharedCb, req](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "User not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -1954,7 +2132,12 @@ void AdminController::updateUser(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update user: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update user: ") + e.base().what()
+                  );
               },
               params[0],
               params[1],
@@ -2001,7 +2184,12 @@ void AdminController::enableUser(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to enable user: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to enable user: ") + e.base().what()
+              );
           },
           userId
         );
@@ -2051,7 +2239,12 @@ void AdminController::getUserRoles(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch user roles: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch user roles: ") + e.base().what()
+              );
           },
           userId
         );
@@ -2104,7 +2297,12 @@ void AdminController::listRoles(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch roles: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch roles: ") + e.base().what()
+              );
           }
         );
     }
@@ -2125,7 +2323,9 @@ void AdminController::createRole(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("name"))
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'name'");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'name'"
+        );
         return;
     }
 
@@ -2134,7 +2334,9 @@ void AdminController::createRole(
 
     if (name.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Role name cannot be empty");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Role name cannot be empty"
+        );
         return;
     }
 
@@ -2147,7 +2349,9 @@ void AdminController::createRole(
           [sharedCb, req, db, name, description](const drogon::orm::Result &checkResult) {
               if (!checkResult.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Role name already exists");
+                  respondError(
+                    req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Role name already exists"
+                  );
                   return;
               }
               db->execSqlAsync(
@@ -2172,14 +2376,24 @@ void AdminController::createRole(
                     (*sharedCb)(resp);
                 },
                 [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                    respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to create role: ") + e.base().what());
+                    respondError(
+                      req,
+                      sharedCb,
+                      "DB_QUERY_ERROR",
+                      std::string("Failed to create role: ") + e.base().what()
+                    );
                 },
                 name,
                 description
               );
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Database error checking role name: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Database error checking role name: ") + e.base().what()
+              );
           },
           name
         );
@@ -2249,7 +2463,12 @@ void AdminController::updateRole(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update role: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to update role: ") + e.base().what()
+              );
           },
           params[0],
           params[1]
@@ -2278,7 +2497,12 @@ void AdminController::deleteRole(
           [sharedCb, req, roleId](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Role not found or cannot delete built-in roles");
+                  respondError(
+                    req,
+                    sharedCb,
+                    "VALIDATION_RESOURCE_NOT_FOUND",
+                    "Role not found or cannot delete built-in roles"
+                  );
                   return;
               }
               Json::Value json;
@@ -2287,7 +2511,12 @@ void AdminController::deleteRole(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to delete role: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to delete role: ") + e.base().what()
+              );
           },
           roleId
         );
@@ -2313,7 +2542,9 @@ void AdminController::createScope(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody || !jsonBody->isMember("name"))
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'name'");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Request body must contain 'name'"
+        );
         return;
     }
 
@@ -2325,7 +2556,9 @@ void AdminController::createScope(
 
     if (name.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Scope name cannot be empty");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "Scope name cannot be empty"
+        );
         return;
     }
 
@@ -2339,7 +2572,9 @@ void AdminController::createScope(
           ) {
               if (!checkResult.empty())
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Scope name already exists");
+                  respondError(
+                    req, sharedCb, "VALIDATION_RESOURCE_CONFLICT", "Scope name already exists"
+                  );
                   return;
               }
               db->execSqlAsync(
@@ -2372,7 +2607,12 @@ void AdminController::createScope(
                     (*sharedCb)(resp);
                 },
                 [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                    respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to create scope: ") + e.base().what());
+                    respondError(
+                      req,
+                      sharedCb,
+                      "DB_QUERY_ERROR",
+                      std::string("Failed to create scope: ") + e.base().what()
+                    );
                 },
                 name,
                 description,
@@ -2382,7 +2622,12 @@ void AdminController::createScope(
               );
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Database error checking scope name: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Database error checking scope name: ") + e.base().what()
+              );
           },
           name
         );
@@ -2460,7 +2705,9 @@ void AdminController::updateScope(
               [sharedCb, req](const drogon::orm::Result &result) {
                   if (result.affectedRows() == 0)
                   {
-                      respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Scope not found");
+                      respondError(
+                        req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Scope not found"
+                      );
                       return;
                   }
                   Json::Value json;
@@ -2469,7 +2716,12 @@ void AdminController::updateScope(
                   (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
               },
               [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-                  respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to update scope: ") + e.base().what());
+                  respondError(
+                    req,
+                    sharedCb,
+                    "DB_QUERY_ERROR",
+                    std::string("Failed to update scope: ") + e.base().what()
+                  );
               },
               std::forward<decltype(args)>(args)...
             );
@@ -2508,7 +2760,12 @@ void AdminController::deleteScope(
           [sharedCb, req](const drogon::orm::Result &result) {
               if (result.affectedRows() == 0)
               {
-                  respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "Scope not found or cannot delete built-in scopes");
+                  respondError(
+                    req,
+                    sharedCb,
+                    "VALIDATION_RESOURCE_NOT_FOUND",
+                    "Scope not found or cannot delete built-in scopes"
+                  );
                   return;
               }
               Json::Value json;
@@ -2517,7 +2774,12 @@ void AdminController::deleteScope(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to delete scope: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to delete scope: ") + e.base().what()
+              );
           },
           scopeId
         );
@@ -2576,7 +2838,12 @@ void AdminController::getDashboardStats(
               (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
           },
           [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(req, sharedCb, "DB_QUERY_ERROR", std::string("Failed to fetch dashboard stats: ") + e.base().what());
+              respondError(
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
+                std::string("Failed to fetch dashboard stats: ") + e.base().what()
+              );
           },
           now,
           dayAgo,

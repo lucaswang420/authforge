@@ -21,10 +21,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -56,7 +53,10 @@ EmailVerificationControllerDocs docs_;
 }  // namespace
 
 // Lazy accessor - avoids static init order crash (see P5 bugfix).
-static oauth2::IEmailService &getEmailSvc() { return oauth2::getEmailService(); }
+static oauth2::IEmailService &getEmailSvc()
+{
+    return oauth2::getEmailService();
+}
 
 void EmailVerificationController::sendVerificationEmail(int userId, const std::string &email)
 {
@@ -112,8 +112,9 @@ void EmailVerificationController::verify(
     std::string token = req->getParameter("token");
     if (token.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "verify: token parameter is required");
+        respondError(
+          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD", "verify: token parameter is required"
+        );
         return;
     }
 
@@ -133,8 +134,9 @@ void EmailVerificationController::verify(
       [sharedCb, db, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                           "verify: token is invalid or expired");
+              respondError(
+                req, sharedCb, "VALIDATION_INVALID_INPUT", "verify: token is invalid or expired"
+              );
               return;
           }
 
@@ -150,15 +152,23 @@ void EmailVerificationController::verify(
                 (*sharedCb)(resp);
             },
             [sharedCb, req](const DrogonDbException &e) {
-                respondError(req, sharedCb, "DB_QUERY_ERROR",
-                             std::string("Failed to update email_verified: ") + e.base().what());
+                respondError(
+                  req,
+                  sharedCb,
+                  "DB_QUERY_ERROR",
+                  std::string("Failed to update email_verified: ") + e.base().what()
+                );
             },
             userId
           );
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("Email verification failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("Email verification failed: ") + e.base().what()
+          );
       },
       tokenHash,
       now
@@ -187,7 +197,9 @@ void EmailVerificationController::resend(
       [sharedCb, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "resend: user not found");
+              respondError(
+                req, sharedCb, "VALIDATION_RESOURCE_NOT_FOUND", "resend: user not found"
+              );
               return;
           }
 
@@ -205,8 +217,9 @@ void EmailVerificationController::resend(
 
           if (email.empty())
           {
-              respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                           "resend: no email address on file");
+              respondError(
+                req, sharedCb, "VALIDATION_INVALID_INPUT", "resend: no email address on file"
+              );
               return;
           }
 
@@ -218,8 +231,12 @@ void EmailVerificationController::resend(
           (*sharedCb)(resp);
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("Resend verification failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("Resend verification failed: ") + e.base().what()
+          );
       },
       userId
     );

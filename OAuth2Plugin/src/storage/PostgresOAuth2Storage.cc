@@ -1611,7 +1611,9 @@ void PostgresOAuth2Storage::revokeAccessToken(
             token.c_str()
           );
       },
-      [self = shared_from_this(), this, sharedCb, now, revokedBy, token](const DrogonDbException &e) {
+      [self = shared_from_this(), this, sharedCb, now, revokedBy, token](
+        const DrogonDbException &e
+      ) {
           LOG_DEBUG << "Access token revocation audit failed: " << e.base().what();
           // Fallback to simple revoked = TRUE
           dbClientMaster_->execSqlAsync(

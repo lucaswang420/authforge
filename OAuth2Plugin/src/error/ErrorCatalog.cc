@@ -64,51 +64,97 @@ const std::array<RawEntry, 16> &rawEntries()
 {
     static const std::array<RawEntry, 16> kEntries = {{
       // NETWORK (1000-1099)
-      {"NET_CONNECTION_FAILED", 1001, ErrorCategory::NETWORK, "上游连接失败",
+      {"NET_CONNECTION_FAILED",
+       1001,
+       ErrorCategory::NETWORK,
+       "上游连接失败",
        "上游服务连接失败（NETWORK 类）"},
-      {"NET_TIMEOUT", 1002, ErrorCategory::NETWORK, "请求超时",
-       "上游服务请求超时（NETWORK 类）"},
+      {"NET_TIMEOUT", 1002, ErrorCategory::NETWORK, "请求超时", "上游服务请求超时（NETWORK 类）"},
 
       // DATABASE (2000-2099)
-      {"DB_CONNECTION_ERROR", 2001, ErrorCategory::DATABASE, "服务暂时不可用",
+      {"DB_CONNECTION_ERROR",
+       2001,
+       ErrorCategory::DATABASE,
+       "服务暂时不可用",
        "数据库连接失败（DATABASE 类）"},
-      {"DB_QUERY_ERROR", 2002, ErrorCategory::DATABASE, "服务暂时不可用",
+      {"DB_QUERY_ERROR",
+       2002,
+       ErrorCategory::DATABASE,
+       "服务暂时不可用",
        "数据库查询执行失败（DATABASE 类）"},
-      {"DB_CONSTRAINT_VIOLATION", 2003, ErrorCategory::DATABASE, "数据冲突",
+      {"DB_CONSTRAINT_VIOLATION",
+       2003,
+       ErrorCategory::DATABASE,
+       "数据冲突",
        "数据库约束冲突（DATABASE 类）"},
 
       // VALIDATION (3000-3099)
-      {"VALIDATION_INVALID_INPUT", 3001, ErrorCategory::VALIDATION, "输入参数有误",
+      {"VALIDATION_INVALID_INPUT",
+       3001,
+       ErrorCategory::VALIDATION,
+       "输入参数有误",
        "输入参数校验失败（VALIDATION 类）"},
-      {"VALIDATION_MISSING_REQUIRED_FIELD", 3002, ErrorCategory::VALIDATION, "缺少必填字段",
+      {"VALIDATION_MISSING_REQUIRED_FIELD",
+       3002,
+       ErrorCategory::VALIDATION,
+       "缺少必填字段",
        "缺少必填字段（VALIDATION 类）"},
-      {"VALIDATION_FORMAT_ERROR", 3003, ErrorCategory::VALIDATION, "格式不正确",
+      {"VALIDATION_FORMAT_ERROR",
+       3003,
+       ErrorCategory::VALIDATION,
+       "格式不正确",
        "字段格式不正确（VALIDATION 类）"},
       // Resource-oriented VALIDATION codes whose HTTP status is overridden to
       // preserve pre-migration semantics (方案 A / Requirement 11.4): "not found"
       // keeps 404 and "conflict/duplicate" keeps 409 instead of the VALIDATION
       // default 400.
-      {"VALIDATION_RESOURCE_NOT_FOUND", 3004, ErrorCategory::VALIDATION, "资源不存在",
-       "请求的资源不存在（VALIDATION 类，HTTP 404）", 404},
-      {"VALIDATION_RESOURCE_CONFLICT", 3005, ErrorCategory::VALIDATION, "资源已存在或冲突",
-       "资源已存在或与现有资源冲突（VALIDATION 类，HTTP 409）", 409},
+      {"VALIDATION_RESOURCE_NOT_FOUND",
+       3004,
+       ErrorCategory::VALIDATION,
+       "资源不存在",
+       "请求的资源不存在（VALIDATION 类，HTTP 404）",
+       404},
+      {"VALIDATION_RESOURCE_CONFLICT",
+       3005,
+       ErrorCategory::VALIDATION,
+       "资源已存在或冲突",
+       "资源已存在或与现有资源冲突（VALIDATION 类，HTTP 409）",
+       409},
 
       // AUTHENTICATION (4000-4099)
-      {"AUTH_INVALID_CREDENTIALS", 4001, ErrorCategory::AUTHENTICATION, "用户名或密码错误",
+      {"AUTH_INVALID_CREDENTIALS",
+       4001,
+       ErrorCategory::AUTHENTICATION,
+       "用户名或密码错误",
        "凭据无效（AUTHENTICATION 类）"},
-      {"AUTH_TOKEN_EXPIRED", 4002, ErrorCategory::AUTHENTICATION, "登录已过期",
+      {"AUTH_TOKEN_EXPIRED",
+       4002,
+       ErrorCategory::AUTHENTICATION,
+       "登录已过期",
        "令牌已过期（AUTHENTICATION 类）"},
-      {"AUTH_TOKEN_INVALID", 4003, ErrorCategory::AUTHENTICATION, "登录凭证无效",
+      {"AUTH_TOKEN_INVALID",
+       4003,
+       ErrorCategory::AUTHENTICATION,
+       "登录凭证无效",
        "令牌无效（AUTHENTICATION 类）"},
 
       // AUTHORIZATION (5000-5099)
-      {"AUTHZ_ACCESS_DENIED", 5001, ErrorCategory::AUTHORIZATION, "没有访问权限",
+      {"AUTHZ_ACCESS_DENIED",
+       5001,
+       ErrorCategory::AUTHORIZATION,
+       "没有访问权限",
        "访问被拒绝（AUTHORIZATION 类）"},
-      {"AUTHZ_INSUFFICIENT_PERMISSIONS", 5002, ErrorCategory::AUTHORIZATION, "权限不足",
+      {"AUTHZ_INSUFFICIENT_PERMISSIONS",
+       5002,
+       ErrorCategory::AUTHORIZATION,
+       "权限不足",
        "权限不足（AUTHORIZATION 类）"},
 
       // INTERNAL (6000-6099)
-      {"INTERNAL_ERROR", 6001, ErrorCategory::INTERNAL, "服务器内部错误",
+      {"INTERNAL_ERROR",
+       6001,
+       ErrorCategory::INTERNAL,
+       "服务器内部错误",
        "服务器内部错误（INTERNAL 类）"},
     }};
     return kEntries;
@@ -214,18 +260,20 @@ const std::vector<CatalogEntry> &ErrorCatalog::allEntries()
         v.reserve(raw.size());
         for (const auto &r : raw)
         {
-            v.push_back(CatalogEntry{
-              r.code,
-              r.numericCode,
-              r.category,
-              // Explicit per-entry override wins over the category default so
-              // resource-oriented codes can keep their pre-migration 404/409
-              // (方案 A / Requirement 11.4); otherwise derive from the category.
-              r.httpStatusOverride > 0 ? r.httpStatusOverride
-                                       : httpStatusFor(r.category, r.numericCode),
-              r.defaultMessage,
-              r.description,
-            });
+            v.push_back(
+              CatalogEntry{
+                r.code,
+                r.numericCode,
+                r.category,
+                // Explicit per-entry override wins over the category default so
+                // resource-oriented codes can keep their pre-migration 404/409
+                // (方案 A / Requirement 11.4); otherwise derive from the category.
+                r.httpStatusOverride > 0 ? r.httpStatusOverride
+                                         : httpStatusFor(r.category, r.numericCode),
+                r.defaultMessage,
+                r.description,
+              }
+            );
         }
         return v;
     }();
@@ -321,22 +369,27 @@ void ErrorCatalog::validateInvariants()
         // numeric_code: unique and inside the owning category segment.
         if (!seenNumeric.insert(e.numericCode).second)
         {
-            violations.push_back("duplicate numeric_code " + std::to_string(e.numericCode) +
-                                 " (code " + codeStr + ")");
+            violations.push_back(
+              "duplicate numeric_code " + std::to_string(e.numericCode) + " (code " + codeStr + ")"
+            );
         }
         const NumericSegment seg = segmentFor(e.category);
         if (e.numericCode < seg.min || e.numericCode > seg.max)
         {
-            violations.push_back("numeric_code " + std::to_string(e.numericCode) + " for code '" +
-                                 codeStr + "' out of " + categoryName(e.category) + " segment [" +
-                                 std::to_string(seg.min) + "," + std::to_string(seg.max) + "]");
+            violations.push_back(
+              "numeric_code " + std::to_string(e.numericCode) + " for code '" + codeStr +
+              "' out of " + categoryName(e.category) + " segment [" + std::to_string(seg.min) +
+              "," + std::to_string(seg.max) + "]"
+            );
         }
 
         // httpStatus in [100, 599].
         if (e.httpStatus < 100 || e.httpStatus > 599)
         {
-            violations.push_back("httpStatus " + std::to_string(e.httpStatus) + " for code '" +
-                                 codeStr + "' out of range [100,599]");
+            violations.push_back(
+              "httpStatus " + std::to_string(e.httpStatus) + " for code '" + codeStr +
+              "' out of range [100,599]"
+            );
         }
 
         // default Client_Safe_Message: non-empty.
@@ -366,12 +419,16 @@ void ErrorCatalog::validateInvariants()
         }
         if (o.defaultErrorDesc.empty())
         {
-            violations.push_back("oauth entry '" + errStr + "' has empty default error_description");
+            violations.push_back(
+              "oauth entry '" + errStr + "' has empty default error_description"
+            );
         }
         if (o.httpStatus < 100 || o.httpStatus > 599)
         {
-            violations.push_back("oauth entry '" + errStr + "' httpStatus " +
-                                 std::to_string(o.httpStatus) + " out of range [100,599]");
+            violations.push_back(
+              "oauth entry '" + errStr + "' httpStatus " + std::to_string(o.httpStatus) +
+              " out of range [100,599]"
+            );
         }
         ++oauthCounts[o.error];
     }
@@ -397,8 +454,10 @@ void ErrorCatalog::validateInvariants()
         const int count = (it == oauthCounts.end()) ? 0 : it->second;
         if (count != 1)
         {
-            violations.push_back("oauth code '" + std::string(required) + "' must appear exactly once, found " +
-                                 std::to_string(count));
+            violations.push_back(
+              "oauth code '" + std::string(required) + "' must appear exactly once, found " +
+              std::to_string(count)
+            );
         }
     }
 

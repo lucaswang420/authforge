@@ -282,9 +282,7 @@ std::optional<std::string> RuleSet::validateToken(const std::string &token)
 
 // 便捷验证组合方法
 
-std::vector<std::string> RuleSet::oauth2Authorize(
-  const drogon::HttpRequestPtr &req
-)
+std::vector<std::string> RuleSet::oauth2Authorize(const drogon::HttpRequestPtr &req)
 {
     std::vector<std::string> errors;
 
@@ -326,9 +324,7 @@ std::vector<std::string> RuleSet::oauth2Authorize(
     return errors;
 }
 
-std::vector<std::string> RuleSet::oauth2Token(
-  const drogon::HttpRequestPtr &req
-)
+std::vector<std::string> RuleSet::oauth2Token(const drogon::HttpRequestPtr &req)
 {
     std::vector<std::string> errors;
 
@@ -438,9 +434,7 @@ std::vector<std::string> RuleSet::login(const drogon::HttpRequestPtr &req)
 
 // ========== P1: Token Introspection & Revocation Validation ==========
 
-std::vector<std::string> RuleSet::oauth2Introspect(
-  const drogon::HttpRequestPtr &req
-)
+std::vector<std::string> RuleSet::oauth2Introspect(const drogon::HttpRequestPtr &req)
 {
     std::vector<std::string> errors;
 
@@ -469,9 +463,7 @@ std::vector<std::string> RuleSet::oauth2Introspect(
     return errors;
 }
 
-std::vector<std::string> RuleSet::oauth2Revoke(
-  const drogon::HttpRequestPtr &req
-)
+std::vector<std::string> RuleSet::oauth2Revoke(const drogon::HttpRequestPtr &req)
 {
     std::vector<std::string> errors;
 

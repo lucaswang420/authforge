@@ -163,8 +163,12 @@ struct OAuthRow
 
 // Extract [beginAnchor, endAnchor) region by ASCII-only markdown anchors so the
 // parser never depends on the execution charset of multibyte headings.
-std::string sliceBetween(const std::string &doc, const std::string &beginAnchor,
-                         const std::string &endAnchor, size_t from = 0)
+std::string sliceBetween(
+  const std::string &doc,
+  const std::string &beginAnchor,
+  const std::string &endAnchor,
+  size_t from = 0
+)
 {
     const size_t b = doc.find(beginAnchor, from);
     if (b == std::string::npos)

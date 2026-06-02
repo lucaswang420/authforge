@@ -48,9 +48,13 @@ drogon::HttpStatusCode toDrogonStatus(int httpStatus)
 
 }  // namespace
 
-void ErrorResponder::respond(const drogon::HttpRequestPtr &req, Callback &&cb,
-                             std::string code, std::string detailForLog,
-                             std::string clientDetails)
+void ErrorResponder::respond(
+  const drogon::HttpRequestPtr &req,
+  Callback &&cb,
+  std::string code,
+  std::string detailForLog,
+  std::string clientDetails
+)
 {
     // Resolve the Request_ID first so it is available even on the
     // unregistered-code error path (Requirement 6.1).
@@ -89,8 +93,11 @@ void ErrorResponder::respond(const drogon::HttpRequestPtr &req, Callback &&cb,
     cb(buildResponse(req, error));
 }
 
-void ErrorResponder::respondValidation(const drogon::HttpRequestPtr &req, Callback &&cb,
-                                       const std::vector<FieldError> &fieldErrors)
+void ErrorResponder::respondValidation(
+  const drogon::HttpRequestPtr &req,
+  Callback &&cb,
+  const std::vector<FieldError> &fieldErrors
+)
 {
     std::string requestId = RequestId::resolve(req);
 
@@ -122,8 +129,12 @@ void ErrorResponder::respondValidation(const drogon::HttpRequestPtr &req, Callba
     cb(buildResponse(req, error));
 }
 
-void ErrorResponder::respondException(const drogon::HttpRequestPtr &req, Callback &&cb,
-                                      const std::exception &e, ErrorCategory category)
+void ErrorResponder::respondException(
+  const drogon::HttpRequestPtr &req,
+  Callback &&cb,
+  const std::exception &e,
+  ErrorCategory category
+)
 {
     std::string requestId = RequestId::resolve(req);
 
@@ -140,8 +151,10 @@ void ErrorResponder::respondException(const drogon::HttpRequestPtr &req, Callbac
     cb(buildResponse(req, error));
 }
 
-drogon::HttpResponsePtr ErrorResponder::buildResponse(const drogon::HttpRequestPtr &req,
-                                                      const Error &error)
+drogon::HttpResponsePtr ErrorResponder::buildResponse(
+  const drogon::HttpRequestPtr &req,
+  const Error &error
+)
 {
     Error e = error;
 

@@ -14,6 +14,12 @@ class HealthController : public drogon::HttpController<HealthController>
     METHOD_LIST_END
 
     void health(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
-    void healthLive(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
-    void healthReady(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void healthLive(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
+    void healthReady(
+      const HttpRequestPtr &req,
+      std::function<void(const HttpResponsePtr &)> &&callback
+    );
 };

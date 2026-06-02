@@ -11,8 +11,17 @@ class RuleEngine
 {
   public:
     static Result notEmpty(const std::string &value, const std::string &fieldName);
-    static Result length(const std::string &value, const std::string &fieldName, size_t minLen, size_t maxLen);
-    static Result regex(const std::string &value, const std::string &fieldName, const std::string &pattern);
+    static Result length(
+      const std::string &value,
+      const std::string &fieldName,
+      size_t minLen,
+      size_t maxLen
+    );
+    static Result regex(
+      const std::string &value,
+      const std::string &fieldName,
+      const std::string &pattern
+    );
     static Result numericRange(int value, const std::string &fieldName, int minVal, int maxVal);
 
     static Result validateClientId(const std::string &clientId);

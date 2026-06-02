@@ -23,10 +23,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -260,7 +257,9 @@ void DeviceAuthController::approveDevice(
           {
               // Either not found, already approved/denied, or expired
               respondError(
-                req, sharedCb, "VALIDATION_INVALID_INPUT",
+                req,
+                sharedCb,
+                "VALIDATION_INVALID_INPUT",
                 "approveDevice: invalid, expired, or already processed user_code"
               );
               return;
@@ -277,7 +276,9 @@ void DeviceAuthController::approveDevice(
       [sharedCb, req](const drogon::orm::DrogonDbException &e) {
           LOG_ERROR << "Failed to approve device code: " << e.base().what();
           respondError(
-            req, sharedCb, "DB_QUERY_ERROR",
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
             std::string("approveDevice: failed to approve device: ") + e.base().what()
           );
       },

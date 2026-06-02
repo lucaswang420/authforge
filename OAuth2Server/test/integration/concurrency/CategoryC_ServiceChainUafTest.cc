@@ -116,7 +116,11 @@ DROGON_TEST(Integration_Concurrency_1_9_TokenService_ExchangeCode_UAF_Repro)
 
     std::atomic<int> delivered{0};
     svc->exchangeCodeForToken(
-      "auth-code", "client-1", "secret", "https://example.test/cb", "verifier",
+      "auth-code",
+      "client-1",
+      "secret",
+      "https://example.test/cb",
+      "verifier",
       [&delivered](const Json::Value &) { delivered.fetch_add(1, std::memory_order_relaxed); }
     );
 

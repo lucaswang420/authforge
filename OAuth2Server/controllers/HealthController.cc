@@ -47,7 +47,6 @@ void HealthController::health(
     callback(resp);
 }
 
-
 void HealthController::healthLive(
   const HttpRequestPtr &req,
   std::function<void(const HttpResponsePtr &)> &&callback
@@ -59,7 +58,6 @@ void HealthController::healthLive(
     auto resp = HttpResponse::newHttpJsonResponse(json);
     callback(resp);
 }
-
 
 void HealthController::healthReady(
   const HttpRequestPtr &req,
@@ -138,5 +136,3 @@ void HealthController::healthReady(
         (*sharedCb)(resp);
     }
 }
-
-

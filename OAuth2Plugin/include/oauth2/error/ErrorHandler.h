@@ -13,8 +13,15 @@ class ErrorHandler
 {
   public:
     // Handle specific exception types
-    static Error handleDbException(const DrogonDbException &e, const drogon::HttpRequestPtr &req = nullptr);
-    static Error handleValidationError(const std::string &field, const std::string &reason, const drogon::HttpRequestPtr &req = nullptr);
+    static Error handleDbException(
+      const DrogonDbException &e,
+      const drogon::HttpRequestPtr &req = nullptr
+    );
+    static Error handleValidationError(
+      const std::string &field,
+      const std::string &reason,
+      const drogon::HttpRequestPtr &req = nullptr
+    );
 
     // Utility functions
     [[deprecated("Use RequestId::generate() for consistent UUID format")]]

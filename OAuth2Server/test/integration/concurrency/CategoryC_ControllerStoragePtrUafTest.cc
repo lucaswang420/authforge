@@ -95,8 +95,7 @@ DROGON_TEST(Integration_Concurrency_1_11_Controller_RawStoragePointer_AcrossAsyn
     // captures the RAW storage pointer (exactly like the client_credentials
     // grant capturing `plugin`/`storage2`) and re-uses it for step 2.
     rawStorage->getClient(
-      "cc-client",
-      [rawStorage, &innerSaved](std::optional<oauth2::OAuth2Client> /*client*/) {
+      "cc-client", [rawStorage, &innerSaved](std::optional<oauth2::OAuth2Client> /*client*/) {
           // Controller chain step 2: re-dereference the raw storage pointer to
           // issue the next async storage op. If storage_ was reset, this is the
           // use-after-free.

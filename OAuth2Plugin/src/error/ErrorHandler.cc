@@ -164,11 +164,7 @@ Error Error::fromCode(std::string code, std::string requestId)
     }
 
     return Error{
-      std::move(code),
-      entry->category,
-      std::string(entry->defaultMessage),
-      "",
-      std::move(requestId)
+      std::move(code), entry->category, std::string(entry->defaultMessage), "", std::move(requestId)
     };
 }
 
@@ -257,7 +253,11 @@ Error ErrorHandler::handleDbException(const DrogonDbException &e, const drogon::
     return error;
 }
 
-Error ErrorHandler::handleValidationError(const std::string &field, const std::string &reason, const drogon::HttpRequestPtr &req)
+Error ErrorHandler::handleValidationError(
+  const std::string &field,
+  const std::string &reason,
+  const drogon::HttpRequestPtr &req
+)
 {
     // Use RequestId::resolve(req) to reuse inbound X-Request-ID if present (Req 6.3).
     std::string requestId = req ? RequestId::resolve(req) : RequestId::generate();

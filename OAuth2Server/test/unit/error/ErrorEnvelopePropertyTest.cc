@@ -77,11 +77,12 @@ std::string randomMessage(std::mt19937 &gen, std::size_t minLen, std::size_t max
     // A pool of valid UTF-8 tokens (single- and multi-byte). Each token is a
     // complete, well-formed UTF-8 sequence so the writer never sees invalid
     // bytes while still covering non-ASCII and escape-sensitive characters.
-    static const std::vector<std::string> kTokens = {
-      "a", "Z", "0", "9", " ", "_", "-", ".", "/", ":", ";", ",",
-      "\"", "\\", "\t", "{", "}", "[", "]", "<", ">", "%",
-      "用", "户", "名", "或", "密", "码", "错", "误", "服", "务", "器",
-      "无", "权", "限", "请", "求", "超", "时", "授", "权", "失", "效"};
+    static const std::vector<std::string> kTokens = {"a",  "Z",  "0",  "9",  " ",  "_",  "-",  ".",
+                                                     "/",  ":",  ";",  ",",  "\"", "\\", "\t", "{",
+                                                     "}",  "[",  "]",  "<",  ">",  "%",  "用", "户",
+                                                     "名", "或", "密", "码", "错", "误", "服", "务",
+                                                     "器", "无", "权", "限", "请", "求", "超", "时",
+                                                     "授", "权", "失", "效"};
 
     std::uniform_int_distribution<std::size_t> lenDist(minLen, maxLen);
     std::uniform_int_distribution<std::size_t> tokDist(0, kTokens.size() - 1);
@@ -203,8 +204,8 @@ DROGON_TEST(Property3_ErrorEnvelope_SerializationRoundTrip)
         if (!err.isMember("code") || err["code"].asString() != original.code)
         {
             LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                      << "] code mismatch: expected='" << original.code
-                      << "' got='" << err["code"].asString() << "'";
+                      << "] code mismatch: expected='" << original.code << "' got='"
+                      << err["code"].asString() << "'";
         }
         REQUIRE(err.isMember("code"));
         CHECK(err["code"].asString() == original.code);
@@ -246,8 +247,9 @@ DROGON_TEST(Property3_ErrorEnvelope_SerializationRoundTrip)
         if (!err.isMember("numeric_code") || err["numeric_code"].asInt() != expectedNumeric)
         {
             LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                      << "] numeric_code mismatch for code=" << original.code << ": expected="
-                      << expectedNumeric << " present=" << err.isMember("numeric_code")
+                      << "] numeric_code mismatch for code=" << original.code
+                      << ": expected=" << expectedNumeric
+                      << " present=" << err.isMember("numeric_code")
                       << " got=" << err["numeric_code"].asInt();
         }
         REQUIRE(err.isMember("numeric_code"));
@@ -294,13 +296,13 @@ DROGON_TEST(Property1_ErrorEnvelope_StructuralInvariants)
 
     // The only field names an Application Error Envelope's `error` object is
     // allowed to carry (Requirement 7.5). NO aliases (error_description/reason).
-    static const std::unordered_set<std::string> kAllowedKeys = {
-      "code", "category", "message", "request_id", "numeric_code", "details", "timestamp"};
+    static const std::unordered_set<std::string> kAllowedKeys =
+      {"code", "category", "message", "request_id", "numeric_code", "details", "timestamp"};
 
     // The Error_Category enum string set (Requirement 1.2).
     static const std::unordered_set<std::string> kCategorySet = {
-      "NETWORK", "DATABASE", "VALIDATION", "AUTHENTICATION",
-      "AUTHORIZATION", "INTERNAL", "UNKNOWN"};
+      "NETWORK", "DATABASE", "VALIDATION", "AUTHENTICATION", "AUTHORIZATION", "INTERNAL", "UNKNOWN"
+    };
 
     // The set of every registered Error_Code, used to assert membership
     // (Requirement 1.6). Built generically from allEntries().
@@ -396,8 +398,8 @@ DROGON_TEST(Property1_ErrorEnvelope_StructuralInvariants)
         if (messageValue.empty() || messageValue.size() > 500)
         {
             LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
-                      << "] code=" << code << " message length out of [1,500]: "
-                      << messageValue.size();
+                      << "] code=" << code
+                      << " message length out of [1,500]: " << messageValue.size();
         }
         CHECK(!messageValue.empty());
         CHECK(messageValue.size() <= 500u);
@@ -481,10 +483,17 @@ DROGON_TEST(Property2_ErrorEnvelope_NumericCodeCorrectnessAndOmission)
     // Synthetic Error_Codes that are NOT registered in the catalog. These drive
     // the OMISSION branch; each is asserted to be unregistered before use so the
     // test fails loudly should one ever be added to the catalog.
-    static const std::vector<std::string> kUnregisteredCodes = {
-      "SOME_UNREGISTERED_CODE", "CUSTOM_AD_HOC_ERROR", "NOPE_NOT_REGISTERED",
-      "X_UNKNOWN_THING", "未登记的错误码", "lower_case_code", "INTERNAL_ERROR_TYPO",
-      "AUTH_", "_PREFIXED_CODE", "code with spaces"};
+    static const std::vector<std::string> kUnregisteredCodes =
+      {"SOME_UNREGISTERED_CODE",
+       "CUSTOM_AD_HOC_ERROR",
+       "NOPE_NOT_REGISTERED",
+       "X_UNKNOWN_THING",
+       "未登记的错误码",
+       "lower_case_code",
+       "INTERNAL_ERROR_TYPO",
+       "AUTH_",
+       "_PREFIXED_CODE",
+       "code with spaces"};
     for (const auto &code : kUnregisteredCodes)
     {
         REQUIRE(ErrorCatalog::find(code) == nullptr);
@@ -492,10 +501,14 @@ DROGON_TEST(Property2_ErrorEnvelope_NumericCodeCorrectnessAndOmission)
 
     // Every ErrorCategory value, so synthetic (unregistered) errors carry a real
     // category just like a hand-built Error would.
-    static const std::vector<ErrorCategory> kCategories = {
-      ErrorCategory::NETWORK,       ErrorCategory::DATABASE, ErrorCategory::VALIDATION,
-      ErrorCategory::AUTHENTICATION, ErrorCategory::AUTHORIZATION,
-      ErrorCategory::INTERNAL,       ErrorCategory::UNKNOWN};
+    static const std::vector<ErrorCategory> kCategories =
+      {ErrorCategory::NETWORK,
+       ErrorCategory::DATABASE,
+       ErrorCategory::VALIDATION,
+       ErrorCategory::AUTHENTICATION,
+       ErrorCategory::AUTHORIZATION,
+       ErrorCategory::INTERNAL,
+       ErrorCategory::UNKNOWN};
 
     std::uniform_int_distribution<std::size_t> entryDist(0, entries.size() - 1);
     std::uniform_int_distribution<std::size_t> unregDist(0, kUnregisteredCodes.size() - 1);
@@ -540,8 +553,10 @@ DROGON_TEST(Property2_ErrorEnvelope_NumericCodeCorrectnessAndOmission)
             REQUIRE(root.isMember("error"));
             const Json::Value &err = root["error"];
 
-            if (!err.isMember("numeric_code") || !err["numeric_code"].isInt() ||
-                err["numeric_code"].asInt() != entry.numericCode)
+            if (
+              !err.isMember("numeric_code") || !err["numeric_code"].isInt() ||
+              err["numeric_code"].asInt() != entry.numericCode
+            )
             {
                 LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
                           << "] PRESENT branch: code=" << code
@@ -647,23 +662,27 @@ DROGON_TEST(Property6_ErrorEnvelope_ProductionModeSafetyIsolation)
     // stack-trace-style snippets (Requirement 5.3). These are pure ASCII; all
     // catalog default Client_Safe_Messages are Chinese, so a legitimate default
     // can never accidentally contain one of these (no false positives).
-    static const std::vector<std::string> kSensitiveFragments = {
-      "SELECT * FROM users WHERE id=1",
-      "DROP TABLE accounts",
-      "DrogonDbException: duplicate key value violates unique constraint",
-      "syntax error at or near \"FROM\"",
-      "/etc/passwd",
-      "/var/lib/postgresql/data/base/16384",
-      "C:\\src\\oauth2\\foo.cc:42",
-      "at 0xdeadbeef in libpq.so",
-      "Traceback (most recent call last)",
-      "java.lang.NullPointerException at com.example.Foo.bar(Foo.java:42)"};
+    static const std::vector<std::string> kSensitiveFragments =
+      {"SELECT * FROM users WHERE id=1",
+       "DROP TABLE accounts",
+       "DrogonDbException: duplicate key value violates unique constraint",
+       "syntax error at or near \"FROM\"",
+       "/etc/passwd",
+       "/var/lib/postgresql/data/base/16384",
+       "C:\\src\\oauth2\\foo.cc:42",
+       "at 0xdeadbeef in libpq.so",
+       "Traceback (most recent call last)",
+       "java.lang.NullPointerException at com.example.Foo.bar(Foo.java:42)"};
 
     // Category hints fed to Error::fromException (every ErrorCategory value).
-    static const std::vector<ErrorCategory> kCategories = {
-      ErrorCategory::NETWORK,        ErrorCategory::DATABASE, ErrorCategory::VALIDATION,
-      ErrorCategory::AUTHENTICATION, ErrorCategory::AUTHORIZATION,
-      ErrorCategory::INTERNAL,       ErrorCategory::UNKNOWN};
+    static const std::vector<ErrorCategory> kCategories =
+      {ErrorCategory::NETWORK,
+       ErrorCategory::DATABASE,
+       ErrorCategory::VALIDATION,
+       ErrorCategory::AUTHENTICATION,
+       ErrorCategory::AUTHORIZATION,
+       ErrorCategory::INTERNAL,
+       ErrorCategory::UNKNOWN};
 
     // Force Production_Mode for the entire loop. Restored at the very end so the
     // following property tests (4.6 / 4.7) observe the default error context.
@@ -769,9 +788,8 @@ DROGON_TEST(Property6_ErrorEnvelope_ProductionModeSafetyIsolation)
         REQUIRE(respRoot.isMember("error"));
         REQUIRE(respRoot["error"].isObject());
 
-        const std::pair<const char *, const Json::Value *> envelopes[] = {
-          {"toJson", &toJsonRoot["error"]},
-          {"buildResponse", &respRoot["error"]}};
+        const std::pair<const char *, const Json::Value *> envelopes[] =
+          {{"toJson", &toJsonRoot["error"]}, {"buildResponse", &respRoot["error"]}};
 
         for (const auto &env : envelopes)
         {
@@ -816,8 +834,8 @@ DROGON_TEST(Property6_ErrorEnvelope_ProductionModeSafetyIsolation)
                     {
                         LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
                                   << " via=" << which << "] code=" << sourceCode << " field '"
-                                  << key << "' leaked sensitive fragment '" << frag
-                                  << "' (value='" << value << "')";
+                                  << key << "' leaked sensitive fragment '" << frag << "' (value='"
+                                  << value << "')";
                     }
                     CHECK(value.find(frag) == std::string::npos);
                 }
@@ -877,10 +895,14 @@ DROGON_TEST(Property7_ErrorEnvelope_NonProductionDiagnosticDetails)
     REQUIRE(!entries.empty());
 
     // Category hints fed to Error::fromException (every ErrorCategory value).
-    static const std::vector<ErrorCategory> kCategories = {
-      ErrorCategory::NETWORK,        ErrorCategory::DATABASE, ErrorCategory::VALIDATION,
-      ErrorCategory::AUTHENTICATION, ErrorCategory::AUTHORIZATION,
-      ErrorCategory::INTERNAL,       ErrorCategory::UNKNOWN};
+    static const std::vector<ErrorCategory> kCategories =
+      {ErrorCategory::NETWORK,
+       ErrorCategory::DATABASE,
+       ErrorCategory::VALIDATION,
+       ErrorCategory::AUTHENTICATION,
+       ErrorCategory::AUTHORIZATION,
+       ErrorCategory::INTERNAL,
+       ErrorCategory::UNKNOWN};
 
     // Force non-Production_Mode for the entire loop (the dual of Property 6).
     // Restored at the very end so the following property test (4.7) observes the
@@ -959,9 +981,8 @@ DROGON_TEST(Property7_ErrorEnvelope_NonProductionDiagnosticDetails)
             REQUIRE(respRoot.isMember("error"));
             REQUIRE(respRoot["error"].isObject());
 
-            const std::pair<const char *, const Json::Value *> envelopes[] = {
-              {"toJson", &toJsonRoot["error"]},
-              {"buildResponse", &respRoot["error"]}};
+            const std::pair<const char *, const Json::Value *> envelopes[] =
+              {{"toJson", &toJsonRoot["error"]}, {"buildResponse", &respRoot["error"]}};
 
             for (const auto &env : envelopes)
             {
@@ -980,14 +1001,12 @@ DROGON_TEST(Property7_ErrorEnvelope_NonProductionDiagnosticDetails)
 
                 // ... and is a non-empty string that contains the diagnostic text.
                 const std::string detailsValue = err["details"].asString();
-                if (detailsValue.empty() ||
-                    detailsValue.find(diagnosticText) == std::string::npos)
+                if (detailsValue.empty() || detailsValue.find(diagnosticText) == std::string::npos)
                 {
                     LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << i
                               << " via=" << which << "] code=" << sourceCode
                               << " details does not carry diagnostic text: details='"
-                              << detailsValue << "' expected to contain='" << diagnosticText
-                              << "'";
+                              << detailsValue << "' expected to contain='" << diagnosticText << "'";
                 }
                 CHECK(!detailsValue.empty());
                 CHECK(detailsValue.find(diagnosticText) != std::string::npos);
@@ -1016,7 +1035,8 @@ DROGON_TEST(Property7_ErrorEnvelope_NonProductionDiagnosticDetails)
             const drogon::HttpRequestPtr req = drogon::HttpRequest::newHttpRequest();
             drogon::HttpResponsePtr captured;
             ErrorResponder::respondValidation(
-              req, [&captured](const drogon::HttpResponsePtr &r) { captured = r; }, fieldErrors);
+              req, [&captured](const drogon::HttpResponsePtr &r) { captured = r; }, fieldErrors
+            );
             REQUIRE(captured != nullptr);
 
             Json::Value respRoot;
@@ -1156,14 +1176,21 @@ DROGON_TEST(Property8_ErrorEnvelope_UnmappedExceptionInternalFallback)
     struct CustomException : std::exception
     {
         std::string text;
-        explicit CustomException(std::string t) : text(std::move(t)) {}
-        const char *what() const noexcept override { return text.c_str(); }
+
+        explicit CustomException(std::string t) : text(std::move(t))
+        {
+        }
+
+        const char *what() const noexcept override
+        {
+            return text.c_str();
+        }
     };
 
     // "Unmapped" category hints: neither corresponds to a specific business code,
     // so Error::fromException falls back to INTERNAL_ERROR (Requirement 5.5).
-    static const std::vector<ErrorCategory> kUnmappedHints = {
-      ErrorCategory::UNKNOWN, ErrorCategory::INTERNAL};
+    static const std::vector<ErrorCategory> kUnmappedHints =
+      {ErrorCategory::UNKNOWN, ErrorCategory::INTERNAL};
 
     std::uniform_int_distribution<std::size_t> hintDist(0, kUnmappedHints.size() - 1);
     std::uniform_int_distribution<int> kindDist(0, 4);  // exception subclass selector.
@@ -1175,111 +1202,111 @@ DROGON_TEST(Property8_ErrorEnvelope_UnmappedExceptionInternalFallback)
     // each `error` object. ErrorContext is pinned to `includeDetails` so both
     // paths agree on the Production_Mode decision.
     auto runChecks =
-      [&](const std::exception &ex, ErrorCategory hint, bool includeDetails, int iter)
-    {
-        ErrorContext::setDetailedErrorsOverride(includeDetails);
+      [&](const std::exception &ex, ErrorCategory hint, bool includeDetails, int iter) {
+          ErrorContext::setDetailedErrorsOverride(includeDetails);
 
-        // ---- (1) Direct factory path -----------------------------------------
-        const Error error = Error::fromException(ex, hint, randomRequestId(gen));
+          // ---- (1) Direct factory path -----------------------------------------
+          const Error error = Error::fromException(ex, hint, randomRequestId(gen));
 
-        // The mapped code is the INTERNAL fallback regardless of exception text.
-        if (error.code != expectedCode || error.category != ErrorCategory::INTERNAL)
-        {
-            LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                      << " hint=" << toString(hint)
-                      << "] fromException did not fall back to " << expectedCode
-                      << ": code='" << error.code << "' category=" << toString(error.category)
-                      << " what='" << ex.what() << "'";
-        }
-        REQUIRE(error.code == expectedCode);
-        CHECK(error.category == ErrorCategory::INTERNAL);
-        REQUIRE(error.hasNumericCode());
-        CHECK(error.numericCode() == 6001);
-        CHECK(error.message == expectedMessage);
+          // The mapped code is the INTERNAL fallback regardless of exception text.
+          if (error.code != expectedCode || error.category != ErrorCategory::INTERNAL)
+          {
+              LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                        << " hint=" << toString(hint) << "] fromException did not fall back to "
+                        << expectedCode << ": code='" << error.code
+                        << "' category=" << toString(error.category) << " what='" << ex.what()
+                        << "'";
+          }
+          REQUIRE(error.code == expectedCode);
+          CHECK(error.category == ErrorCategory::INTERNAL);
+          REQUIRE(error.hasNumericCode());
+          CHECK(error.numericCode() == 6001);
+          CHECK(error.message == expectedMessage);
 
-        const Json::Value toJsonRoot = error.toJson(includeDetails);
+          const Json::Value toJsonRoot = error.toJson(includeDetails);
 
-        // ---- (2) Unified entry point path ------------------------------------
-        // respondException invokes the callback synchronously; capture the response.
-        const drogon::HttpRequestPtr req = drogon::HttpRequest::newHttpRequest();
-        drogon::HttpResponsePtr captured;
-        ErrorResponder::respondException(
-          req, [&captured](const drogon::HttpResponsePtr &r) { captured = r; }, ex, hint);
-        REQUIRE(captured != nullptr);
+          // ---- (2) Unified entry point path ------------------------------------
+          // respondException invokes the callback synchronously; capture the response.
+          const drogon::HttpRequestPtr req = drogon::HttpRequest::newHttpRequest();
+          drogon::HttpResponsePtr captured;
+          ErrorResponder::respondException(
+            req, [&captured](const drogon::HttpResponsePtr &r) { captured = r; }, ex, hint
+          );
+          REQUIRE(captured != nullptr);
 
-        Json::Value respRoot;
-        const bool parsed = parseJson(std::string(captured->getBody()), respRoot);
-        if (!parsed)
-        {
-            LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                      << "] respondException body is not parseable JSON; what='" << ex.what()
-                      << "'";
-        }
-        REQUIRE(parsed);
+          Json::Value respRoot;
+          const bool parsed = parseJson(std::string(captured->getBody()), respRoot);
+          if (!parsed)
+          {
+              LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                        << "] respondException body is not parseable JSON; what='" << ex.what()
+                        << "'";
+          }
+          REQUIRE(parsed);
 
-        REQUIRE(toJsonRoot.isObject());
-        REQUIRE(toJsonRoot.isMember("error"));
-        REQUIRE(toJsonRoot["error"].isObject());
-        REQUIRE(respRoot.isObject());
-        REQUIRE(respRoot.isMember("error"));
-        REQUIRE(respRoot["error"].isObject());
+          REQUIRE(toJsonRoot.isObject());
+          REQUIRE(toJsonRoot.isMember("error"));
+          REQUIRE(toJsonRoot["error"].isObject());
+          REQUIRE(respRoot.isObject());
+          REQUIRE(respRoot.isMember("error"));
+          REQUIRE(respRoot["error"].isObject());
 
-        const std::pair<const char *, const Json::Value *> envelopes[] = {
-          {"toJson", &toJsonRoot["error"]},
-          {"respondException", &respRoot["error"]}};
+          const std::pair<const char *, const Json::Value *> envelopes[] =
+            {{"toJson", &toJsonRoot["error"]}, {"respondException", &respRoot["error"]}};
 
-        for (const auto &env : envelopes)
-        {
-            const char *which = env.first;
-            const Json::Value &err = *env.second;
+          for (const auto &env : envelopes)
+          {
+              const char *which = env.first;
+              const Json::Value &err = *env.second;
 
-            // (a) category == INTERNAL.
-            REQUIRE(err.isMember("category"));
-            REQUIRE(err["category"].isString());
-            if (err["category"].asString() != "INTERNAL")
-            {
-                LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                          << " via=" << which << "] category mismatch: got='"
-                          << err["category"].asString() << "' expected='INTERNAL' what='"
-                          << ex.what() << "'";
-            }
-            CHECK(err["category"].asString() == "INTERNAL");
+              // (a) category == INTERNAL.
+              REQUIRE(err.isMember("category"));
+              REQUIRE(err["category"].isString());
+              if (err["category"].asString() != "INTERNAL")
+              {
+                  LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                            << " via=" << which << "] category mismatch: got='"
+                            << err["category"].asString() << "' expected='INTERNAL' what='"
+                            << ex.what() << "'";
+              }
+              CHECK(err["category"].asString() == "INTERNAL");
 
-            // (b) code == INTERNAL_ERROR with numeric_code == 6001.
-            REQUIRE(err.isMember("code"));
-            REQUIRE(err["code"].isString());
-            if (err["code"].asString() != expectedCode)
-            {
-                LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                          << " via=" << which << "] code mismatch: got='"
-                          << err["code"].asString() << "' expected='" << expectedCode << "'";
-            }
-            CHECK(err["code"].asString() == expectedCode);
+              // (b) code == INTERNAL_ERROR with numeric_code == 6001.
+              REQUIRE(err.isMember("code"));
+              REQUIRE(err["code"].isString());
+              if (err["code"].asString() != expectedCode)
+              {
+                  LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                            << " via=" << which << "] code mismatch: got='"
+                            << err["code"].asString() << "' expected='" << expectedCode << "'";
+              }
+              CHECK(err["code"].asString() == expectedCode);
 
-            REQUIRE(err.isMember("numeric_code"));
-            REQUIRE(err["numeric_code"].isInt());
-            if (err["numeric_code"].asInt() != 6001)
-            {
-                LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                          << " via=" << which << "] numeric_code mismatch: got="
-                          << err["numeric_code"].asInt() << " expected=6001";
-            }
-            CHECK(err["numeric_code"].asInt() == 6001);
+              REQUIRE(err.isMember("numeric_code"));
+              REQUIRE(err["numeric_code"].isInt());
+              if (err["numeric_code"].asInt() != 6001)
+              {
+                  LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                            << " via=" << which
+                            << "] numeric_code mismatch: got=" << err["numeric_code"].asInt()
+                            << " expected=6001";
+              }
+              CHECK(err["numeric_code"].asInt() == 6001);
 
-            // (c) message == catalog default Client_Safe_Message for INTERNAL_ERROR
-            //     (NOT the raw exception text).
-            REQUIRE(err.isMember("message"));
-            REQUIRE(err["message"].isString());
-            if (err["message"].asString() != expectedMessage)
-            {
-                LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
-                          << " via=" << which << "] message mismatch: got='"
-                          << err["message"].asString() << "' expected catalog default='"
-                          << expectedMessage << "'";
-            }
-            CHECK(err["message"].asString() == expectedMessage);
-        }
-    };
+              // (c) message == catalog default Client_Safe_Message for INTERNAL_ERROR
+              //     (NOT the raw exception text).
+              REQUIRE(err.isMember("message"));
+              REQUIRE(err["message"].isString());
+              if (err["message"].asString() != expectedMessage)
+              {
+                  LOG_ERROR << "[seed=0x" << std::hex << kSeed << std::dec << " iter=" << iter
+                            << " via=" << which << "] message mismatch: got='"
+                            << err["message"].asString() << "' expected catalog default='"
+                            << expectedMessage << "'";
+              }
+              CHECK(err["message"].asString() == expectedMessage);
+          }
+      };
 
     constexpr int kIterations = 200;  // >= 100 per the PBT convention.
     for (int i = 0; i < kIterations; ++i)

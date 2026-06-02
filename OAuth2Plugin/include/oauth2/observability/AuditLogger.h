@@ -51,5 +51,4 @@ class AuditLogger
     );
 };
 
-}  // namespace oauth2
-
+}  // namespace oauth2::observability

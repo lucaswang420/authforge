@@ -18,10 +18,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -56,7 +53,9 @@ void ClientRegistrationController::registerClient(
     if (!jsonBody)
     {
         respondError(
-          req, sharedCb, "VALIDATION_INVALID_INPUT",
+          req,
+          sharedCb,
+          "VALIDATION_INVALID_INPUT",
           "registerClient: request body must be valid JSON"
         );
         return;
@@ -72,7 +71,9 @@ void ClientRegistrationController::registerClient(
     if (clientName.empty())
     {
         respondError(
-          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
           "registerClient: client_name is required"
         );
         return;
@@ -82,7 +83,9 @@ void ClientRegistrationController::registerClient(
     if (clientType != "CONFIDENTIAL" && clientType != "PUBLIC")
     {
         respondError(
-          req, sharedCb, "VALIDATION_FORMAT_ERROR",
+          req,
+          sharedCb,
+          "VALIDATION_FORMAT_ERROR",
           "registerClient: client_type must be CONFIDENTIAL or PUBLIC"
         );
         return;
@@ -107,7 +110,9 @@ void ClientRegistrationController::registerClient(
     if (redirectUris.empty() && clientType == "CONFIDENTIAL")
     {
         respondError(
-          req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
           "registerClient: redirect_uris is required for confidential clients"
         );
         return;
@@ -129,7 +134,9 @@ void ClientRegistrationController::registerClient(
             )
             {
                 respondError(
-                  req, sharedCb, "VALIDATION_FORMAT_ERROR",
+                  req,
+                  sharedCb,
+                  "VALIDATION_FORMAT_ERROR",
                   "registerClient: unsupported grant_type: " + grantType +
                     ". Allowed: authorization_code, refresh_token, client_credentials"
                 );
@@ -207,7 +214,9 @@ void ClientRegistrationController::registerClient(
               );
 
               respondError(
-                req, sharedCb, "DB_QUERY_ERROR",
+                req,
+                sharedCb,
+                "DB_QUERY_ERROR",
                 std::string("registerClient: failed to register client: ") + e.base().what()
               );
           },
@@ -222,8 +231,6 @@ void ClientRegistrationController::registerClient(
     }
     catch (...)
     {
-        respondError(
-          req, sharedCb, "DB_CONNECTION_ERROR", "registerClient: database unavailable"
-        );
+        respondError(req, sharedCb, "DB_CONNECTION_ERROR", "registerClient: database unavailable");
     }
 }

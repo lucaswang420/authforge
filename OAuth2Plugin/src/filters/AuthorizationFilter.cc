@@ -5,8 +5,8 @@
 #include <oauth2/error/RequestId.h>
 #include <drogon/drogon.h>
 
-
-namespace oauth2::filters {
+namespace oauth2::filters
+{
 
 using namespace drogon;
 
@@ -98,7 +98,9 @@ void AuthorizationFilter::doFilter(
     {
         // Session not found or invalid - use Error Envelope (Req 7.1/7.3)
         LOG_WARN << "Authorization failed: token missing";
-        auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+        auto error = common::error::Error::fromCode(
+          "AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req)
+        );
         error.message = "Authentication required";
         auto resp = common::error::ErrorResponder::buildResponse(req, error);
         fcb(resp);  // Return response -> Use fcb
@@ -110,7 +112,8 @@ void AuthorizationFilter::doFilter(
     if (!plugin)
     {
         LOG_ERROR << "OAuth2Plugin not found!";
-        auto error = common::error::Error::fromCode("INTERNAL_ERROR", common::error::RequestId::resolve(req));
+        auto error =
+          common::error::Error::fromCode("INTERNAL_ERROR", common::error::RequestId::resolve(req));
         error.message = "OAuth2 plugin not available";
         auto resp = common::error::ErrorResponder::buildResponse(req, error);
         fcb(resp);  // Return response -> Use fcb
@@ -131,7 +134,9 @@ void AuthorizationFilter::doFilter(
           if (!at)
           {
               LOG_WARN << "Authorization failed: invalid or expired token";
-              auto error = common::error::Error::fromCode("AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req));
+              auto error = common::error::Error::fromCode(
+                "AUTH_TOKEN_INVALID", common::error::RequestId::resolve(req)
+              );
               error.message = "Invalid or expired token";
               auto resp = common::error::ErrorResponder::buildResponse(req, error);
               (*denyCbPtr)(resp);
@@ -148,8 +153,11 @@ void AuthorizationFilter::doFilter(
                 }
                 else
                 {
-                    LOG_WARN << "Authorization failed: insufficient permissions for path " << req->path();
-                    auto error = common::error::Error::fromCode("AUTHZ_INSUFFICIENT_PERMISSIONS", common::error::RequestId::resolve(req));
+                    LOG_WARN << "Authorization failed: insufficient permissions for path "
+                             << req->path();
+                    auto error = common::error::Error::fromCode(
+                      "AUTHZ_INSUFFICIENT_PERMISSIONS", common::error::RequestId::resolve(req)
+                    );
                     error.message = "Insufficient permissions";
                     auto resp = common::error::ErrorResponder::buildResponse(req, error);
                     (*denyCbPtr)(resp);  // DENY -> Return 403

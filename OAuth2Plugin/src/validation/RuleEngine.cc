@@ -70,12 +70,7 @@ Result RuleEngine::regex(
     }
 }
 
-Result RuleEngine::numericRange(
-  int value,
-  const std::string &fieldName,
-  int minVal,
-  int maxVal
-)
+Result RuleEngine::numericRange(int value, const std::string &fieldName, int minVal, int maxVal)
 {
     if (value < minVal || value > maxVal)
     {
@@ -96,9 +91,7 @@ Result RuleEngine::validateClientId(const std::string &clientId)
     auto result2 = regex(clientId, "client_id", CLIENT_ID_PATTERN);
     if (!result2.ok)
     {
-        return Result::failure(
-          "client_id", "Must be 1-128 alphanumeric characters (._- allowed)"
-        );
+        return Result::failure("client_id", "Must be 1-128 alphanumeric characters (._- allowed)");
     }
 
     return length(clientId, "client_id", CLIENT_ID_MIN_LEN, CLIENT_ID_MAX_LEN);

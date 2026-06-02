@@ -364,22 +364,21 @@ int main()
           // header injection is preserved on both branches (Requirement 7.7).
           const std::string &path = req->path();
           const bool isOAuth2Protocol =
-            path.rfind("/oauth2/", 0) == 0 ||
-            path == "/.well-known/oauth-authorization-server" ||
+            path.rfind("/oauth2/", 0) == 0 || path == "/.well-known/oauth-authorization-server" ||
             path == "/.well-known/openid-configuration" || path == "/.well-known/jwks.json";
 
           // Wrap the callback so CORS headers are injected on whichever response
           // the chosen branch produces (mirrors the prior behavior).
-          auto withCors =
-            [req, callback = std::move(callback)](const drogon::HttpResponsePtr &resp) {
-                const auto &origin = req->getHeader("Origin");
-                if (!origin.empty())
-                {
-                    resp->addHeader("Access-Control-Allow-Origin", origin);
-                    resp->addHeader("Access-Control-Allow-Credentials", "true");
-                }
-                callback(resp);
-            };
+          auto withCors = [req,
+                           callback = std::move(callback)](const drogon::HttpResponsePtr &resp) {
+              const auto &origin = req->getHeader("Origin");
+              if (!origin.empty())
+              {
+                  resp->addHeader("Access-Control-Allow-Origin", origin);
+                  resp->addHeader("Access-Control-Allow-Credentials", "true");
+              }
+              callback(resp);
+          };
 
           if (isOAuth2Protocol)
           {

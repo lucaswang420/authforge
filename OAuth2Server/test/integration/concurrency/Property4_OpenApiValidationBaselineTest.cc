@@ -229,6 +229,7 @@ DROGON_TEST(Property4_3_1_ValidationRules_RandomizedOutcomes_Baseline)
         const char *path;
         drogon::HttpMethod method;
     };
+
     const std::vector<Case> cases = {
       {"/oauth2/authorize", drogon::Get},
       {"/oauth2/token", drogon::Post},
@@ -307,8 +308,8 @@ DROGON_TEST(Property4_3_1_ValidationRules_RandomizedOutcomes_Baseline)
 DROGON_TEST(Property4_3_1_ValidationRules_UnconfiguredPath_PassThrough_Baseline)
 {
     PreservationInputGen gen(0x1234ABCDu);
-    static const std::vector<std::string> unconfigured = {
-      "/health", "/metrics", "/random/unmatched/path", "/static/app.js"};
+    static const std::vector<std::string> unconfigured =
+      {"/health", "/metrics", "/random/unmatched/path", "/static/app.js"};
     for (int i = 0; i < 8; ++i)
     {
         auto req = drogon::HttpRequest::newHttpRequest();

@@ -45,8 +45,11 @@ size_t countOccurrences(const std::string &haystack, const std::string &needle)
 DROGON_TEST(Unit_EmailSecurity_BuildMime_BenignMessage_WellFormed)
 {
     std::string msg = SmtpEmailService::buildMimeMessage(
-      "alice@example.com", "Verify your email", "Click the link to verify.",
-      "OAuth2 Platform", "noreply@example.com"
+      "alice@example.com",
+      "Verify your email",
+      "Click the link to verify.",
+      "OAuth2 Platform",
+      "noreply@example.com"
     );
 
     CHECK(msg.find("To: <alice@example.com>") != std::string::npos);
@@ -66,8 +69,11 @@ DROGON_TEST(Unit_EmailSecurity_BuildMime_BenignMessage_WellFormed)
 DROGON_TEST(Unit_EmailSecurity_BuildMime_CRLFInRecipient_NoHeaderInjection)
 {
     std::string msg = SmtpEmailService::buildMimeMessage(
-      "victim@example.com\r\nBcc: attacker@evil.com", "Subject", "Body",
-      "Platform", "noreply@example.com"
+      "victim@example.com\r\nBcc: attacker@evil.com",
+      "Subject",
+      "Body",
+      "Platform",
+      "noreply@example.com"
     );
 
     // The injected "Bcc:" must NOT appear as a header line (i.e., right after a
@@ -121,8 +127,7 @@ DROGON_TEST(Unit_EmailSecurity_BuildMime_ShellMetacharsInRecipient_Inert)
 DROGON_TEST(Unit_EmailSecurity_BuildMime_BareLFInFrom_Sanitized)
 {
     std::string msg = SmtpEmailService::buildMimeMessage(
-      "alice@example.com", "Subject", "Body",
-      "Platform\nX-Evil: yes", "noreply@example.com"
+      "alice@example.com", "Subject", "Body", "Platform\nX-Evil: yes", "noreply@example.com"
     );
 
     // The injected field must not appear as a NEW header line (after CR/LF);
@@ -136,8 +141,7 @@ DROGON_TEST(Unit_EmailSecurity_BuildMime_BareLFInFrom_Sanitized)
 DROGON_TEST(Unit_EmailSecurity_BuildMime_BodyNewlinesPreserved)
 {
     std::string msg = SmtpEmailService::buildMimeMessage(
-      "alice@example.com", "Subject", "Line1\r\nLine2\r\nLine3",
-      "Platform", "noreply@example.com"
+      "alice@example.com", "Subject", "Line1\r\nLine2\r\nLine3", "Platform", "noreply@example.com"
     );
 
     CHECK(msg.find("Line1\r\nLine2\r\nLine3") != std::string::npos);

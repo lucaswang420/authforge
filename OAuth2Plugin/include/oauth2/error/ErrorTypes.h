@@ -35,7 +35,7 @@ const char *toString(ErrorCategory category);
  */
 struct Error
 {
-    std::string code;       ///< Stable string Error_Code (looked up in ErrorCatalog).
+    std::string code;        ///< Stable string Error_Code (looked up in ErrorCatalog).
     ErrorCategory category;  ///< Error classification.
     std::string message;     ///< Client_Safe_Message (in production = Catalog default).
     std::string details;     ///< Internal_Detail; only emitted when includeDetails is set.
@@ -66,8 +66,11 @@ struct Error
     /// Build an Error from an exception and a category hint. The exception text
     /// is captured into `details` (Internal_Detail). Codes that cannot be mapped
     /// fall back to the internal-error entry (Requirement 5.5).
-    static Error fromException(const std::exception &e, ErrorCategory category,
-                               std::string requestId);
+    static Error fromException(
+      const std::exception &e,
+      ErrorCategory category,
+      std::string requestId
+    );
 };
 
 }  // namespace common::error

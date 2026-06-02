@@ -85,4 +85,4 @@ OperationTimer::~OperationTimer()
     Metrics::observeLatency(operation_, storage_, diff.count());
 }
 
-}  // namespace oauth2
+}  // namespace oauth2::observability

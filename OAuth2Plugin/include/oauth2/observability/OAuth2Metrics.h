@@ -77,5 +77,4 @@ class OperationTimer
     std::chrono::steady_clock::time_point start_;
 };
 
-}  // namespace oauth2
-
+}  // namespace oauth2::observability

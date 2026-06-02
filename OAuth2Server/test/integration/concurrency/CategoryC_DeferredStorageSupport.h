@@ -118,7 +118,7 @@ class DeferringStorage : public oauth2::IOAuth2Storage
 {
   public:
     explicit DeferringStorage(std::shared_ptr<PendingCallbacks> pending)
-      : pending_(std::move(pending))
+        : pending_(std::move(pending))
     {
     }
 

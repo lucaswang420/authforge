@@ -18,6 +18,7 @@ static std::unordered_map<std::string, std::string> &getDotEnvVars()
     static std::unordered_map<std::string, std::string> instance;
     return instance;
 }
+
 static bool dotEnvLoaded_ = false;
 
 /**
@@ -85,9 +86,10 @@ static void loadDotEnv()
         // Trim value (remove surrounding quotes if present)
         while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
             value.erase(value.begin());
-        if (value.size() >= 2 &&
-            ((value.front() == '"' && value.back() == '"') ||
-             (value.front() == '\'' && value.back() == '\'')))
+        if (
+          value.size() >= 2 && ((value.front() == '"' && value.back() == '"') ||
+                                (value.front() == '\'' && value.back() == '\''))
+        )
         {
             value = value.substr(1, value.size() - 2);
         }

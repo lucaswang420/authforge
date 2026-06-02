@@ -107,4 +107,4 @@ void AuditLogger::log(
     log(event);
 }
 
-}  // namespace oauth2
+}  // namespace oauth2::observability

@@ -107,9 +107,7 @@ class OAuth2StandardController : public drogon::HttpController<OAuth2StandardCon
 
     static drogon::HttpResponsePtr createSuccessResponse();
 
-    static ClientCredentials extractClientCredentials(
-      const drogon::HttpRequestPtr &req
-    );
+    static ClientCredentials extractClientCredentials(const drogon::HttpRequestPtr &req);
 
     static void checkUserConsentAndProceed(
       ::OAuth2Plugin *plugin,

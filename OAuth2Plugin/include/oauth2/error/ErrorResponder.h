@@ -58,9 +58,13 @@ class ErrorResponder
      * @param clientDetails Diagnostic detail surfaced in the Envelope `details`
      *                      ONLY when detailed errors are allowed (non-Production_Mode).
      */
-    static void respond(const drogon::HttpRequestPtr &req, Callback &&cb,
-                        std::string code, std::string detailForLog = "",
-                        std::string clientDetails = "");
+    static void respond(
+      const drogon::HttpRequestPtr &req,
+      Callback &&cb,
+      std::string code,
+      std::string detailForLog = "",
+      std::string clientDetails = ""
+    );
 
     /**
      * @brief Convenience entry point for VALIDATION-class errors.
@@ -70,8 +74,11 @@ class ErrorResponder
      * failing field names and reasons are included in `details`
      * (Requirement 7.4 / 7.6).
      */
-    static void respondValidation(const drogon::HttpRequestPtr &req, Callback &&cb,
-                                  const std::vector<FieldError> &fieldErrors);
+    static void respondValidation(
+      const drogon::HttpRequestPtr &req,
+      Callback &&cb,
+      const std::vector<FieldError> &fieldErrors
+    );
 
     /**
      * @brief Convenience entry point for caught exceptions.
@@ -80,8 +87,12 @@ class ErrorResponder
      * unmapped exceptions fall back to INTERNAL_ERROR (Requirement 5.5). The
      * exception text is recorded as Internal_Detail in the log.
      */
-    static void respondException(const drogon::HttpRequestPtr &req, Callback &&cb,
-                                 const std::exception &e, ErrorCategory category);
+    static void respondException(
+      const drogon::HttpRequestPtr &req,
+      Callback &&cb,
+      const std::exception &e,
+      ErrorCategory category
+    );
 
     /**
      * @brief Build the HttpResponsePtr for an already-constructed Error.
@@ -91,8 +102,10 @@ class ErrorResponder
      * include `details` from ErrorContext. If @p error has no Request_ID it is
      * resolved from @p req so the response always carries one.
      */
-    static drogon::HttpResponsePtr buildResponse(const drogon::HttpRequestPtr &req,
-                                                 const Error &error);
+    static drogon::HttpResponsePtr buildResponse(
+      const drogon::HttpRequestPtr &req,
+      const Error &error
+    );
 };
 
 }  // namespace common::error

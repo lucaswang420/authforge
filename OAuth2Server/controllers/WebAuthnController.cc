@@ -22,10 +22,7 @@ void respondError(
 )
 {
     common::error::ErrorResponder::respond(
-      req,
-      [cb](const HttpResponsePtr &r) { (*cb)(r); },
-      std::move(code),
-      std::move(detailForLog)
+      req, [cb](const HttpResponsePtr &r) { (*cb)(r); }, std::move(code), std::move(detailForLog)
     );
 }
 
@@ -168,8 +165,12 @@ void WebAuthnController::registerFinish(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                     "registerFinish: JSON body with credential response required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_INVALID_INPUT",
+          "registerFinish: JSON body with credential response required"
+        );
         return;
     }
 
@@ -186,8 +187,12 @@ void WebAuthnController::registerFinish(
 
     if (credentialId.empty() || publicKey.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "registerFinish: credential_id and public_key are required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "registerFinish: credential_id and public_key are required"
+        );
         return;
     }
 
@@ -208,9 +213,12 @@ void WebAuthnController::registerFinish(
           (*sharedCb)(resp);
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("registerFinish: failed to store credential: ") +
-                         e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("registerFinish: failed to store credential: ") + e.base().what()
+          );
       },
       userId,
       credentialId,
@@ -259,16 +267,21 @@ void WebAuthnController::authenticateFinish(
     auto jsonBody = req->getJsonObject();
     if (!jsonBody)
     {
-        respondError(req, sharedCb, "VALIDATION_INVALID_INPUT",
-                     "authenticateFinish: JSON body is required");
+        respondError(
+          req, sharedCb, "VALIDATION_INVALID_INPUT", "authenticateFinish: JSON body is required"
+        );
         return;
     }
 
     std::string credentialId = (*jsonBody).get("credential_id", "").asString();
     if (credentialId.empty())
     {
-        respondError(req, sharedCb, "VALIDATION_MISSING_REQUIRED_FIELD",
-                     "authenticateFinish: credential_id is required");
+        respondError(
+          req,
+          sharedCb,
+          "VALIDATION_MISSING_REQUIRED_FIELD",
+          "authenticateFinish: credential_id is required"
+        );
         return;
     }
 
@@ -283,8 +296,12 @@ void WebAuthnController::authenticateFinish(
       [sharedCb, credentialId, db, req](const Result &r) {
           if (r.empty())
           {
-              respondError(req, sharedCb, "AUTH_INVALID_CREDENTIALS",
-                           "authenticateFinish: credential not found");
+              respondError(
+                req,
+                sharedCb,
+                "AUTH_INVALID_CREDENTIALS",
+                "authenticateFinish: credential not found"
+              );
               return;
           }
 
@@ -315,8 +332,12 @@ void WebAuthnController::authenticateFinish(
           (*sharedCb)(resp);
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("authenticateFinish: lookup failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("authenticateFinish: lookup failed: ") + e.base().what()
+          );
       },
       credentialId
     );
@@ -353,8 +374,12 @@ void WebAuthnController::listCredentials(
           (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
       },
       [sharedCb, req](const DrogonDbException &e) {
-          respondError(req, sharedCb, "DB_QUERY_ERROR",
-                       std::string("listCredentials: query failed: ") + e.base().what());
+          respondError(
+            req,
+            sharedCb,
+            "DB_QUERY_ERROR",
+            std::string("listCredentials: query failed: ") + e.base().what()
+          );
       },
       userId
     );
