@@ -2,7 +2,7 @@
 services:
   oauth2-admin:
     build:
-      context: ./OAuth2Admin
+      context: ../../OAuth2Admin
       dockerfile: Dockerfile
     container_name: oauth2-admin
     restart: always
@@ -15,7 +15,7 @@ services:
 
   oauth2-frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: deploy/docker/Dockerfile
       target: frontend-runtime
     container_name: oauth2-frontend
@@ -29,7 +29,7 @@ services:
 
   oauth2-backend:
     build:
-      context: .
+      context: ../..
       dockerfile: deploy/docker/Dockerfile
       target: backend-runtime
     container_name: oauth2-backend
@@ -51,9 +51,9 @@ services:
       - OAUTH2_AUTO_MIGRATE=true
       - OAUTH2_FRONTEND_URL=http://localhost:8080
     volumes:
-      - ./OAuth2Server/config.json:/app/config.json:ro
-      - ./OAuth2Server/sql/migrations:/app/sql/migrations:ro
-      - ./OAuth2Server/sql/seed:/app/sql/seed:ro
+      - ../../OAuth2Server/config.json:/app/config.json:ro
+      - ../../OAuth2Server/sql/migrations:/app/sql/migrations:ro
+      - ../../OAuth2Server/sql/seed:/app/sql/seed:ro
     networks:
       - oauth2-net
 
@@ -69,7 +69,7 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./OAuth2Server/sql:/docker-entrypoint-initdb.d
+      - ../../OAuth2Server/sql:/docker-entrypoint-initdb.d
     networks:
       - oauth2-net
     healthcheck:
@@ -97,7 +97,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - promdata:/prometheus
     networks:
       - oauth2-net
