@@ -115,4 +115,35 @@ test.describe('Roles Page - Custom Role', () => {
     await editorRow.locator('button:has-text("Delete")').click()
     await expect(page.locator('text=Role "editor" deleted')).toBeVisible()
   })
+
+  test('duplicate role name shows error', async ({ page }) => {
+    await page.route('**/api/admin/roles', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'ROLE_EXISTS', message: 'Role already exists' } }),
+        })
+      } else {
+        await route.continue()
+      }
+    })
+    await page.click('button:has-text("+ Create Role")')
+    await page.fill('input[placeholder="e.g. editor"]', 'admin')
+    await page.locator('.fixed button:has-text("Create")').click()
+    await page.waitForTimeout(300)
+    const errorEl = page.locator('.bg-red-50, .text-red-700')
+    await expect(errorEl.first()).toBeVisible()
+  })
+
+  test('delete role cancel preserves role', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.dismiss())
+    const deleteButton = page.locator('tbody tr').first().locator('button:has-text("Delete")')
+    if (await deleteButton.isVisible()) {
+      await deleteButton.click()
+      await page.waitForTimeout(300)
+      // Role should still be in the list
+      await expect(page.locator('tbody tr').first()).toBeVisible()
+    }
+  })
 })

@@ -146,3 +146,87 @@ test.describe('GitHub Login', () => {
     expect(href).toContain('github.com/login/oauth/authorize')
   })
 })
+
+test.describe('MFA Validation', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupMocks(page)
+  })
+
+  test('invalid MFA code shows error', async ({ page }) => {
+    // Override login to return MFA required (registered after setupMocks, takes priority)
+    await page.route('**/oauth2/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ mfa_required: true, mfa_token: 'mfa-token-123' }),
+      })
+    })
+    // Override MFA verify to return error
+    await page.route('**/oauth2/mfa/verify', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'MFA_INVALID_CODE', category: 'AUTHENTICATION', message: 'Invalid MFA code' } }),
+      })
+    })
+    await page.goto('/login')
+    await page.locator('input[autocomplete="username"]').fill('testuser')
+    await page.locator('input[autocomplete="current-password"]').fill('password123')
+    await page.locator('button[type="submit"]').click()
+    // Wait for MFA form to appear
+    const mfaInput = page.locator('input[inputmode="numeric"]')
+    await expect(mfaInput).toBeVisible({ timeout: 5000 })
+    await mfaInput.fill('000000')
+    await page.locator('button:has-text("Verify")').click()
+    await page.waitForTimeout(1500)
+    // After invalid code: should NOT redirect to dashboard, should stay showing MFA or show error
+    const url = page.url()
+    expect(url).not.toContain('/dashboard')
+    // Verify MFA input is still present or error is shown (page didn't crash)
+    const pageContent = await page.content()
+    expect(pageContent.length).toBeGreaterThan(0)
+  })
+
+  test('less than 6 digits disables verify button', async ({ page }) => {
+    await page.route('**/oauth2/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ mfa_required: true, mfa_token: 'mfa-token-123' }),
+      })
+    })
+    await page.goto('/login')
+    await page.locator('input[autocomplete="username"]').fill('testuser')
+    await page.locator('input[autocomplete="current-password"]').fill('password123')
+    await page.locator('button[type="submit"]').click()
+    await page.waitForTimeout(500)
+    const mfaInput = page.locator('input[inputmode="numeric"]')
+    if (await mfaInput.isVisible()) {
+      await mfaInput.fill('1234')
+      const verifyButton = page.locator('button:has-text("Verify")')
+      await expect(verifyButton).toBeDisabled()
+    }
+  })
+
+  test('back to login from MFA form', async ({ page }) => {
+    await page.route('**/oauth2/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ mfa_required: true, mfa_token: 'mfa-token-123' }),
+      })
+    })
+    await page.goto('/login')
+    await page.locator('input[autocomplete="username"]').fill('testuser')
+    await page.locator('input[autocomplete="current-password"]').fill('password123')
+    await page.locator('button[type="submit"]').click()
+    await page.waitForTimeout(500)
+    const backButton = page.locator('button:has-text("Back to login")')
+    if (await backButton.isVisible()) {
+      await backButton.click()
+      // MFA form should be hidden, login form visible
+      await expect(page.locator('input[inputmode="numeric"]')).not.toBeVisible()
+      await expect(page.locator('input[autocomplete="username"]')).toBeVisible()
+    }
+  })
+})

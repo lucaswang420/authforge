@@ -80,4 +80,37 @@ test.describe('Navigation & Route Guards', () => {
     await page.goto('/profile')
     await expect(page).toHaveURL(/\/login/, { timeout: 10000 })
   })
+
+  test('user dropdown opens and closes', async ({ page }) => {
+    await loginUser(page)
+    const avatarButton = page.locator('header button:has(div.rounded-full)')
+    await avatarButton.click()
+    // Dropdown should be visible
+    await expect(page.locator('text=Sign Out')).toBeVisible()
+    // Click avatar again to close
+    await avatarButton.click()
+    await page.waitForTimeout(300)
+    // Dropdown items should be hidden
+    await expect(page.locator('button:has-text("Sign Out")')).not.toBeVisible()
+  })
+
+  test('click outside dropdown closes it', async ({ page }) => {
+    await loginUser(page)
+    const avatarButton = page.locator('header button:has(div.rounded-full)')
+    await avatarButton.click()
+    await expect(page.locator('text=Sign Out')).toBeVisible()
+    // Click the overlay/background
+    await page.locator('.fixed.inset-0').click()
+    await page.waitForTimeout(300)
+    await expect(page.locator('button:has-text("Sign Out")')).not.toBeVisible()
+  })
+
+  test('active nav link is highlighted', async ({ page }) => {
+    await loginUser(page)
+    await page.click('nav a:has-text("Security")')
+    await page.waitForURL('/security')
+    const securityLink = page.locator('nav a:has-text("Security")')
+    const classes = await securityLink.getAttribute('class')
+    expect(classes).toContain('indigo')
+  })
 })

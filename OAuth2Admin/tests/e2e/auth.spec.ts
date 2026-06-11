@@ -87,4 +87,70 @@ test.describe('Authentication', () => {
     // Login should not navigate away (MFA flow not fully implemented in UI yet)
     await expect(page).toHaveURL(/\/admin\/login/)
   })
+
+  test('empty username prevents form submission', async ({ page }) => {
+    await page.goto('/admin/login')
+    // Clear any default value and try to submit
+    const usernameInput = page.locator('input[type="text"]')
+    await expect(usernameInput).toHaveAttribute('required', '')
+    // Browser HTML5 validation will prevent submission
+    const isValid = await usernameInput.evaluate((el: HTMLInputElement) => el.validity.valueMissing)
+    expect(isValid).toBe(true)
+  })
+
+  test('empty password prevents form submission', async ({ page }) => {
+    await page.goto('/admin/login')
+    const passwordInput = page.locator('input[type="password"]')
+    await expect(passwordInput).toHaveAttribute('required', '')
+    const isValid = await passwordInput.evaluate((el: HTMLInputElement) => el.validity.valueMissing)
+    expect(isValid).toBe(true)
+  })
+
+  test('loading state during login', async ({ page }) => {
+    // Slow the login response
+    await page.route('**/oauth2/login', async (route) => {
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'mock-auth-code' }),
+      })
+    })
+    await page.goto('/admin/login')
+    await page.fill('input[type="text"]', 'admin')
+    await page.fill('input[type="password"]', 'admin')
+    await page.click('button[type="submit"]')
+    // Button should show loading text and be disabled
+    const button = page.locator('button[type="submit"]')
+    await expect(button).toContainText('Signing in')
+    await expect(button).toBeDisabled()
+    // Wait for completion
+    await page.waitForURL('**/admin/')
+  })
+
+  test('non-existent user shows error', async ({ page }) => {
+    await page.route('**/oauth2/login', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'AUTH_INVALID_CREDENTIALS', category: 'AUTHENTICATION', message: 'Invalid credentials' } }),
+      })
+    })
+    await page.goto('/admin/login')
+    await page.fill('input[type="text"]', 'nonexistent')
+    await page.fill('input[type="password"]', 'password')
+    await page.click('button[type="submit"]')
+    await expect(page.locator('.bg-red-50')).toBeVisible()
+    await expect(page).toHaveURL(/\/admin\/login/)
+  })
+
+  test('browser back after login stays on dashboard', async ({ page }) => {
+    await loginAsAdmin(page)
+    await expect(page).toHaveURL(/\/admin\//)
+    await page.goBack()
+    // Should still be on dashboard (auth guard redirects)
+    await page.waitForTimeout(500)
+    const url = page.url()
+    expect(url).toMatch(/\/admin/)
+  })
 })

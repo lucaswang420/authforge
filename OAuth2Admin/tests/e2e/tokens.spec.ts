@@ -109,4 +109,72 @@ test.describe('Token Management', () => {
     // Now the button should appear
     await expect(page.locator('button:has-text("Revoke All for User")')).toBeVisible()
   })
+
+  test('filter by client_id sends correct params', async ({ page }) => {
+    let requestParams: Record<string, string> = {}
+    await page.route('**/api/admin/tokens**', async (route) => {
+      if (route.request().method() === 'GET') {
+        const url = new URL(route.request().url())
+        requestParams = Object.fromEntries(url.searchParams.entries())
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ tokens: [], total: 0 }),
+        })
+      } else {
+        await route.continue()
+      }
+    })
+    await page.fill('input[placeholder="Filter by client_id"]', 'vue-client')
+    await page.click('button:has-text("Apply")')
+    await page.waitForTimeout(300)
+    expect(requestParams.client_id).toBe('vue-client')
+  })
+
+  test('filter by user_id sends correct params', async ({ page }) => {
+    let requestParams: Record<string, string> = {}
+    await page.route('**/api/admin/tokens**', async (route) => {
+      if (route.request().method() === 'GET') {
+        const url = new URL(route.request().url())
+        requestParams = Object.fromEntries(url.searchParams.entries())
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ tokens: [], total: 0 }),
+        })
+      } else {
+        await route.continue()
+      }
+    })
+    await page.fill('input[placeholder="Filter by user_id"]', 'admin')
+    await page.click('button:has-text("Apply")')
+    await page.waitForTimeout(300)
+    expect(requestParams.user_id).toBe('admin')
+  })
+
+  test('clear filters resets and fetches all', async ({ page }) => {
+    let requestParams: Record<string, string> = {}
+    await page.route('**/api/admin/tokens**', async (route) => {
+      if (route.request().method() === 'GET') {
+        const url = new URL(route.request().url())
+        requestParams = Object.fromEntries(url.searchParams.entries())
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ tokens: [], total: 0 }),
+        })
+      } else {
+        await route.continue()
+      }
+    })
+    // Set filters first
+    await page.fill('input[placeholder="Filter by client_id"]', 'test')
+    await page.click('button:has-text("Apply")')
+    await page.waitForTimeout(200)
+    // Clear
+    await page.click('button:has-text("Clear")')
+    await page.waitForTimeout(300)
+    // After clear, filters should not be in request
+    expect(requestParams.client_id).toBeUndefined()
+  })
 })

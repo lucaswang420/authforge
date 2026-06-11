@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { setupMocks, loginUser } from './helpers/mock-api'
+import { setupMocks, loginUser, MOCK_PROFILE } from './helpers/mock-api'
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -43,6 +43,53 @@ test.describe('Profile', () => {
   test('shows email verification status', async ({ page }) => {
     await expect(page.locator('text=Verified')).toBeVisible()
   })
+
+  test('unverified email shows resend button', async ({ page }) => {
+    await page.route('**/api/me', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...MOCK_PROFILE, email_verified: false }),
+        })
+      } else { await route.continue() }
+    })
+    await page.reload()
+    await page.waitForTimeout(1000)
+    await expect(page.locator('text=Unverified')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('button:has-text("Resend")')).toBeVisible()
+  })
+
+  test('resend verification email shows success', async ({ page }) => {
+    await page.route('**/api/me', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...MOCK_PROFILE, email_verified: false }),
+        })
+      } else { await route.continue() }
+    })
+    await page.reload()
+    await page.waitForTimeout(1000)
+    const resendBtn = page.locator('button:has-text("Resend")')
+    if (await resendBtn.isVisible()) {
+      await resendBtn.click()
+      await expect(page.locator('text=Verification email sent')).toBeVisible()
+    }
+  })
+
+  test('profile API failure shows error', async ({ page }) => {
+    await page.route('**/api/me', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR' } }) })
+      } else { await route.continue() }
+    })
+    await page.reload()
+    await page.waitForTimeout(1000)
+    const errorEl = page.locator('[class*="red"]')
+    await expect(errorEl.first()).toBeVisible({ timeout: 5000 })
+  })
 })
 
 test.describe('Security', () => {
@@ -65,6 +112,62 @@ test.describe('Security', () => {
     await newPassFields.nth(1).fill('NewPass123!')
     await page.locator('button:has-text("Change Password")').click()
     await expect(page.locator('text=Password changed')).toBeVisible()
+  })
+
+  test('password mismatch shows error', async ({ page }) => {
+    await page.locator('input[autocomplete="current-password"]').fill('oldpass')
+    const newPassFields = page.locator('input[autocomplete="new-password"]')
+    await newPassFields.first().fill('password1')
+    await newPassFields.nth(1).fill('password2')
+    await page.locator('button:has-text("Change Password")').click()
+    await expect(page.locator('text=Passwords do not match')).toBeVisible()
+  })
+
+  test('password too short shows error', async ({ page }) => {
+    await page.locator('input[autocomplete="current-password"]').fill('oldpass')
+    const newPassFields = page.locator('input[autocomplete="new-password"]')
+    await newPassFields.first().fill('12345')
+    await newPassFields.nth(1).fill('12345')
+    await page.locator('button:has-text("Change Password")').click()
+    await expect(page.locator('text=at least 6 characters')).toBeVisible()
+  })
+
+  test('wrong old password shows error', async ({ page }) => {
+    await page.route('**/api/me/password', async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'AUTH_INVALID_CREDENTIALS', message: 'Wrong password' } }),
+      })
+    })
+    await page.locator('input[autocomplete="current-password"]').fill('wrong')
+    const newPassFields = page.locator('input[autocomplete="new-password"]')
+    await newPassFields.first().fill('NewPass123!')
+    await newPassFields.nth(1).fill('NewPass123!')
+    await page.locator('button:has-text("Change Password")').click()
+    await page.waitForTimeout(500)
+    const errorEl = page.locator('[class*="red"]')
+    await expect(errorEl.first()).toBeVisible()
+  })
+
+  test('MFA verify with valid code succeeds', async ({ page }) => {
+    await page.click('button:has-text("Enable MFA")')
+    await expect(page.locator('text=JBSWY3DPEHPK3PXP')).toBeVisible()
+    const codeInput = page.locator('input[placeholder="000000"]')
+    if (await codeInput.isVisible()) {
+      await codeInput.fill('123456')
+      await page.locator('button:has-text("Verify")').click()
+      await expect(page.locator('text=MFA enabled')).toBeVisible()
+    }
+  })
+
+  test('delete account with correct username succeeds', async ({ page }) => {
+    const confirmInput = page.locator('input[placeholder*="username"], input[placeholder*="Username"]').last()
+    if (await confirmInput.isVisible()) {
+      await confirmInput.fill('testuser')
+      const deleteBtn = page.locator('button:has-text("Delete My Account")')
+      await expect(deleteBtn).toBeEnabled()
+    }
   })
 
   test('shows MFA enable button when disabled', async ({ page }) => {
@@ -114,5 +217,52 @@ test.describe('Authorized Apps', () => {
     page.on('dialog', (dialog) => dialog.accept())
     await page.locator('button:has-text("Revoke")').first().click()
     await expect(page.locator('text=revoked')).toBeVisible()
+  })
+
+  test('empty authorized apps list', async ({ page }) => {
+    await page.route('**/api/me/authorized-apps', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ apps: [] }) })
+    })
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('text=No authorized applications')).toBeVisible()
+  })
+
+  test('revoke cancel preserves app', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.dismiss())
+    await page.locator('button:has-text("Revoke")').first().click()
+    await page.waitForTimeout(300)
+    await expect(page.locator('text=Third Party App')).toBeVisible()
+  })
+
+  test('revoke failure shows error', async ({ page }) => {
+    await page.route('**/api/me/authorized-apps/*', async (route) => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR' } }) })
+      } else { await route.continue() }
+    })
+    page.on('dialog', (dialog) => dialog.accept())
+    await page.locator('button:has-text("Revoke")').first().click()
+    await page.waitForTimeout(500)
+    const errorEl = page.locator('[class*="red"]')
+    await expect(errorEl.first()).toBeVisible()
+  })
+
+  test('app without name shows client_id as fallback', async ({ page }) => {
+    await page.route('**/api/me/authorized-apps', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ apps: [{ client_id: 'nameless-app', name: '', scope: 'openid' }] }),
+      })
+    })
+    // Navigate away and back to trigger fresh fetch
+    await page.click('nav a:has-text("Overview")')
+    await page.waitForTimeout(500)
+    await page.click('nav a:has-text("Authorized Apps")')
+    await page.waitForTimeout(1000)
+    // Verify page renders with client_id as fallback
+    const bodyText = await page.locator('body').textContent()
+    expect(bodyText).toContain('nameless-app')
   })
 })

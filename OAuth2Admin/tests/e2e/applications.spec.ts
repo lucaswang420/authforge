@@ -116,4 +116,47 @@ test.describe('Applications Management', () => {
     await expect(page.locator('text=No applications registered yet')).toBeVisible()
     await expect(page.locator('button:has-text("Create your first application")')).toBeVisible()
   })
+
+  test('no grant type selected shows error', async ({ page }) => {
+    await page.click('button:has-text("Create Application")')
+    await page.fill('input[placeholder="My App"]', 'No Grant App')
+    // Uncheck all grant types inside the modal
+    const modal = page.locator('.fixed')
+    const checkboxes = modal.locator('input[type="checkbox"]')
+    const count = await checkboxes.count()
+    for (let i = 0; i < count; i++) {
+      if (await checkboxes.nth(i).isChecked()) {
+        await checkboxes.nth(i).uncheck()
+      }
+    }
+    await modal.locator('button[type="submit"]').click()
+    await page.waitForTimeout(500)
+    // The error message should appear (either inside modal or as page-level banner)
+    const errorEl = page.locator('.bg-red-50, .text-red-700, [class*="red"]')
+    await expect(errorEl.first()).toBeVisible({ timeout: 3000 })
+  })
+
+  test('multiple grant types selection', async ({ page }) => {
+    await page.click('button:has-text("Create Application")')
+    await page.fill('input[placeholder="My App"]', 'Multi Grant App')
+    // Check multiple grant types
+    const checkboxes = page.locator('.fixed input[type="checkbox"]')
+    const count = await checkboxes.count()
+    for (let i = 0; i < Math.min(count, 3); i++) {
+      await checkboxes.nth(i).check()
+    }
+    await page.locator('.fixed button[type="submit"]').click()
+    await page.waitForTimeout(500)
+    // Should show secret modal (success)
+    await expect(page.locator('h3:has-text("Client Secret")')).toBeVisible()
+  })
+
+  test('delete client cancel preserves client', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.dismiss())
+    const deleteButton = page.locator('button:has-text("Delete")').first()
+    await deleteButton.click()
+    await page.waitForTimeout(300)
+    // Client should still be visible (dialog was dismissed)
+    await expect(page.locator('table tbody tr').first()).toBeVisible()
+  })
 })
