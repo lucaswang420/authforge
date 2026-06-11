@@ -138,3 +138,62 @@ export async function loginViaForm(page: Page) {
   await page.locator('button[type="submit"]').click()
   await page.waitForTimeout(2000)
 }
+
+/**
+ * Override a previously registered route with a custom handler.
+ */
+export async function overrideRoute(page: Page, urlPattern: string, handler: (route: any) => Promise<void>) {
+  await page.route(urlPattern, handler)
+}
+
+/**
+ * Mock a specific API returning an error status with Error Envelope body.
+ */
+export async function mockApiError(page: Page, urlPattern: string, status: number, body: object) {
+  await page.route(urlPattern, async (route) => {
+    await route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    })
+  })
+}
+
+/**
+ * Mock a network failure for a given URL pattern.
+ */
+export async function mockNetworkError(page: Page, urlPattern: string) {
+  await page.route(urlPattern, async (route) => {
+    await route.abort('failed')
+  })
+}
+
+/**
+ * Mock registration API to return an error (e.g., duplicate user).
+ */
+export async function mockRegistrationError(page: Page, status: number, errorCode: string) {
+  await page.route('**/api/register', async (route) => {
+    await route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: { code: errorCode, category: 'VALIDATION', message: 'User already exists' },
+      }),
+    })
+  })
+}
+
+/**
+ * Mock password change API to return an error.
+ */
+export async function mockPasswordChangeError(page: Page, errorCode: string) {
+  await page.route('**/api/me/password', async (route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: { code: errorCode, category: 'AUTHENTICATION', message: 'Wrong password' },
+      }),
+    })
+  })
+}

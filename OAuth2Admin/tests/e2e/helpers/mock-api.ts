@@ -464,3 +464,32 @@ export async function loginAsAdmin(page: Page) {
   // Wait for navigation to dashboard
   await page.waitForURL('**/admin/')
 }
+
+/**
+ * Override a previously registered route with a custom handler.
+ */
+export async function overrideRoute(page: Page, urlPattern: string, handler: (route: any) => Promise<void>) {
+  await page.route(urlPattern, handler)
+}
+
+/**
+ * Mock a specific API returning an error status with Error Envelope body.
+ */
+export async function mockApiError(page: Page, urlPattern: string, status: number, body: object) {
+  await page.route(urlPattern, async (route) => {
+    await route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    })
+  })
+}
+
+/**
+ * Mock a network failure for a given URL pattern.
+ */
+export async function mockNetworkError(page: Page, urlPattern: string) {
+  await page.route(urlPattern, async (route) => {
+    await route.abort('failed')
+  })
+}
