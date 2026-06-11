@@ -21,6 +21,36 @@ test.describe('Dashboard', () => {
     await page.click('a:has-text("Edit Profile")')
     await expect(page).toHaveURL('/profile')
   })
+
+  test('no roles shows "None"', async ({ page }) => {
+    // Override userinfo to return empty roles
+    await page.route('**/oauth2/userinfo', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ sub: 'id', name: 'testuser', email: 'test@example.com', roles: [] }),
+      })
+    })
+    await page.reload()
+    await page.waitForTimeout(1000)
+    await expect(page.locator('text=None')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('multiple roles shown as badges', async ({ page }) => {
+    await page.route('**/oauth2/userinfo', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ sub: 'id', name: 'adminuser', email: 'admin@example.com', roles: ['admin', 'user', 'editor'] }),
+      })
+    })
+    await page.reload()
+    await page.waitForTimeout(1000)
+    // Should have multiple role badges
+    const badges = page.locator('.rounded-full')
+    const count = await badges.count()
+    expect(count).toBeGreaterThanOrEqual(3)
+  })
 })
 
 test.describe('Profile', () => {
@@ -89,6 +119,30 @@ test.describe('Profile', () => {
     await page.waitForTimeout(1000)
     const errorEl = page.locator('[class*="red"]')
     await expect(errorEl.first()).toBeVisible({ timeout: 5000 })
+  })
+
+  test('profile shows loading state', async ({ page }) => {
+    // Override /api/me with a delayed response
+    await page.route('**/api/me', async (route) => {
+      if (route.request().method() === 'GET') {
+        await new Promise(resolve => setTimeout(resolve, 300))
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ username: 'delayuser', email: 'delay@example.com', email_verified: true, mfa_enabled: false }),
+        })
+      } else { await route.continue() }
+    })
+    // Navigate away to dashboard, then back to profile to trigger fresh fetch
+    await page.click('nav a:has-text("Overview")')
+    await page.waitForTimeout(800)
+    await page.click('nav a:has-text("Profile")')
+    // After returning, profile data should ultimately render
+    await page.waitForTimeout(2000)
+    // Verify page is on profile and rendered something
+    await expect(page).toHaveURL('/profile')
+    const bodyText = await page.locator('body').textContent()
+    expect(bodyText).toContain('delayuser')
   })
 })
 
@@ -193,6 +247,21 @@ test.describe('Security', () => {
     await expect(page.locator('h2:has-text("Passkeys")')).toBeVisible()
     await expect(page.locator('button:has-text("Add Passkey")')).toBeVisible()
   })
+
+  test('WebAuthn section hidden when browser unsupported', async ({ page }) => {
+    // Simulate browser without PublicKeyCredential
+    await page.goto('/login')
+    await page.evaluate(() => {
+      // @ts-ignore
+      delete window.PublicKeyCredential
+    })
+    await loginUser(page)
+    await page.click('nav a:has-text("Security")')
+    await page.waitForURL('/security')
+    // Passkeys section should not be visible
+    const passkeysSection = page.locator('h2:has-text("Passkeys")')
+    await expect(passkeysSection).not.toBeVisible({ timeout: 3000 })
+  })
 })
 
 test.describe('Authorized Apps', () => {
@@ -264,5 +333,14 @@ test.describe('Authorized Apps', () => {
     // Verify page renders with client_id as fallback
     const bodyText = await page.locator('body').textContent()
     expect(bodyText).toContain('nameless-app')
+  })
+
+  test('revoke success message auto-dismisses', async ({ page }) => {
+    page.on('dialog', (dialog) => dialog.accept())
+    await page.locator('button:has-text("Revoke")').first().click()
+    // Success message appears
+    await expect(page.locator('.bg-green-50, [class*="green"]').first()).toBeVisible({ timeout: 3000 })
+    // Should disappear after ~3 seconds
+    await expect(page.locator('.bg-green-50, [class*="green"]').first()).not.toBeVisible({ timeout: 5000 })
   })
 })

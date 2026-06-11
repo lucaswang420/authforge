@@ -102,4 +102,10 @@ test.describe('Application Detail Page', () => {
     await page.click('text=← Back to Applications')
     await expect(page).toHaveURL(/\/admin\/applications$/)
   })
+
+  test('save with no changes shows message', async ({ page }) => {
+    await page.locator('button:has-text("Save Changes")').click()
+    await page.waitForTimeout(500)
+    await expect(page.locator('text=No changes')).toBeVisible({ timeout: 3000 })
+  })
 })

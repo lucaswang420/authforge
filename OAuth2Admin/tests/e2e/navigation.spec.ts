@@ -75,4 +75,14 @@ test.describe('Navigation & Layout', () => {
     // Active links have bg-gray-800 class
     await expect(activeLink).toHaveClass(/bg-gray-800/)
   })
+
+  test('responsive layout at mobile width', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 })
+    await page.waitForTimeout(500)
+    // Sidebar should still be present (check for logo or nav content)
+    const sidebar = page.locator('aside')
+    await expect(sidebar).toBeVisible()
+    // Main content should be visible
+    await expect(page.locator('main')).toBeVisible()
+  })
 })

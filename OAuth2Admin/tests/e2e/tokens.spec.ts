@@ -177,4 +177,15 @@ test.describe('Token Management', () => {
     // After clear, filters should not be in request
     expect(requestParams.client_id).toBeUndefined()
   })
+
+  test('timestamp formatting uses locale date string', async ({ page }) => {
+    // Verify created_at and expires_at are displayed in locale format, not raw ISO
+    const timeCell = page.locator('tbody td').nth(4) // created_at column
+    const text = await timeCell.textContent()
+    // Should NOT show raw ISO format like "2026-05-21T10:00:00Z"
+    if (text && text !== '—') {
+      expect(text).not.toContain('T')  // No ISO T separator
+      expect(text).not.toContain('Z')  // No UTC Z
+    }
+  })
 })

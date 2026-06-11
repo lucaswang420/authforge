@@ -71,4 +71,23 @@ test.describe('Callback Page', () => {
     await page.goto('/callback')
     await expect(page.locator('text=No authorization code')).toBeVisible()
   })
+
+  test('loading spinner shown while exchanging code', async ({ page }) => {
+    // Delay token exchange to observe spinner
+    await page.route('**/oauth2/token', async (route) => {
+      await new Promise(resolve => setTimeout(resolve, 800))
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ access_token: 'slow-token', refresh_token: 'slow-refresh', token_type: 'Bearer', expires_in: 3600 }),
+      })
+    })
+    await page.goto('/callback?code=valid-code&state=test-state')
+    // Spinner should be visible during exchange
+    await expect(page.locator('.animate-spin')).toBeVisible({ timeout: 3000 })
+    // After exchange completes, redirect happens
+    await page.waitForTimeout(1500)
+    const url = page.url()
+    expect(url).not.toContain('/callback')
+  })
 })

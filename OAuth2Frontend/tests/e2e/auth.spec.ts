@@ -92,6 +92,20 @@ test.describe('Register', () => {
     await page.locator('button[type="submit"]').click()
     await expect(page.locator('text=successfully')).toBeVisible()
   })
+
+  test('registration success auto-redirects after ~2 seconds', async ({ page }) => {
+    await page.goto('/register')
+    await page.locator('input[autocomplete="username"]').fill('timeruser')
+    await page.locator('input[autocomplete="email"]').fill('timer@example.com')
+    const passwordFields = page.locator('input[type="password"]')
+    await passwordFields.first().fill('Password123')
+    await passwordFields.nth(1).fill('Password123')
+    await page.locator('button[type="submit"]').click()
+    // Success message appears
+    await expect(page.locator('text=successfully')).toBeVisible()
+    // After ~2 seconds, redirected to login page
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 })
+  })
 })
 
 test.describe('Forgot Password', () => {
