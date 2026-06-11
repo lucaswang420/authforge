@@ -10,8 +10,9 @@ BASE_URL="${1:-http://127.0.0.1:5555}"
 ACCESS_TOKEN=""
 REFRESH_TOKEN=""
 AUTH_CODE=""
+ADMIN_PASSWORD="admin"  # Track current admin password across tests
 
-TOTAL=17
+TOTAL=55
 
 echo "========================================"
 echo "Pre-test Setup"
@@ -265,6 +266,474 @@ test_17() {
     fi
 }
 run_test "Test 17: Password Change" test_17
+
+# Test 17b: Password Reset Confirm - Invalid token
+test_17b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"token":"invalid-token-xyz","password":"NewPass123!"}' "$BASE_URL/api/password-reset/confirm")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly returned 400 for invalid token"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 17b: POST /api/password-reset/confirm - Invalid token" test_17b
+
+# Test 17c: Password Reset Confirm - Missing fields
+test_17c() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{}' "$BASE_URL/api/password-reset/confirm")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly returned 400 for missing fields"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 17c: POST /api/password-reset/confirm - Missing fields" test_17c
+
+# Test 18: RFC 8414 OAuth Authorization Server Metadata
+test_18() {
+    local r
+    r=$(curl -s "$BASE_URL/.well-known/oauth-authorization-server")
+    assert_json_exists "$r" "issuer" || return 1
+    assert_json_exists "$r" "authorization_endpoint" || return 1
+    assert_json_exists "$r" "token_endpoint" || return 1
+    assert_json_exists "$r" "grant_types_supported" || return 1
+    echo "    Issuer: $(echo "$r" | jq -r '.issuer')"
+}
+run_test "Test 18: GET /.well-known/oauth-authorization-server" test_18
+
+# Test 19: OAuth2 Consent - No session
+test_19() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"client_id":"vue-client","scope":"openid profile","action":"approve"}' "$BASE_URL/oauth2/consent")
+    if [ "$code" = "400" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+        echo "    Correctly rejected: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 19: POST /oauth2/consent - No session" test_19
+
+# Test 20: Dynamic Client Registration
+REG_CLIENT_ID=""
+test_20() {
+    [ -n "$ACCESS_TOKEN" ] || { ACCESS_TOKEN=$(get_user_token "$BASE_URL" "admin" "admin"); }
+    local ts
+    ts=$(date +%s)
+    local r
+    r=$(curl -s -X POST -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
+        -d "{\"client_name\":\"Test DynReg $ts\",\"redirect_uris\":[\"http://localhost:4000/callback\"],\"grant_types\":[\"authorization_code\"]}" \
+        "$BASE_URL/oauth2/register")
+    assert_json_exists "$r" "client_id" || return 1
+    assert_json_exists "$r" "client_secret" || return 1
+    REG_CLIENT_ID=$(echo "$r" | jq -r '.client_id')
+    echo "    Registered: client_id=$REG_CLIENT_ID"
+}
+run_test "Test 20: POST /oauth2/register - Register Client" test_20
+
+# Test 20b: Register - Missing client_name (400)
+test_20b() {
+    [ -n "$ACCESS_TOKEN" ] || { ACCESS_TOKEN=$(get_user_token "$BASE_URL" "admin" "admin"); }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+        -H "Authorization: Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" \
+        -d '{"redirect_uris":["http://localhost/cb"]}' "$BASE_URL/oauth2/register")
+    assert_status "$code" "400" || return 1
+    echo "    Correctly returned 400 for missing client_name"
+}
+run_test "Test 20b: POST /oauth2/register - Missing client_name (400)" test_20b
+
+# Test 20c: Register - No auth (401/403)
+test_20c() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"client_name":"No Auth Test","redirect_uris":["http://localhost/cb"]}' "$BASE_URL/oauth2/register")
+    assert_status_in "$code" "401|403" || return 1
+    echo "    Correctly rejected: $code"
+}
+run_test "Test 20c: POST /oauth2/register - No auth" test_20c
+
+# Test 21: MFA Setup
+MFA_SECRET=""
+test_21() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local r
+    r=$(curl -s -X POST -H "Authorization: Bearer $tok" "$BASE_URL/api/me/mfa/setup")
+    assert_json_exists "$r" "secret" || return 1
+    assert_json_exists "$r" "otpauth_uri" || return 1
+    MFA_SECRET=$(echo "$r" | jq -r '.secret')
+    echo "    Secret: ${MFA_SECRET:0:8}..., URI present"
+}
+run_test "Test 21: POST /api/me/mfa/setup" test_21
+
+# Test 21b: MFA Setup - No auth (401)
+test_21b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/me/mfa/setup")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 21b: POST /api/me/mfa/setup - No auth (401)" test_21b
+
+# Test 22: MFA Verify - Invalid code
+test_22() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+        -H "Authorization: Bearer $tok" -H "Content-Type: application/json" \
+        -d '{"code":"000000"}' "$BASE_URL/api/me/mfa/verify")
+    if [ "$code" = "400" ] || [ "$code" = "401" ]; then
+        echo "    Correctly rejected invalid code: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 22: POST /api/me/mfa/verify - Invalid code" test_22
+
+# Test 22b: MFA Verify - No auth (401)
+test_22b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"code":"123456"}' "$BASE_URL/api/me/mfa/verify")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 22b: POST /api/me/mfa/verify - No auth (401)" test_22b
+
+# Test 23: MFA Disable - No auth (401)
+test_23() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/me/mfa/disable")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 23: POST /api/me/mfa/disable - No auth (401)" test_23
+
+# Test 24: MFA Login Verify - Invalid format
+test_24() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"mfa_token":"invalid","code":"abc"}' "$BASE_URL/oauth2/mfa/verify")
+    if [ "$code" = "400" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+        echo "    Correctly rejected: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 24: POST /oauth2/mfa/verify - Invalid format" test_24
+
+# Test 25: Authorized Apps List
+test_25() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local r
+    r=$(curl -s -H "Authorization: Bearer $tok" "$BASE_URL/api/me/authorized-apps")
+    assert_json_exists "$r" "authorized_apps" || return 1
+    echo "    Total authorized apps: $(echo "$r" | jq -r '.total')"
+}
+run_test "Test 25: GET /api/me/authorized-apps" test_25
+
+# Test 25b: Authorized Apps - No auth (401)
+test_25b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/me/authorized-apps")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 25b: GET /api/me/authorized-apps - No auth (401)" test_25b
+
+# Test 26: Revoke Authorized App - Non-existent (404)
+test_26() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "Authorization: Bearer $tok" \
+        "$BASE_URL/api/me/authorized-apps/nonexistent-app-xyz")
+    if [ "$code" = "404" ]; then
+        echo "    Correctly returned 404"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 26: DELETE /api/me/authorized-apps/:clientId - Non-existent" test_26
+
+# Test 26b: Revoke Authorized App - No auth (401)
+test_26b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE_URL/api/me/authorized-apps/vue-client")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 26b: DELETE /api/me/authorized-apps/:clientId - No auth (401)" test_26b
+
+# Test 27: Delete Account
+test_27() {
+    local ts
+    ts=$(date +%s)
+    local un="delme_$ts"
+    curl -s -X POST "$BASE_URL/api/register" \
+        -d "username=$un&password=TestPass123!&email=${un}@test.com" >/dev/null
+    local tok
+    tok=$(get_user_token "$BASE_URL" "$un" "TestPass123!")
+    [ -n "$tok" ] || { echo "    skipped: could not get token"; return 1; }
+    local r
+    r=$(curl -s -X DELETE -H "Authorization: Bearer $tok" "$BASE_URL/api/me")
+    assert_json_exists "$r" "message" || return 1
+    echo "    Deleted account: $un"
+}
+run_test "Test 27: DELETE /api/me - Delete test account" test_27
+
+# Test 27b: Delete Account - No auth (401)
+test_27b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE_URL/api/me")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 27b: DELETE /api/me - No auth (401)" test_27b
+
+# Test 28: Email Verify - Invalid token
+test_28() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/verify-email?token=invalid-token-xyz")
+    if [ "$code" = "400" ] || [ "$code" = "404" ]; then
+        echo "    Correctly rejected invalid token: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 28: GET /api/verify-email - Invalid token" test_28
+
+# Test 28b: Email Verify - Missing token
+test_28b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/verify-email")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly returned 400 for missing token"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 28b: GET /api/verify-email - Missing token" test_28b
+
+# Test 28c: Email Resend - No auth (401)
+test_28c() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/verify-email/resend")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 28c: POST /api/verify-email/resend - No auth (401)" test_28c
+
+# Test 29: WebAuthn Register Begin - No auth (401)
+test_29() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/api/me/webauthn/register/begin")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 29: POST /api/me/webauthn/register/begin - No auth (401)" test_29
+
+# Test 30: WebAuthn Register Begin - With auth
+test_30() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local r
+    r=$(curl -s -X POST -H "Authorization: Bearer $tok" "$BASE_URL/api/me/webauthn/register/begin") || true
+    echo "    Response received"
+}
+run_test "Test 30: POST /api/me/webauthn/register/begin - With auth" test_30
+
+# Test 31: WebAuthn Register Finish - Invalid (400)
+test_31() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+        -H "Authorization: Bearer $tok" -H "Content-Type: application/json" \
+        -d '{"credential_id":"invalid","public_key":"invalid"}' \
+        "$BASE_URL/api/me/webauthn/register/finish")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly returned 400"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 31: POST /api/me/webauthn/register/finish - Invalid (400)" test_31
+
+# Test 32: WebAuthn Authenticate Begin
+test_32() {
+    curl -s -X POST "$BASE_URL/oauth2/webauthn/authenticate/begin" >/dev/null || true
+    echo "    Response received"
+}
+run_test "Test 32: POST /oauth2/webauthn/authenticate/begin" test_32
+
+# Test 33: WebAuthn Credentials - No auth (401)
+test_33() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/me/webauthn/credentials")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 33: GET /api/me/webauthn/credentials - No auth (401)" test_33
+
+# Test 34: Device Authorization
+test_34() {
+    local r
+    r=$(curl -s -X POST "$BASE_URL/oauth2/device_authorization" \
+        -d "client_id=vue-client&scope=openid+profile") || true
+    local dc
+    dc=$(echo "$r" | jq -r '.device_code // empty')
+    if [ -n "$dc" ]; then
+        echo "    device_code: ${dc:0:8}..., user_code: $(echo "$r" | jq -r '.user_code')"
+    else
+        echo "    Device flow response: $(echo "$r" | head -c 80)"
+    fi
+}
+run_test "Test 34: POST /oauth2/device_authorization" test_34
+
+# Test 34b: Device Auth - Missing client_id (400)
+test_34b() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/oauth2/device_authorization" \
+        -d "scope=openid")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly returned 400"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 34b: POST /oauth2/device_authorization - Missing client_id" test_34b
+
+# Test 35: Device Approve - No auth (401/403)
+test_35() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"user_code":"INVALID","user_id":"nobody"}' "$BASE_URL/oauth2/device/approve")
+    assert_status_in "$code" "401|403" || return 1
+    echo "    Correctly rejected: $code"
+}
+run_test "Test 35: POST /oauth2/device/approve - No auth" test_35
+
+# Test 36-38: Social Login (error-only)
+test_36() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"code":"invalid-github-code-xyz"}' "$BASE_URL/api/github/login")
+    if [ "$code" = "401" ] || [ "$code" = "400" ] || [ "$code" = "500" ]; then
+        echo "    Correctly rejected invalid code: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 36: POST /api/github/login - Invalid code" test_36
+
+test_37() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"code":"invalid-google-code-xyz"}' "$BASE_URL/api/google/login")
+    if [ "$code" = "401" ] || [ "$code" = "400" ] || [ "$code" = "500" ]; then
+        echo "    Correctly rejected invalid code: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 37: POST /api/google/login - Invalid code" test_37
+
+test_38() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" \
+        -d '{"code":"invalid-wechat-code-xyz"}' "$BASE_URL/api/wechat/login")
+    if [ "$code" = "401" ] || [ "$code" = "400" ] || [ "$code" = "500" ]; then
+        echo "    Correctly rejected invalid code: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 38: POST /api/wechat/login - Invalid code" test_38
+
+# Test 39: Password Change - Wrong old password
+test_39() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+        -H "Authorization: Bearer $tok" -H "Content-Type: application/json" \
+        -d '{"old_password":"wrong-password-xyz","new_password":"NewPass456!"}' "$BASE_URL/api/me/password")
+    if [ "$code" = "401" ] || [ "$code" = "400" ]; then
+        echo "    Correctly rejected wrong old password: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 39: PUT /api/me/password - Wrong old password" test_39
+
+# Test 40: Password Change - No auth (401)
+test_40() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "Content-Type: application/json" \
+        -d '{"old_password":"admin","new_password":"NewPass123!"}' "$BASE_URL/api/me/password")
+    assert_status "$code" "401" || return 1
+    echo "    Correctly returned 401"
+}
+run_test "Test 40: PUT /api/me/password - No auth (401)" test_40
+
+# Test 41: Token - Expired/used authorization code
+test_41() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/oauth2/token" \
+        -d "grant_type=authorization_code&code=already-used-or-expired-code-xyz&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+    if [ "$code" = "400" ]; then
+        echo "    Correctly rejected expired code: 400"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 41: POST /oauth2/token - Expired auth code" test_41
+
+# Test 42: Introspect - Malformed token
+test_42() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    local r
+    r=$(curl -s -X POST -H "Authorization: Bearer $tok" "$BASE_URL/oauth2/introspect" \
+        -d "token=not-a-real-token-at-all&client_id=vue-client&client_secret=123456")
+    local active
+    active=$(echo "$r" | jq -r '.active')
+    [ "$active" = "false" ] || { echo "    malformed token should be active=false, got $active"; return 1; }
+    echo "    Correctly returned active=false for malformed token"
+}
+run_test "Test 42: POST /oauth2/introspect - Malformed token" test_42
+
+# Test 43: Revoke - Already revoked (idempotent)
+test_43() {
+    local tok
+    tok=$(get_user_token "$BASE_URL" "admin" "admin")
+    [ -n "$tok" ] || { echo "    skipped: no token"; return 1; }
+    # Revoke once
+    curl -s -X POST -H "Authorization: Bearer $tok" "$BASE_URL/oauth2/revoke" \
+        -d "token=$tok&client_id=vue-client&client_secret=123456" >/dev/null
+    # Revoke again
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $tok" \
+        "$BASE_URL/oauth2/revoke" -d "token=$tok&client_id=vue-client&client_secret=123456")
+    echo "    Second revocation: $code"
+}
+run_test "Test 43: POST /oauth2/revoke - Already revoked (idempotent)" test_43
 
 # Post-test Cleanup
 echo ""

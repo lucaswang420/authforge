@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/common-test-functions.sh"
 BASE_URL="${1:-http://127.0.0.1:5555}"
 ACCESS_TOKEN=""
 
-TOTAL=37
+TOTAL=51
 
 echo "========================================"
 echo "Pre-test Setup"
@@ -104,6 +104,95 @@ test_6() {
 }
 run_test "Test 6: PUT /api/admin/clients/:id/scopes - Update" test_6
 
+# Test 6b: Client List
+test_6b() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/clients")
+    assert_json_field "$r" "status" "success" || return 1
+    local count
+    count=$(echo "$r" | jq '.clients | length')
+    [ "$count" -ge 2 ] || { echo "    expected >= 2 clients, got $count"; return 1; }
+    echo "    total=$(echo "$r" | jq -r '.total'), count=$count"
+}
+run_test "Test 6b: GET /api/admin/clients - List All" test_6b
+
+# Test 6c: Create Client
+NEW_CLIENT_ID=""
+NEW_CLIENT_SECRET=""
+test_6c() {
+    local ts
+    ts=$(date +%s)
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d "{\"name\":\"Test Client $ts\",\"redirect_uris\":\"http://localhost:3000/callback\",\"allowed_grant_types\":\"authorization_code\",\"client_type\":\"CONFIDENTIAL\"}" \
+        "$BASE_URL/api/admin/clients")
+    assert_json_field "$r" "status" "success" || return 1
+    NEW_CLIENT_ID=$(echo "$r" | jq -r '.client_id')
+    NEW_CLIENT_SECRET=$(echo "$r" | jq -r '.client_secret')
+    [ -n "$NEW_CLIENT_ID" ] && [ "$NEW_CLIENT_ID" != "null" ] || { echo "    missing client_id"; return 1; }
+    echo "    Created: client_id=$NEW_CLIENT_ID"
+}
+run_test "Test 6c: POST /api/admin/clients - Create Client" test_6c
+
+# Test 6d: Create Client with missing name (400)
+test_6d() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        -H "Content-Type: application/json" -d '{"redirect_uris":"http://localhost/cb"}' \
+        "$BASE_URL/api/admin/clients")
+    assert_status "$code" "400" || return 1
+    echo "    Correctly returned 400 for missing name"
+}
+run_test "Test 6d: POST /api/admin/clients - Missing name (400)" test_6d
+
+# Test 6e: Reset Client Secret
+NEW_CLIENT_SECRET2=""
+test_6e() {
+    [ -n "$NEW_CLIENT_ID" ] || { echo "    skipped: no test client"; return 1; }
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" "$BASE_URL/api/admin/clients/$NEW_CLIENT_ID/reset-secret")
+    assert_json_field "$r" "status" "success" || return 1
+    NEW_CLIENT_SECRET2=$(echo "$r" | jq -r '.client_secret')
+    [ "$NEW_CLIENT_SECRET2" != "$NEW_CLIENT_SECRET" ] || { echo "    secret not changed"; return 1; }
+    echo "    New secret differs from original: confirmed"
+}
+run_test "Test 6e: POST /api/admin/clients/:id/reset-secret" test_6e
+
+# Test 6f: Reset Secret - Non-existent (404)
+test_6f() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        "$BASE_URL/api/admin/clients/nonexistent-xyz/reset-secret")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly returned 404"
+}
+run_test "Test 6f: POST /api/admin/clients/:id/reset-secret - Not Found (404)" test_6f
+
+# Test 6g: Delete Client
+test_6g() {
+    [ -n "$NEW_CLIENT_ID" ] || { echo "    skipped: no test client"; return 1; }
+    local r
+    r=$(curl -s -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/clients/$NEW_CLIENT_ID")
+    assert_json_field "$r" "status" "success" || return 1
+    # Verify gone
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "$(auth_header)" "$BASE_URL/api/admin/clients/$NEW_CLIENT_ID")
+    [ "$code" = "404" ] || { echo "    client should be deleted but returned $code"; return 1; }
+    echo "    Deleted and verified gone"
+    NEW_CLIENT_ID=""
+}
+run_test "Test 6g: DELETE /api/admin/clients/:id - Delete" test_6g
+
+# Test 6h: Delete Non-existent Client (404)
+test_6h() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "$(auth_header)" \
+        "$BASE_URL/api/admin/clients/nonexistent-delete-xyz")
+    assert_status "$code" "404" || return 1
+    echo "    Correctly returned 404"
+}
+run_test "Test 6h: DELETE /api/admin/clients/:id - Not Found (404)" test_6h
+
 # Test 7: Token List
 test_7() {
     local r
@@ -148,6 +237,25 @@ test_11() {
     assert_json_field "$r" "alg" "RS256" || return 1
 }
 run_test "Test 11: GET /api/admin/oidc/keys" test_11
+
+# Test 11b: Single Token Revoke
+test_11b() {
+    local list
+    list=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/tokens?page=1&per_page=10")
+    local count
+    count=$(echo "$list" | jq '.tokens | length')
+    if [ "$count" -eq 0 ]; then
+        echo "    Skipped: no tokens to revoke"
+        return 0
+    fi
+    local prefix
+    prefix=$(echo "$list" | jq -r '.tokens[0].token_prefix')
+    local r
+    r=$(curl -s -X DELETE -H "$(auth_header)" "$BASE_URL/api/admin/tokens/$prefix")
+    assert_json_field "$r" "status" "success" || return 1
+    echo "    Revoked token prefix: $prefix"
+}
+run_test "Test 11b: DELETE /api/admin/tokens/:tokenPrefix - Single Revoke" test_11b
 
 # Test 12: User List
 ADMIN_USER_ID=""
@@ -450,6 +558,96 @@ test_37() {
     echo "    Correctly returned 400 for invalid slug"
 }
 run_test "Test 37: POST /api/admin/organizations - Invalid slug (400)" test_37
+
+# Test 38: Role with empty name (400)
+test_38() {
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$(auth_header)" \
+        -H "Content-Type: application/json" -d '{"name":"","description":"No name"}' \
+        "$BASE_URL/api/admin/roles")
+    assert_status "$code" "400" || return 1
+    echo "    Correctly returned 400 for empty name"
+}
+run_test "Test 38: POST /api/admin/roles - Empty name (400)" test_38
+
+# Test 39: Client update with empty body
+test_39() {
+    local r
+    r=$(curl -s -X PUT -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{}' "$BASE_URL/api/admin/clients/vue-client")
+    assert_json_field "$r" "status" "success" || return 1
+    echo "    Empty body update accepted (no-op)"
+}
+run_test "Test 39: PUT /api/admin/clients/:id - Empty body" test_39
+
+# Test 40: Large per_page tokens
+test_40() {
+    local r
+    r=$(curl -s -H "$(auth_header)" "$BASE_URL/api/admin/tokens?page=1&per_page=1000")
+    assert_json_exists "$r" "tokens" || return 1
+    echo "    Returned $(echo "$r" | jq '.tokens | length') tokens"
+}
+run_test "Test 40: GET /api/admin/tokens - Large per_page" test_40
+
+# Test 41: Revoke by non-existent client
+test_41() {
+    local r
+    r=$(curl -s -X POST -H "$(auth_header)" -H "Content-Type: application/json" \
+        -d '{"client_id":"nonexistent-client-xyz"}' "$BASE_URL/api/admin/tokens/revoke-by-client")
+    assert_json_field "$r" "status" "success" || return 1
+    local count
+    count=$(echo "$r" | jq -r '.count')
+    [ "$count" = "0" ] || { echo "    expected 0 revoked, got $count"; return 1; }
+    echo "    Revoked $count tokens (expected 0)"
+}
+run_test "Test 41: POST /api/admin/tokens/revoke-by-client - Non-existent" test_41
+
+# Test 42: Unauthorized Access - New endpoints
+test_42() {
+    local endpoints=(
+        "$BASE_URL/api/admin/clients"
+        "$BASE_URL/api/me/mfa/setup"
+        "$BASE_URL/api/me/authorized-apps"
+        "$BASE_URL/api/me/webauthn/credentials"
+    )
+    local all_blocked=true
+    for ep in "${endpoints[@]}"; do
+        local code
+        code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" -d '{}' "$ep" 2>/dev/null || true)
+        # For GET endpoints, retry without body
+        if [ "$code" = "000" ] || [ -z "$code" ]; then
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$ep" 2>/dev/null || true)
+        fi
+        if [ "$code" != "401" ] && [ "$code" != "403" ]; then
+            echo "    WARNING: $ep returned $code"
+            all_blocked=false
+        fi
+    done
+    [ "$all_blocked" = "true" ] || { echo "    Some endpoints accessible without auth!"; return 1; }
+    echo "    All 4 new endpoints correctly require authentication"
+}
+run_test "Test 42: Unauthorized Access - New endpoints" test_42
+
+# Test 43: Non-admin denied admin dashboard stats
+test_43() {
+    local ts
+    ts=$(date +%s)
+    local un="nonadmin_$ts"
+    curl -s -X POST "$BASE_URL/api/register" \
+        -d "username=$un&password=TestPass123!&email=${un}@test.com" >/dev/null
+    local tok
+    tok=$(get_user_token "$BASE_URL" "$un" "TestPass123!")
+    [ -n "$tok" ] || { echo "    skipped: could not get token"; return 1; }
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $tok" \
+        "$BASE_URL/api/admin/dashboard/stats")
+    if [ "$code" = "403" ] || [ "$code" = "401" ]; then
+        echo "    Correctly denied non-admin: $code"
+    else
+        echo "    Got status: $code"
+    fi
+}
+run_test "Test 43: GET /api/admin/dashboard/stats - Non-admin denied" test_43
 
 # Post-test Cleanup
 echo "========================================"

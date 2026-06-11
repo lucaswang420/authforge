@@ -160,6 +160,57 @@ reset_admin_account() {
     fi
 }
 
+# assert_status_in <actual_code> "code1|code2|..." <context>
+assert_status_in() {
+    local actual="$1"
+    local expected="$2"
+    local context="${3:-}"
+    local found=false
+    IFS='|' read -ra codes <<< "$expected"
+    for c in "${codes[@]}"; do
+        if [ "$actual" = "$c" ]; then found=true; break; fi
+    done
+    if [ "$found" = "false" ]; then
+        echo -e "    ${C_RED}[FAIL] Expected HTTP $expected, got $actual ${context}${C_NC}"
+        return 1
+    fi
+    return 0
+}
+
+# get_user_token <base_url> <username> <password>
+# Returns access_token on stdout
+get_user_token() {
+    local base_url="$1" username="$2" password="$3"
+    local state="token-${username}-$$"
+    local login_resp
+    login_resp=$(curl -s -X POST "$base_url/oauth2/login" \
+        -d "username=$username&password=$password&client_id=vue-client&redirect_uri=http://127.0.0.1:5173/callback&scope=openid+profile&state=$state&json=true")
+    local code
+    code=$(echo "$login_resp" | jq -r '.code')
+    [ -n "$code" ] && [ "$code" != "null" ] || return 1
+    local tok_resp
+    tok_resp=$(curl -s -X POST "$base_url/oauth2/token" \
+        -d "grant_type=authorization_code&code=$code&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+    echo "$tok_resp" | jq -r '.access_token'
+}
+
+# get_admin_token <base_url> <username> <password>
+# Gets admin-scoped token via admin-console client
+get_admin_token() {
+    local base_url="$1" username="$2" password="$3"
+    local state="adm-$$"
+    local login_resp
+    login_resp=$(curl -s -X POST "$base_url/oauth2/login" \
+        -d "username=$username&password=$password&client_id=admin-console&redirect_uri=http://localhost:5174/admin/callback&scope=openid+profile+admin&state=$state&json=true")
+    local code
+    code=$(echo "$login_resp" | jq -r '.code')
+    [ -n "$code" ] && [ "$code" != "null" ] || return 1
+    local tok_resp
+    tok_resp=$(curl -s -X POST "$base_url/oauth2/token" \
+        -d "grant_type=authorization_code&code=$code&redirect_uri=http://localhost:5174/admin/callback&client_id=admin-console&client_secret=")
+    echo "$tok_resp" | jq -r '.access_token'
+}
+
 # print_summary <total>
 print_summary() {
     local total="${1:-$((TEST_PASSED + TEST_FAILED))}"

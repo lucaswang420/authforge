@@ -94,3 +94,6 @@ graphify-out/
 # Graphify knowledge graph - only commit the report, ignore generated artifacts
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
+
+# Codegraph runtime state (PID, socket path - changes every session)
+.codegraph/daemon.pid

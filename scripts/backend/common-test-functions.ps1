@@ -71,6 +71,69 @@ function Reset-AdminAccount {
     }
 }
 
+function Invoke-ExpectStatus {
+    param(
+        [scriptblock]$Block,
+        [int]$ExpectedStatus
+    )
+    try {
+        & $Block | Out-Null
+        throw "expected status $ExpectedStatus but got success"
+    } catch {
+        if ($_.Exception.Response.StatusCode -eq $ExpectedStatus) {
+            return $true
+        }
+        # Handle numeric status codes
+        $statusCode = $_.Exception.Response.StatusCode
+        if ($null -ne $statusCode -and [int]$statusCode -eq $ExpectedStatus) {
+            return $true
+        }
+        throw "expected status $ExpectedStatus, got: $statusCode"
+    }
+}
+
+function Get-UserToken {
+    param(
+        [string]$BaseUrl,
+        [string]$Username,
+        [string]$Password
+    )
+    $loginBody = @{
+        username = $Username; password = $Password
+        client_id = 'vue-client'
+        redirect_uri = 'http://127.0.0.1:5173/callback'
+        scope = 'openid profile'; state = "token-$Username-$(Get-Random)"; json = 'true'
+    }
+    $login = Invoke-RestMethod -Uri "$BaseUrl/oauth2/login" -Method Post -Body $loginBody
+    $tok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body @{
+        grant_type = 'authorization_code'; code = $login.code
+        redirect_uri = 'http://127.0.0.1:5173/callback'
+        client_id = 'vue-client'; client_secret = '123456'
+    }
+    return $tok.access_token
+}
+
+function Get-AdminToken {
+    param(
+        [string]$BaseUrl,
+        [string]$Username = "admin",
+        [string]$Password = "admin"
+    )
+    $loginBody = @{
+        username = $Username; password = $Password
+        client_id = 'admin-console'
+        redirect_uri = 'http://localhost:5174/admin/callback'
+        scope = 'openid profile admin'; state = "adm-$(Get-Random)"; json = 'true'
+    }
+    $login = Invoke-RestMethod -Uri "$BaseUrl/oauth2/login" -Method Post -Body $loginBody
+    $tok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body @{
+        grant_type = 'authorization_code'; code = $login.code
+        redirect_uri = 'http://localhost:5174/admin/callback'
+        client_id = 'admin-console'; client_secret = ''
+    }
+    return $tok.access_token
+}
+
 function Reset-AdminLockout {
     param(
         [string]$DbUser = "oauth2_user",
