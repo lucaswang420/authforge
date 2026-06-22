@@ -38,9 +38,249 @@
 
 ## 前置条件
 
-- Docker 24+ 和 Docker Compose v2
-- 域名（已解析到服务器 IP）
-- TLS 证书（Let's Encrypt 或自签名）
+### 硬件要求
+- **CPU**: 2 核心以上
+- **内存**: 4GB 以上（推荐 8GB）
+- **磁盘**: 20GB 以上可用空间
+- **网络**: 公网 IP，域名已解析到服务器
+
+### 操作系统支持
+
+- Ubuntu 20.04 / 22.04 / 24.04 LTS
+- Debian 11 / 12
+- CentOS Stream 8 / 9
+- Rocky Linux 8 / 9
+
+### 软件依赖安装
+
+#### 1. 安装 Docker
+
+**Ubuntu/Debian**:
+```bash
+# 更新包索引
+sudo apt update
+
+# 安装必要依赖
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# 添加 Docker 官方 GPG 密钥
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# 设置 Docker 仓库
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 安装 Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 启动 Docker 服务
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 验证安装
+docker --version
+docker compose version
+```
+
+**CentOS/Rocky Linux**:
+```bash
+# 安装必要依赖
+sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+
+# 添加 Docker 仓库
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# 安装 Docker
+sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 启动 Docker 服务
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 验证安装
+docker --version
+docker compose version
+```
+
+#### 2. 配置 Docker 用户组（可选但推荐）
+
+```bash
+# 创建 docker 组（如果不存在）
+sudo groupadd docker
+
+# 将当前用户添加到 docker 组
+sudo usermod -aG docker $USER
+
+# 重新登录或运行以下命令使组权限生效
+newgrp docker
+
+# 验证：无需 sudo 运行 docker
+docker ps
+```
+
+#### 2.5. 配置 Docker 镜像加速器（中国大陆必需）
+
+由于 Docker Hub 在中国大陆访问不稳定，拉取镜像会超时（典型错误：`dial tcp registry-1.docker.io:443: i/o timeout`），必须配置镜像加速器。
+
+以下加速器地址经实测（2026-06）在阿里云服务器上验证可用：
+
+**创建或修改 Docker 配置文件**:
+
+```bash
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null << 'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.1panel.live",
+    "https://docker.awsl9527.cn",
+    "https://docker.xuanyuan.me"
+  ],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "3"
+  }
+}
+EOF
+```
+
+> 说明：配置多个加速器，Docker 会按顺序尝试，任一可用即拉取成功。
+
+**重启 Docker 服务使配置生效**:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl status docker
+```
+
+**验证镜像加速器配置**:
+
+```bash
+# 检查配置是否被加载（应显示上述 registry-mirrors 列表）
+docker info | grep -A 5 "Registry Mirrors"
+
+# 测试拉取镜像（本项目需要的全部镜像）
+docker pull postgres:15-alpine
+docker pull redis:7-alpine
+docker pull nginx:stable-alpine
+docker pull prom/prometheus:latest
+docker pull ubuntu:22.04
+```
+
+如果某个加速器报错（如 `502` 或 `i/o timeout`），Docker 会自动尝试下一个；若全部失败，参考下方故障排除。
+
+**故障排除**:
+
+1. **所有加速器均失败**：访问 [dongyubin/DockerHub](https://github.com/dongyubin/DockerHub) 获取最新可用列表，替换 `daemon.json` 中的地址后重启 Docker。
+
+2. **使用阿里云专属加速器**（需要阿里云账号，最稳定）:
+   - 登录 [阿里云容器镜像服务](https://cr.console.aliyun.com/) → 镜像工具 → 镜像加速器
+   - 获取专属加速地址（形如 `https://<your_code>.mirror.aliyuncs.com`）
+   - 将该地址置于 `daemon.json` 的 `registry-mirrors` 数组首位
+
+3. **使用代理拉取**（如果有可用的代理服务器）:
+
+   ```bash
+   # 为 Docker 守护进程配置代理
+   sudo mkdir -p /etc/systemd/system/docker.service.d
+   sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null << EOF
+   [Service]
+   Environment="HTTP_PROXY=http://your-proxy:port"
+   Environment="HTTPS_PROXY=http://your-proxy:port"
+   Environment="NO_PROXY=localhost,127.0.0.1"
+   EOF
+
+   sudo systemctl daemon-reload
+   sudo systemctl restart docker
+   ```
+
+#### 3. 安装 Git
+
+**Ubuntu/Debian**:
+```bash
+sudo apt install -y git
+```
+
+**CentOS/Rocky Linux**:
+```bash
+sudo yum install -y git
+```
+
+#### 4. 安装 OpenSSL（用于生成密钥）
+
+**Ubuntu/Debian**:
+```bash
+sudo apt install -y openssl
+```
+
+**CentOS/Rocky Linux**:
+```bash
+sudo yum install -y openssl
+```
+
+#### 5. 安装 Certbot（用于获取 Let's Encrypt 证书）
+
+**Ubuntu/Debian**:
+```bash
+sudo apt install -y certbot
+```
+
+**CentOS/Rocky Linux**:
+```bash
+sudo yum install -y certbot
+```
+
+### 验证依赖安装
+
+```bash
+# 检查 Docker 版本（要求 24+）
+docker --version
+
+# 检查 Docker Compose 版本（要求 v2）
+docker compose version
+
+# 检查 Git
+git --version
+
+# 检查 OpenSSL
+openssl version
+
+# 检查 Certbot
+certbot --version
+```
+
+### 域名和 DNS 配置
+
+1. **域名解析**：确保您的域名（如 `vilas-api.cn`）的 A 记录指向服务器公网 IP
+2. **DNS 传播验证**：
+   ```bash
+   # 检查域名是否正确解析
+   dig +short vilas-api.cn
+   nslookup vilas-api.cn
+   ```
+3. **防火墙配置**：确保以下端口可访问：
+   - `80/tcp` (HTTP)
+   - `443/tcp` (HTTPS)
+
+### 防火墙配置
+
+**Ubuntu (UFW)**:
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+**CentOS/Rocky Linux (firewalld)**:
+```bash
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+```
 
 ---
 
@@ -70,6 +310,9 @@ chmod +x scripts/generate-certs.sh
 # 安装 certbot
 sudo apt install certbot
 
+# 创建 SSL 证书目录
+mkdir -p deploy/nginx/ssl/
+
 # 获取证书（先停止 nginx）
 sudo certbot certonly --standalone -d your-domain.com
 
@@ -81,7 +324,10 @@ cp /etc/letsencrypt/live/your-domain.com/privkey.pem deploy/nginx/ssl/
 ### 3. 配置环境变量
 
 ```bash
-cp .env.docker.example .env.docker
+# 检查模板文件是否存在
+[ -f deploy/env/docker.env.example ] && echo "模板文件存在" || echo "错误：模板文件不存在"
+
+cp deploy/env/docker.env.example .env.docker
 ```
 
 编辑 `.env.docker`，设置强密码：
@@ -110,14 +356,14 @@ openssl rand -base64 32
 ### 4. 启动服务
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.docker up -d
+docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.docker up -d
 ```
 
 ### 5. 验证部署
 
 ```bash
 # 检查所有容器状态
-docker compose -f docker-compose.prod.yml ps
+docker compose -f deploy/docker/docker-compose.prod.yml ps
 
 # 检查后端健康
 curl -k https://localhost/health
@@ -238,6 +484,10 @@ docker exec -it oauth2-postgres sh -c '
 首次部署后，执行 seed 脚本创建默认管理员：
 
 ```bash
+# 验证 seed 文件存在
+ls OAuth2Server/sql/seed/dev_*.sql || echo "错误：Seed 文件缺失，请检查项目结构"
+
+# 创建管理员账号
 docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/seed/dev_admin_user.sql
 docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/seed/dev_admin_console_client.sql
 docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/sql/seed/dev_vue_client.sql
@@ -253,30 +503,30 @@ docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < OAuth2Server/s
 
 ```bash
 # 所有服务
-docker compose -f docker-compose.prod.yml logs -f
+docker compose -f deploy/docker/docker-compose.prod.yml logs -f
 
 # 单个服务
-docker compose -f docker-compose.prod.yml logs -f oauth2-backend
-docker compose -f docker-compose.prod.yml logs -f nginx
+docker compose -f deploy/docker/docker-compose.prod.yml logs -f oauth2-backend
+docker compose -f deploy/docker/docker-compose.prod.yml logs -f nginx
 ```
 
 ### 重启服务
 
 ```bash
 # 重启单个服务
-docker compose -f docker-compose.prod.yml restart oauth2-backend
+docker compose -f deploy/docker/docker-compose.prod.yml restart oauth2-backend
 
 # 重建并重启（代码更新后）
-docker compose -f docker-compose.prod.yml up -d --build oauth2-backend
-docker compose -f docker-compose.prod.yml up -d --build oauth2-frontend
-docker compose -f docker-compose.prod.yml up -d --build oauth2-admin
+docker compose -f deploy/docker/docker-compose.prod.yml up -d --build oauth2-backend
+docker compose -f deploy/docker/docker-compose.prod.yml up -d --build oauth2-frontend
+docker compose -f deploy/docker/docker-compose.prod.yml up -d --build oauth2-admin
 ```
 
 ### 更新部署
 
 ```bash
 git pull
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f deploy/docker/docker-compose.prod.yml up -d --build
 ```
 
 ### 数据库备份
@@ -303,10 +553,10 @@ docker exec -i oauth2-postgres psql -U oauth2_user -d oauth2_db < backup_2026052
 
 ```bash
 # 查看容器状态
-docker compose -f docker-compose.prod.yml ps
+docker compose -f deploy/docker/docker-compose.prod.yml ps
 
 # 查看失败容器日志
-docker compose -f docker-compose.prod.yml logs oauth2-backend
+docker compose -f deploy/docker/docker-compose.prod.yml logs oauth2-backend
 ```
 
 ### 数据库连接失败
