@@ -27,6 +27,19 @@ class SchemaManager
      */
     static bool migrate(const std::string &migrationsDir);
 
+    /**
+     * @brief Split a multi-statement SQL script into individual statements.
+     *
+     * PostgreSQL prepared statements accept only one statement, so migration
+     * files (which may contain many statements) must be split on top-level
+     * semicolons. The scanner tracks lexical state to avoid splitting inside
+     * single-quoted strings, line/block comments, and dollar-quoted bodies
+     * ($$..$$ / $tag$..$tag$). Empty/whitespace-only statements are skipped.
+     *
+     * Exposed publicly so unit tests can exercise it directly.
+     */
+    static std::vector<std::string> splitSqlStatements(const std::string &sql);
+
   private:
     struct MigrationFile
     {

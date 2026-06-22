@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cctype>
 #include <regex>
 #include <iomanip>
 
@@ -16,6 +17,156 @@
 
 namespace schema
 {
+
+std::vector<std::string> SchemaManager::splitSqlStatements(const std::string &sql)
+{
+    std::vector<std::string> statements;
+    std::string current;
+    size_t i = 0;
+    const size_t n = sql.size();
+
+    while (i < n)
+    {
+        char c = sql[i];
+
+        // Line comment: -- ... \n
+        if (c == '-' && i + 1 < n && sql[i + 1] == '-')
+        {
+            current += "--";
+            i += 2;
+            while (i < n && sql[i] != '\n')
+            {
+                current += sql[i];
+                ++i;
+            }
+            continue;
+        }
+
+        // Block comment: /* ... */ (Postgres does not nest block comments).
+        if (c == '/' && i + 1 < n && sql[i + 1] == '*')
+        {
+            current += "/*";
+            i += 2;
+            while (i < n && !(sql[i] == '*' && i + 1 < n && sql[i + 1] == '/'))
+            {
+                current += sql[i];
+                ++i;
+            }
+            if (i < n)
+            {
+                current += "*/";
+                i += 2;
+            }
+            continue;
+        }
+
+        // Single-quoted string: '...'. '' is an escaped quote, not a close.
+        if (c == '\'')
+        {
+            current += c;
+            ++i;
+            while (i < n)
+            {
+                current += sql[i];
+                if (sql[i] == '\'' && i + 1 < n && sql[i + 1] == '\'')
+                {
+                    // Escaped quote — consume both, stay in string.
+                    current += sql[i + 1];
+                    i += 2;
+                    continue;
+                }
+                if (sql[i] == '\'')
+                {
+                    ++i;
+                    break;
+                }
+                ++i;
+            }
+            continue;
+        }
+
+        // Dollar-quote: $$..$$ or $tag$..$tag$. Triggered by '$' that begins
+        // a valid dollar-quote opener (not inside a string/comment).
+        if (c == '$')
+        {
+            // Try to read an opener: $ [tag] $
+            size_t j = i + 1;
+            std::string tag;
+            while (j < n && sql[j] != '$' && sql[j] != '\n')
+            {
+                char tc = sql[j];
+                if (tag.empty())
+                {
+                    if (!(std::isalpha(static_cast<unsigned char>(tc)) || tc == '_'))
+                        break;
+                }
+                else
+                {
+                    if (!(std::isalnum(static_cast<unsigned char>(tc)) || tc == '_'))
+                        break;
+                }
+                tag += tc;
+                ++j;
+            }
+            if (j < n && sql[j] == '$')
+            {
+                // Valid opener: from i to j inclusive is the delimiter.
+                std::string delim = sql.substr(i, j - i + 1);
+                current += delim;
+                i = j + 1;
+                // Scan until the matching delimiter appears again.
+                while (i < n)
+                {
+                    if (sql[i] == '$' && sql.compare(i, delim.size(), delim) == 0)
+                    {
+                        current += delim;
+                        i += delim.size();
+                        break;
+                    }
+                    current += sql[i];
+                    ++i;
+                }
+                continue;
+            }
+            // Not a dollar-quote opener — fall through to treat '$' literally.
+        }
+
+        // Top-level semicolon terminates a statement.
+        if (c == ';')
+        {
+            current += c;
+            // Trim and emit non-empty statements.
+            size_t start = current.find_first_not_of(" \t\r\n");
+            size_t end = current.find_last_not_of(" \t\r\n");
+            if (start != std::string::npos && end != std::string::npos && end >= start)
+            {
+                std::string trimmed = current.substr(start, end - start + 1);
+                // Drop if the whole trimmed string is just the semicolon.
+                if (trimmed != ";" && !trimmed.empty())
+                {
+                    statements.push_back(trimmed);
+                }
+            }
+            current.clear();
+            ++i;
+            continue;
+        }
+
+        current += c;
+        ++i;
+    }
+
+    // Trailing content without a closing semicolon: emit only if non-empty
+    // after trimming. (Migrations should always end with ';', but be lenient.)
+    size_t start = current.find_first_not_of(" \t\r\n");
+    size_t end = current.find_last_not_of(" \t\r\n");
+    if (start != std::string::npos && end != std::string::npos && end >= start)
+    {
+        statements.push_back(current.substr(start, end - start + 1));
+    }
+
+    return statements;
+}
 
 bool SchemaManager::migrate(const std::string &migrationsDir)
 {
@@ -187,10 +338,18 @@ bool SchemaManager::applyMigration(
 
     try
     {
-        // Execute migration SQL within a transaction
+        // Execute migration SQL within a transaction. PostgreSQL prepared
+        // statements accept only one statement, so split the file on
+        // top-level semicolons and execute each statement separately.
+        // The whole migration runs inside one transaction: if any statement
+        // fails, the transaction rolls back and the version is not recorded.
         auto trans = db->newTransaction();
 
-        trans->execSqlSync(sql);
+        auto statements = splitSqlStatements(sql);
+        for (const auto &stmt : statements)
+        {
+            trans->execSqlSync(stmt);
+        }
 
         // Record the migration
         trans->execSqlSync(

@@ -26,6 +26,11 @@ file(GLOB CTL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../controllers/*.cc")
 file(GLOB FILTER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../filters/*.cc")
 file(GLOB SERVER_SERVICE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../AuthService.cc")
 
+# SchemaManager: needed by the SQL-splitter unit test (unit/schema/).
+# Compiled directly into the test target so the splitter can be exercised
+# without a running database.
+set(SCHEMA_MGR_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../SchemaManager.cc")
+
 # Collect hierarchical test sources
 file(GLOB_RECURSE UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/unit/*.cc")
 file(GLOB_RECURSE INTEGRATION_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/integration/*.cc")
@@ -54,18 +59,19 @@ set(ALL_TEST_SOURCES
     ${PERFORMANCE_TESTS}
 )
 
-add_executable(${PROJECT_NAME} 
-    ${ALL_TEST_SOURCES} 
-    ${PLUGIN_SRC} 
-    ${STORAGE_SRC} 
-    ${SERVICE_SRC} 
-    ${MODEL_SRC} 
+add_executable(${PROJECT_NAME}
+    ${ALL_TEST_SOURCES}
+    ${PLUGIN_SRC}
+    ${STORAGE_SRC}
+    ${SERVICE_SRC}
+    ${MODEL_SRC}
     ${PLUGIN_CTL_SRC}
     ${PLUGIN_FILTER_SRC}
-    ${CTL_SRC} 
-    ${FILTER_SRC} 
+    ${CTL_SRC}
+    ${FILTER_SRC}
     ${COMMON_SRC}
     ${SERVER_SERVICE_SRC}
+    ${SCHEMA_MGR_SRC}
 )
 
 drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../views
