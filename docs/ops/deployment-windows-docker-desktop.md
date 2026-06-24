@@ -143,6 +143,50 @@ DOMAIN=localhost
 
 > **注意**：Windows 环境变量文件使用 CRLF 换行符，Docker Compose 会自动处理。
 
+#### 邮件服务配置（可选）
+
+后端邮件服务有两种模式（由 [EmailService.cc](../../OAuth2Plugin/src/utils/EmailService.cc) 的 `getEmailService()` 决定）：
+
+| 模式 | 触发条件 | 行为 |
+|------|---------|------|
+| **Console 模式**（默认） | 未设置 `OAUTH2_SMTP_*` | 验证邮件只输出到后端日志，不真正发送 |
+| **SMTP 模式** | 设置 `OAUTH2_SMTP_HOST` + `OAUTH2_SMTP_USER` + `OAUTH2_SMTP_PASSWORD` | 通过 SMTP 真正发送邮件 |
+
+**默认 Console 模式（本地验证推荐）**：
+
+无需任何配置。点击"发送邮箱验证"后，邮件内容（含验证链接）会打到后端日志，可从中复制链接验证：
+
+```bash
+docker logs oauth2-backend --tail 50 2>&1 | grep -A 5 -iE "verify|email"
+```
+
+**启用真实 SMTP 发送（163 邮箱示例）**：
+
+在 `.env.docker` 末尾追加：
+
+```env
+# Email / SMTP
+OAUTH2_SMTP_HOST=smtp.163.com
+OAUTH2_SMTP_PORT=465
+OAUTH2_SMTP_USER=your-email@163.com
+OAUTH2_SMTP_PASSWORD=your-authorization-code   # 163 授权码，非登录密码
+OAUTH2_SMTP_FROM_NAME=OAuth2 Platform
+OAUTH2_SMTP_SSL=true                            # 465 端口必须 SSL
+```
+
+> **获取 163 授权码**：登录 163 邮箱网页版 → 设置 → POP3/SMTP/IMAP → 开启 SMTP 服务 → 生成授权码。
+
+修改后重启后端使配置生效：
+
+```bash
+docker compose -f deploy/docker/docker-compose.yml --env-file .env.docker up -d oauth2-backend
+
+# 验证已切换到 SMTP 模式（应看到 "Email service: SMTP (smtp.163.com:465)"）
+docker logs oauth2-backend 2>&1 | grep -i "Email service"
+```
+
+> **注意**：邮件里的验证链接使用 `OAUTH2_FRONTEND_URL`（本地为 `http://localhost:8080`），从其他机器点开会失效——这是本地部署的预期限制。
+
 ### 4. 修改 Docker Compose 配置
 
 由于本地环境不需要 HTTPS，我们创建一个简化的 Compose 文件：
