@@ -6,22 +6,22 @@
 
 ## 为什么使用 Windows Docker Desktop 验证？
 
-✅ **完全模拟生产环境**：使用相同的 Docker Compose 配置、相同的容器镜像、相同的网络拓扑  
-✅ **快速反馈循环**：本地修改代码 → 立即验证 → 确认无误后再推送到 Linux 服务器  
-✅ **节省时间**：避免每次"推送 → 服务器拉取 → 重启服务 → 发现问题"的漫长循环  
-✅ **核心功能全覆盖**：数据库迁移、API 端点、前端路由、OAuth2 流程全部可测试  
+[+] **完全模拟生产环境**：使用相同的 Docker Compose 配置、相同的容器镜像、相同的网络拓扑  
+[+] **快速反馈循环**：本地修改代码 → 立即验证 → 确认无误后再推送到 Linux 服务器  
+[+] **节省时间**：避免每次"推送 → 服务器拉取 → 重启服务 → 发现问题"的漫长循环  
+[+] **核心功能全覆盖**：数据库迁移、API 端点、前端路由、OAuth2 流程全部可测试  
 
 **与 Linux 生产环境的差异**：
 | 功能 | Windows Docker Desktop | Linux 生产环境 |
 |------|------------------------|----------------|
-| PostgreSQL | ✅ 完全相同 | ✅ |
-| Redis | ✅ 完全相同 | ✅ |
-| 后端 API | ✅ 完全相同 | ✅ |
-| 前端 | ✅ 完全相同 | ✅ |
-| 管理后台 | ✅ 完全相同 | ✅ |
-| Nginx 反向代理 | ⚠️ 简化配置（无 TLS） | ✅ |
-| 域名访问 | ❌ 使用 localhost | ✅ |
-| SSL/TLS | ❌ 不启用 | ✅ |
+| PostgreSQL | [+] 完全相同 | [+] |
+| Redis | [+] 完全相同 | [+] |
+| 后端 API | [+] 完全相同 | [+] |
+| 前端 | [+] 完全相同 | [+] |
+| 管理后台 | [+] 完全相同 | [+] |
+| Nginx 反向代理 | [!] 简化配置（无 TLS） | [+] |
+| 域名访问 | [-] 使用 localhost | [+] |
+| SSL/TLS | [-] 不启用 | [+] |
 
 ---
 
@@ -106,7 +106,7 @@ dir deploy\keys
 
 **方法 C：跳过密钥生成（仅用于测试）**
 
-如果只是验证部署流程，可以暂时跳过此步，后端会使用内置测试密钥（⚠️ 生产环境必须生成真实密钥）。
+如果只是验证部署流程，可以暂时跳过此步，后端会使用内置测试密钥（[!] 生产环境必须生成真实密钥）。
 
 ### 3. 配置环境变量
 
@@ -191,14 +191,14 @@ docker compose -f deploy/docker/docker-compose.yml logs -f
 预期输出（服务启动成功）：
 ```
 [+] Running 8/8
- ✔ Network oauth2-net          Created                 0.1s
- ✔ Volume "oauth2_plugin_postgres_prod" Created
- ✔ Container oauth2-postgres    Started                 2.3s
- ✔ Container oauth2-redis      Started                 1.8s
- ✔ Container oauth2-backend    Started                 5.2s
- ✔ Container oauth2-frontend    Started                 3.1s
- ✔ Container oauth2-admin      Started                 2.9s
- ✔ Container oauth2-prometheus Started                 1.5s
+ [+] Network oauth2-net          Created                 0.1s
+ [+] Volume "oauth2_plugin_postgres_prod" Created
+ [+] Container oauth2-postgres    Started                 2.3s
+ [+] Container oauth2-redis      Started                 1.8s
+ [+] Container oauth2-backend    Started                 5.2s
+ [+] Container oauth2-frontend    Started                 3.1s
+ [+] Container oauth2-admin      Started                 2.9s
+ [+] Container oauth2-prometheus Started                 1.5s
 ```
 
 ---
@@ -391,11 +391,11 @@ Base URL: http://localhost:5555
 
 [Test 1/55] Test 1: Health Check
     Status: ok
-    ✓ PASS (0.1s)
+    [+] PASS (0.1s)
 
 [Test 10/55] Test 10: Client Credentials
     AT: eyJhbGciOiJSUzI1Ni..., Scope: read
-    ✓ PASS (0.2s)
+    [+] PASS (0.2s)
 
 ...
 
@@ -460,10 +460,10 @@ docker exec oauth2-postgres pg_isready -U oauth2_user
 # 一键执行所有测试
 cd /d/work/development/Repos/cpp/projects/authforge && \
 chmod +x scripts/backend/*.sh && \
-echo "🧪 执行 OAuth2 核心测试..." && \
+echo "[+] 执行 OAuth2 核心测试..." && \
 ./scripts/backend/test-oauth2-endpoints.sh http://localhost:5555 && \
 echo "" && \
-echo "🧪 执行管理后台 API 测试..." && \
+echo "[+] 执行管理后台 API 测试..." && \
 ./scripts/backend/test-admin-endpoints.sh http://localhost:5555
 ```
 
@@ -516,7 +516,7 @@ Base URL: http://localhost:5555
 
 [Test 1/55] Test 1: Health Check
     Status: ok
-    ✓ PASS (0.1s)
+    [+] PASS (0.1s)
 
 ...
 
@@ -789,18 +789,18 @@ docker system df
 
 ## 总结
 
-✅ **可行**：Windows Docker Desktop 可以完全验证部署流程（除域名和 SSL）  
-✅ **推荐**：本地验证 → 推送代码 → Linux 部署，大幅减少调试时间  
-✅ **一致性**：数据库模式、API 接口、前端逻辑与生产环境 100% 一致  
+[+] **可行**：Windows Docker Desktop 可以完全验证部署流程（除域名和 SSL）  
+[+] **推荐**：本地验证 → 推送代码 → Linux 部署，大幅减少调试时间  
+[+] **一致性**：数据库模式、API 接口、前端逻辑与生产环境 100% 一致  
 
 **适用场景**：
-- ✅ 验证代码更改
-- ✅ 测试数据库迁移
-- ✅ 调试 API 端点
-- ✅ 验证前端路由
-- ✅ 测试 OAuth2 流程
+- [+] 验证代码更改
+- [+] 测试数据库迁移
+- [+] 调试 API 端点
+- [+] 验证前端路由
+- [+] 测试 OAuth2 流程
 
 **不适用场景**：
-- ❌ TLS/SSL 测试（使用自签名证书可部分替代）
-- ❌ 性能压测（使用 Linux 服务器）
-- ❌ 高可用配置（需要多台服务器）
+- [-] TLS/SSL 测试（使用自签名证书可部分替代）
+- [-] 性能压测（使用 Linux 服务器）
+- [-] 高可用配置（需要多台服务器）
