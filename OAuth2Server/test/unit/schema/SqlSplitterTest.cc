@@ -21,8 +21,7 @@ DROGON_TEST(Unit_P0_Schema_SplitSql_SingleStatement)
 // 2. Two simple statements
 DROGON_TEST(Unit_P0_Schema_SplitSql_TwoStatements)
 {
-    auto r = SchemaManager::splitSqlStatements(
-      "CREATE TABLE a (x int); CREATE TABLE b (y int);");
+    auto r = SchemaManager::splitSqlStatements("CREATE TABLE a (x int); CREATE TABLE b (y int);");
     CHECK(r.size() == 2);
     CHECK(r[0] == "CREATE TABLE a (x int);");
     CHECK(r[1] == "CREATE TABLE b (y int);");
@@ -31,8 +30,8 @@ DROGON_TEST(Unit_P0_Schema_SplitSql_TwoStatements)
 // 3. Semicolon inside single-quoted string does not split
 DROGON_TEST(Unit_P0_Schema_SplitSql_SemicolonInString)
 {
-    auto r = SchemaManager::splitSqlStatements(
-      "INSERT INTO t VALUES ('a;b'); INSERT INTO t VALUES (2);");
+    auto r =
+      SchemaManager::splitSqlStatements("INSERT INTO t VALUES ('a;b'); INSERT INTO t VALUES (2);");
     CHECK(r.size() == 2);
     CHECK(r[0] == "INSERT INTO t VALUES ('a;b');");
     CHECK(r[1] == "INSERT INTO t VALUES (2);");
@@ -41,8 +40,7 @@ DROGON_TEST(Unit_P0_Schema_SplitSql_SemicolonInString)
 // 4. '' escaped quote keeps the string open across a ';'
 DROGON_TEST(Unit_P0_Schema_SplitSql_EscapedQuote)
 {
-    auto r = SchemaManager::splitSqlStatements(
-      "INSERT INTO t VALUES ('a''b;c');");
+    auto r = SchemaManager::splitSqlStatements("INSERT INTO t VALUES ('a''b;c');");
     CHECK(r.size() == 1);
     CHECK(r[0] == "INSERT INTO t VALUES ('a''b;c');");
 }
@@ -50,8 +48,7 @@ DROGON_TEST(Unit_P0_Schema_SplitSql_EscapedQuote)
 // 5. Line comment with semicolon does not split
 DROGON_TEST(Unit_P0_Schema_SplitSql_LineComment)
 {
-    auto r = SchemaManager::splitSqlStatements(
-      "-- this; is a comment\nSELECT 1;");
+    auto r = SchemaManager::splitSqlStatements("-- this; is a comment\nSELECT 1;");
     CHECK(r.size() == 1);
     CHECK(r[0] == "-- this; is a comment\nSELECT 1;");
 }

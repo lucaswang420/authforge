@@ -85,8 +85,9 @@ DROGON_TEST(Integration_OAuth2InvalidClient_IntrospectReturnsWWWAuthenticateHead
     // Set invalid Basic auth header
     req->addHeader("Authorization", makeBasicAuthHeader("invalid_client", "wrong_secret"));
 
-    // Set required token parameter
-    req->setParameter("token", "some_token");
+    // Set required token parameter (use valid format to avoid invalid_request)
+    // Token must be >= 32 chars and match [a-zA-Z0-9._-]+
+    req->setParameter("token", "some_valid_token_with_32_characters_min");
 
     bool testComplete = false;
     bool testPassed = false;
@@ -158,8 +159,9 @@ DROGON_TEST(Integration_OAuth2InvalidClient_RevokeReturnsWWWAuthenticateHeader)
     // Set invalid Basic auth header
     req->addHeader("Authorization", makeBasicAuthHeader("invalid_client", "wrong_secret"));
 
-    // Set required token parameter
-    req->setParameter("token", "some_token");
+    // Set required token parameter (use valid format to avoid invalid_request)
+    // Token must be >= 32 chars and match [a-zA-Z0-9._-]+
+    req->setParameter("token", "some_valid_token_with_32_characters_min");
 
     bool testComplete = false;
     bool testPassed = false;
