@@ -67,6 +67,13 @@ services:
       - OAUTH2_REDIS_PASSWORD=${OAUTH2_REDIS_PASSWORD}
       - OAUTH2_JWT_KEY_PATH=/app/keys/signing.pem
       - OAUTH2_AUTO_MIGRATE=true
+      # Email / SMTP (生产环境必须配置，否则验证邮件/密码重置只输出到日志)
+      - OAUTH2_SMTP_HOST=${OAUTH2_SMTP_HOST:-}
+      - OAUTH2_SMTP_PORT=${OAUTH2_SMTP_PORT:-465}
+      - OAUTH2_SMTP_USER=${OAUTH2_SMTP_USER:-}
+      - OAUTH2_SMTP_PASSWORD=${OAUTH2_SMTP_PASSWORD:-}
+      - OAUTH2_SMTP_FROM_NAME=${OAUTH2_SMTP_FROM_NAME:-OAuth2 Platform}
+      - OAUTH2_SMTP_SSL=${OAUTH2_SMTP_SSL:-true}
     volumes:
       - ../../deploy/keys:/app/keys:ro
       - ../../OAuth2Server/sql/migrations:/app/sql/migrations:ro

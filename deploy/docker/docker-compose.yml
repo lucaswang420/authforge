@@ -50,6 +50,13 @@ services:
       - OAUTH2_VUE_CLIENT_SECRET=123456
       - OAUTH2_AUTO_MIGRATE=true
       - OAUTH2_FRONTEND_URL=http://localhost:8080
+      # Email / SMTP (omit via empty .env.docker values to stay in Console mode)
+      - OAUTH2_SMTP_HOST=${OAUTH2_SMTP_HOST:-}
+      - OAUTH2_SMTP_PORT=${OAUTH2_SMTP_PORT:-465}
+      - OAUTH2_SMTP_USER=${OAUTH2_SMTP_USER:-}
+      - OAUTH2_SMTP_PASSWORD=${OAUTH2_SMTP_PASSWORD:-}
+      - OAUTH2_SMTP_FROM_NAME=${OAUTH2_SMTP_FROM_NAME:-OAuth2 Platform}
+      - OAUTH2_SMTP_SSL=${OAUTH2_SMTP_SSL:-true}
     volumes:
       - ../../OAuth2Server/config.json:/app/config.json:ro
       - ../../OAuth2Server/sql/migrations:/app/sql/migrations:ro

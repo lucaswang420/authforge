@@ -496,6 +496,67 @@ curl -X POST http://localhost:5555/oauth2/token \
 
 ---
 
+## 阶段五·补充：邮件服务验证
+
+邮件服务有两种模式，由后端 `getEmailService()` 根据 `OAUTH2_SMTP_*` 环境变量决定。
+
+### 5.4 确认邮件服务模式
+
+```powershell
+# 查看后端启动日志中的邮件服务模式
+docker logs oauth2-backend 2>&1 | grep -i "Email service"
+```
+
+**预期输出（二选一）**：
+
+- Console 模式（未配置 SMTP）：`Email service: Console (set OAUTH2_SMTP_* env vars to enable SMTP)`
+- SMTP 模式（已配置）：`Email service: SMTP (smtp.163.com:465)`
+
+### 5.5 邮箱验证邮件
+
+**操作**：登录用户前端 → Profile 页面 → 点击"发送邮箱验证"
+
+| 模式 | 验证方式 |
+|------|---------|
+| Console 模式 | 邮件内容打到后端日志，从中复制验证链接 |
+| SMTP 模式 | 收件箱应收到真实邮件 |
+
+**Console 模式下查看验证链接**：
+
+```powershell
+docker logs oauth2-backend --tail 50 2>&1 | grep -A 5 -iE "verify|email"
+# 预期：含 "verify-email?token=xxx" 的链接
+```
+
+**SMTP 模式下验证邮件发送**：
+
+```powershell
+# 触发发送后，检查后端是否有 SMTP 错误
+docker logs oauth2-backend --tail 50 2>&1 | grep -iE "smtp|email|curl"
+# 预期：无 ERROR 级别日志；收件箱收到 "Verify Your Email" 邮件
+```
+
+### 5.6 密码重置邮件
+
+**操作**：前端"忘记密码"页面 → 输入邮箱 → 提交
+
+- **预期响应**（防枚举）：无论邮箱是否存在，统一返回 `If the email exists, a reset link has been sent`
+- Console 模式下，重置链接同样打到后端日志
+
+### 5.7 启用真实 SMTP（可选，详见部署指南）
+
+如需真实邮件发送，在 `.env.docker` 设置 `OAUTH2_SMTP_HOST` / `OAUTH2_SMTP_USER` / `OAUTH2_SMTP_PASSWORD` 三项后重启后端：
+
+```powershell
+docker compose -f deploy/docker/docker-compose.yml --env-file .env.docker up -d oauth2-backend
+docker logs oauth2-backend 2>&1 | grep -i "Email service"
+# 预期：Email service: SMTP (...)
+```
+
+> **注意**：邮件验证链接使用 `OAUTH2_FRONTEND_URL`。本地部署为 `http://localhost:8080`，从其他机器点击会失效。
+
+---
+
 ## 阶段六：安全性验证
 
 ### 6.1 错误响应验证

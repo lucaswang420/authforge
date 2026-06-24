@@ -345,12 +345,57 @@ OAUTH2_DB_PASSWORD=<与 POSTGRES_PASSWORD 相同>
 OAUTH2_REDIS_HOST=oauth2-redis
 OAUTH2_REDIS_PASSWORD=<与 REDIS_PASSWORD 相同>
 
+# 邮件服务（SMTP）— 生产环境必须配置
+OAUTH2_SMTP_HOST=smtp.example.com
+OAUTH2_SMTP_PORT=465
+OAUTH2_SMTP_USER=noreply@example.com
+OAUTH2_SMTP_PASSWORD=<SMTP 授权码，非邮箱登录密码>
+OAUTH2_SMTP_FROM_NAME=OAuth2 Platform
+OAUTH2_SMTP_SSL=true
+
 DOMAIN=your-domain.com
 ```
 
 生成强密码：
 ```bash
 openssl rand -base64 32
+```
+
+#### 邮件服务（SMTP）配置说明
+
+后端邮件服务有两种模式（由 `getEmailService()` 根据环境变量自动选择）：
+
+| 模式 | 触发条件 | 行为 |
+|------|---------|------|
+| **Console 模式** | 未设置 `OAUTH2_SMTP_HOST` / `USER` / `PASSWORD` | 邮件内容只输出到后端日志，**不真正发送** |
+| **SMTP 模式** | 上述三个变量均已设置且非空 | 通过 SMTP 真正发送邮件 |
+
+> **生产环境必须配置 SMTP**，否则邮箱验证、密码重置等功能的邮件不会真正发送给用户（只在服务器日志里）。
+
+**常见邮箱服务商配置参考**：
+
+| 服务商 | SMTP 主机 | 端口 | SSL | 凭据说明 |
+|--------|----------|------|-----|---------|
+| 163 邮箱 | `smtp.163.com` | 465 | true | 授权码（非登录密码） |
+| QQ 邮箱 | `smtp.qq.com` | 465 | true | 授权码 |
+| Gmail | `smtp.gmail.com` | 465 | true | 应用专用密码（需开两步验证） |
+| 腾讯企业邮 | `smtp.exmail.qq.com` | 465 | true | 邮箱密码 |
+| 阿里云企业邮 | `smtp.qiye.aliyun.com` | 465 | true | 邮箱密码 |
+| SendGrid | `smtp.sendgrid.net` | 587 | false | 用户名 `apikey`，密码为 API Key |
+
+**获取授权码（以 163 为例）**：
+1. 登录 163 邮箱网页版
+2. 设置 → POP3/SMTP/IMAP
+3. 开启 SMTP 服务
+4. 按提示生成授权码（16 位字符串）
+
+配置完成后重启后端生效：
+
+```bash
+docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.docker up -d oauth2-backend
+
+# 验证已切换到 SMTP 模式（应输出 "Email service: SMTP (...)"）
+docker compose -f deploy/docker/docker-compose.prod.yml logs oauth2-backend | grep "Email service"
 ```
 
 ### 4. 启动服务
@@ -439,6 +484,14 @@ curl -k https://localhost/admin/
 | `OAUTH2_JWT_KEY_PATH` | JWT 签名密钥路径 | /app/keys/signing.pem |
 | `OAUTH2_AUTO_MIGRATE` | 自动执行数据库迁移 | true |
 | `OAUTH2_SIGNING_KEY` | JWT 密钥 PEM 内容（替代文件） | (可选) |
+| `OAUTH2_SMTP_HOST` | SMTP 服务器主机（未设置则邮件走 Console 模式） | (可选) |
+| `OAUTH2_SMTP_PORT` | SMTP 端口 | 465 |
+| `OAUTH2_SMTP_USER` | SMTP 用户名（完整邮箱地址） | (可选) |
+| `OAUTH2_SMTP_PASSWORD` | SMTP 授权码（非邮箱登录密码） | (可选) |
+| `OAUTH2_SMTP_FROM_NAME` | 发件人显示名称 | OAuth2 Platform |
+| `OAUTH2_SMTP_SSL` | 是否启用 SSL | true |
+
+> **邮件模式说明**：仅当 `OAUTH2_SMTP_HOST` + `OAUTH2_SMTP_USER` + `OAUTH2_SMTP_PASSWORD` 三项均非空时启用真实 SMTP 发送；否则邮件只输出到后端日志。详见上文"邮件服务（SMTP）配置说明"。
 
 ### Nginx 配置
 
