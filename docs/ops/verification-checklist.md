@@ -729,10 +729,10 @@ function Test-ContainerStatus {
     Write-Host "`n[1/8] 检查容器状态..." -ForegroundColor Cyan
     $containers = docker compose -f deploy/docker/docker-compose.yml ps
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ 所有容器运行正常" -ForegroundColor Green
+        Write-Host "[+] 所有容器运行正常" -ForegroundColor Green
         return $true
     } else {
-        Write-Host "✗ 容器状态异常" -ForegroundColor Red
+        Write-Host "[-] 容器状态异常" -ForegroundColor Red
         return $false
     }
 }
@@ -742,11 +742,11 @@ function Test-BackendHealth {
     try {
         $response = Invoke-RestMethod -Uri "$BackendUrl/health" -Method Get
         if ($response.status -eq "healthy") {
-            Write-Host "✓ 后端健康检查通过" -ForegroundColor Green
+            Write-Host "[+] 后端健康检查通过" -ForegroundColor Green
             return $true
         }
     } catch {
-        Write-Host "✗ 后端健康检查失败: $_" -ForegroundColor Red
+        Write-Host "[-] 后端健康检查失败: $_" -ForegroundColor Red
         return $false
     }
 }
@@ -755,10 +755,10 @@ function Test-DatabaseConnection {
     Write-Host "`n[3/8] 检查数据库连接..." -ForegroundColor Cyan
     $result = docker exec oauth2-postgres pg_isready -U oauth2_user 2>&1
     if ($LASTEXITCODE -eq 0 -and $result -match "accepting connections") {
-        Write-Host "✓ 数据库连接正常" -ForegroundColor Green
+        Write-Host "[+] 数据库连接正常" -ForegroundColor Green
         return $true
     } else {
-        Write-Host "✗ 数据库连接失败" -ForegroundColor Red
+        Write-Host "[-] 数据库连接失败" -ForegroundColor Red
         return $false
     }
 }
@@ -772,10 +772,10 @@ function Test-DatabaseTables {
     
     $tableCount = [int]$result.Trim()
     if ($tableCount -ge 7) {
-        Write-Host "✓ 数据库表结构完整 ($tableCount 张表)" -ForegroundColor Green
+        Write-Host "[+] 数据库表结构完整 ($tableCount 张表)" -ForegroundColor Green
         return $true
     } else {
-        Write-Host "✗ 数据库表结构不完整 (仅 $tableCount 张表)" -ForegroundColor Red
+        Write-Host "[-] 数据库表结构不完整 (仅 $tableCount 张表)" -ForegroundColor Red
         return $false
     }
 }
@@ -788,10 +788,10 @@ function Test-SeedData {
     
     $count = [int]$result.Trim()
     if ($count -eq 1) {
-        Write-Host "✓ 管理员账号已创建" -ForegroundColor Green
+        Write-Host "[+] 管理员账号已创建" -ForegroundColor Green
         return $true
     } else {
-        Write-Host "✗ 管理员账号未创建" -ForegroundColor Red
+        Write-Host "[-] 管理员账号未创建" -ForegroundColor Red
         return $false
     }
 }
@@ -800,10 +800,10 @@ function Test-RedisConnection {
     Write-Host "`n[6/8] 检查 Redis 连接..." -ForegroundColor Cyan
     $result = docker exec oauth2-redis redis-cli -a WinDockerTest2024! ping 2>&1
     if ($result -match "PONG") {
-        Write-Host "✓ Redis 连接正常" -ForegroundColor Green
+        Write-Host "[+] Redis 连接正常" -ForegroundColor Green
         return $true
     } else {
-        Write-Host "✗ Redis 连接失败" -ForegroundColor Red
+        Write-Host "[-] Redis 连接失败" -ForegroundColor Red
         return $false
     }
 }
@@ -823,11 +823,11 @@ function Test-TokenEndpoint {
         $response = Invoke-RestMethod -Uri "$BackendUrl/oauth2/token" -Method Post -Body $body -ContentType "application/json"
         
         if ($response.access_token) {
-            Write-Host "✓ 令牌端点正常 (收到 token: $($response.access_token.Substring(0,20))...)" -ForegroundColor Green
+            Write-Host "[+] 令牌端点正常 (收到 token: $($response.access_token.Substring(0,20))...)" -ForegroundColor Green
             return $true
         }
     } catch {
-        Write-Host "✗ 令牌端点失败: $_" -ForegroundColor Red
+        Write-Host "[-] 令牌端点失败: $_" -ForegroundColor Red
         return $false
     }
 }
@@ -837,11 +837,11 @@ function Test-FrontendAccess {
     try {
         $response = Invoke-WebRequest -Uri $FrontendUrl -Method Get -UseBasicParsing
         if ($response.StatusCode -eq 200) {
-            Write-Host "✓ 前端页面可访问" -ForegroundColor Green
+            Write-Host "[+] 前端页面可访问" -ForegroundColor Green
             return $true
         }
     } catch {
-        Write-Host "✗ 前端页面访问失败: $_" -ForegroundColor Red
+        Write-Host "[-] 前端页面访问失败: $_" -ForegroundColor Red
         return $false
     }
 }
@@ -867,10 +867,10 @@ Write-Host "验证结果: $passed / $total 通过" -ForegroundColor $(if ($passe
 Write-Host ("=" * 60) -ForegroundColor DarkGray
 
 if ($passed -eq $total) {
-    Write-Host "`n✓ 部署验证完全通过！系统可以投入使用。" -ForegroundColor Green
+    Write-Host "`n[+] 部署验证完全通过！系统可以投入使用。" -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "`n✗ 部署验证失败，请检查上述错误项。" -ForegroundColor Red
+    Write-Host "`n[-] 部署验证失败，请检查上述错误项。" -ForegroundColor Red
     exit 1
 }
 ```
@@ -905,13 +905,13 @@ if ($passed -eq $total) {
 
 | 阶段 | 状态 | 备注 |
 |------|------|------|
-| 基础设施验证 | ✅ 通过 | 所有容器正常运行 |
-| 数据库初始化验证 | ✅ 通过 | 7 张表，管理员账号已创建 |
-| 后端 API 验证 | ✅ 通过 | 令牌端点、内省、撤销功能正常 |
-| 管理后台 API 验证 | ✅ 通过 | 用户、客户端、Scope 管理正常 |
-| 前端功能验证 | ✅ 通过 | 用户登录、注册、个人资料功能正常 |
-| 安全性验证 | ✅ 通过 | 错误处理、令牌验证正常 |
-| 性能和监控验证 | ⚠️ 部分通过 | Prometheus 正常，需要优化慢查询 |
+| 基础设施验证 | [+] 通过 | 所有容器正常运行 |
+| 数据库初始化验证 | [+] 通过 | 7 张表，管理员账号已创建 |
+| 后端 API 验证 | [+] 通过 | 令牌端点、内省、撤销功能正常 |
+| 管理后台 API 验证 | [+] 通过 | 用户、客户端、Scope 管理正常 |
+| 前端功能验证 | [+] 通过 | 用户登录、注册、个人资料功能正常 |
+| 安全性验证 | [+] 通过 | 错误处理、令牌验证正常 |
+| 性能和监控验证 | [!] 部分通过 | Prometheus 正常，需要优化慢查询 |
 
 ### 发现的问题
 
@@ -944,12 +944,12 @@ if ($passed -eq $total) {
 
 本验证清单涵盖了 authforge 系统的所有核心功能：
 
-✅ **基础设施**：Docker 容器、网络、存储卷  
-✅ **数据层**：PostgreSQL 数据库、Redis 缓存  
-✅ **业务层**：OAuth2 核心流程、管理后台 API  
-✅ **表现层**：Vue.js 用户前端、管理后台  
-✅ **安全性**：认证、授权、令牌管理  
-✅ **可观测性**：日志、指标、健康检查  
+[+] **基础设施**：Docker 容器、网络、存储卷  
+[+] **数据层**：PostgreSQL 数据库、Redis 缓存  
+[+] **业务层**：OAuth2 核心流程、管理后台 API  
+[+] **表现层**：Vue.js 用户前端、管理后台  
+[+] **安全性**：认证、授权、令牌管理  
+[+] **可观测性**：日志、指标、健康检查  
 
 **验证通过标准**：
 - 所有容器状态为 `Up`
