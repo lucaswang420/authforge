@@ -3,6 +3,7 @@
 #include <oauth2/models/Roles.h>
 #include <oauth2/models/UserRoles.h>
 #include <oauth2/utils/PasswordHasher.h>
+#include <oauth2/utils/EmailNormalizer.h>
 #include <drogon/utils/Utilities.h>
 #include <algorithm>
 
@@ -194,7 +195,7 @@ void AuthService::registerUser(
     newUser.setPasswordHash(passwordHash);
     newUser.setSalt(salt);
     if (!email.empty())
-        newUser.setEmail(email);
+        newUser.setEmail(oauth2::utils::normalizeEmail(email));
 
     try
     {

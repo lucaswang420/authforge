@@ -40,6 +40,7 @@ class RuleSet
     static std::vector<std::string> oauth2Authorize(const drogon::HttpRequestPtr &req);
     static std::vector<std::string> oauth2Token(const drogon::HttpRequestPtr &req);
     static std::vector<std::string> login(const drogon::HttpRequestPtr &req);
+    static std::vector<std::string> registerUser(const drogon::HttpRequestPtr &req);
     static std::vector<std::string> oauth2Introspect(const drogon::HttpRequestPtr &req);
     static std::vector<std::string> oauth2Revoke(const drogon::HttpRequestPtr &req);
 

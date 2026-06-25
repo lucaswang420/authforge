@@ -766,10 +766,9 @@ void SessionController::registerUser(
   std::function<void(const HttpResponsePtr &)> &&callback
 )
 {
-    auto errors = oauth2::validation::RuleSet::login(req);
+    auto errors = oauth2::validation::RuleSet::registerUser(req);
     if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
         return;
-
     auto params = req->getParameters();
     std::string username = params["username"];
     std::string password = params["password"];

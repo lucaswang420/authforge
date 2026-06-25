@@ -43,7 +43,7 @@ const std::vector<typename Users::MetaData> Users::metaData_={
 {"username","std::string","character varying",50,0,0,1},
 {"password_hash","std::string","character varying",256,0,0,1},
 {"salt","std::string","character varying",36,0,0,1},
-{"email","std::string","character varying",100,0,0,0},
+{"email","std::string","character varying",254,0,0,0},
 {"created_at","::trantor::Date","timestamp without time zone",0,0,0,0},
 {"public_sub","std::string","uuid",0,0,0,1},
 {"email_verified","bool","boolean",1,0,0,0},
@@ -2526,11 +2526,11 @@ bool Users::validJsonOfField(size_t index,
                 return false;
             }
             if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
-                .from_bytes(pJson.asCString()).size() > 100)
+                .from_bytes(pJson.asCString()).size() > 254)
             {
                 err="String length exceeds limit for the " +
                     fieldName +
-                    " field (the maximum value is 100)";
+                    " field (the maximum value is 254)";
                 return false;
             }
             break;

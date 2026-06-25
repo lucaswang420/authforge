@@ -27,6 +27,14 @@ inline const char *GRANT_TYPE_PATTERN = "^[a-zA-Z0-9_]+$";
 inline const char *USERNAME_PATTERN = "^[a-zA-Z0-9_]{1,100}$";
 inline const char *PASSWORD_PATTERN = "^[a-zA-Z0-9!@#$%^&*()_+]{8,200}$";
 
+// W3C HTML5 email pattern (RFC 5322 compatible subset). Permissive by design:
+// accepts plus-addressing (user+tag@), subdomains, long TLDs.
+inline const char *EMAIL_PATTERN =
+  "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]"
+  "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+  "(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+inline const size_t EMAIL_MAX_LEN = 254;  // RFC 5321 limit
+
 enum class RuleType
 {
     NotEmpty,

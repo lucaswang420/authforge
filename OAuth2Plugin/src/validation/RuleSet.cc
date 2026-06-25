@@ -432,6 +432,79 @@ std::vector<std::string> RuleSet::login(const drogon::HttpRequestPtr &req)
     return errors;
 }
 
+std::vector<std::string> RuleSet::registerUser(const drogon::HttpRequestPtr &req)
+{
+    std::vector<std::string> errors;
+
+    std::string username, password, email;
+
+    if (req->contentType() == drogon::CT_APPLICATION_JSON)
+    {
+        auto json = req->getJsonObject();
+        if (json)
+        {
+            username = json->get("username", "").asString();
+            password = json->get("password", "").asString();
+            email = json->get("email", "").asString();
+        }
+    }
+    else
+    {
+        auto params = req->getParameters();
+        username = params["username"];
+        password = params["password"];
+        email = params["email"];
+    }
+
+    // 验证 username
+    if (username.empty())
+    {
+        errors.push_back("username is required");
+    }
+    else if (username.length() > 100)
+    {
+        errors.push_back("username exceeds maximum length of 100 characters");
+    }
+
+    // 验证 password
+    if (password.empty())
+    {
+        errors.push_back("password is required");
+    }
+    else if (password.length() > 200)
+    {
+        errors.push_back("password exceeds maximum length of 200 characters");
+    }
+
+    // 验证 email（可选字段：非空时才校验格式与长度）
+    if (!email.empty())
+    {
+        if (email.length() > EMAIL_MAX_LEN)
+        {
+            errors.push_back(
+              "email exceeds maximum length of " + std::to_string(EMAIL_MAX_LEN) + " characters"
+            );
+        }
+        else
+        {
+            try
+            {
+                std::regex re(EMAIL_PATTERN);
+                if (!std::regex_match(email, re))
+                {
+                    errors.push_back("email format is invalid");
+                }
+            }
+            catch (const std::regex_error &)
+            {
+                // 正则编译失败不应阻塞请求，降级为仅长度校验
+            }
+        }
+    }
+
+    return errors;
+}
+
 // ========== P1: Token Introspection & Revocation Validation ==========
 
 std::vector<std::string> RuleSet::oauth2Introspect(const drogon::HttpRequestPtr &req)
