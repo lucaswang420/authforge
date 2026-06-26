@@ -7,6 +7,9 @@
       "Bash",
       "Glob",
       "Grep"
+    ],
+    "deny": [
+      "Read(./.env*)"
     ]
   },
   "hooks": {
