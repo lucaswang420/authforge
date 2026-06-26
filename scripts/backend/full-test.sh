@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # full-test.sh - One-click build + unit test + API test cycle (Linux/macOS)
+#
+# Prerequisites (one-time, must be done before the first run).
+# build.sh does NOT use Conan on Linux/macOS — it links against system packages,
+# so drogon and the -dev libs must be installed globally first, and the database
+# account / services must be up. Otherwise Step 2 (drogon_ctl missing) or
+# Step 3 (Could NOT find Drogon/Jsoncpp) will fail.
+#
+#   # 一次性前置(Linux 为例)
+#   ./manage.sh build-backend --install-deps      # apt 装 jsoncpp/libpq/hiredis...
+#   ./manage.sh build-backend --build-drogon      # 源码编译安装 drogon + drogon_ctl 到系统
+#   export OAUTH2_DB_USER=postgres                # 对齐你的 PG 账号(或创建 oauth2_user)
+#   export OAUTH2_DB_PASSWORD=<你的密码>
+#   # 确保 PostgreSQL + Redis 服务在运行
+#   # 之后才能:
+#   ./manage.sh full-test -debug
 set -euo pipefail
 
 source "$(dirname "$0")/env_common.sh"
