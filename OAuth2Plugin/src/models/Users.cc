@@ -40,7 +40,7 @@ const std::string Users::tableName = "\"users\"";
 
 const std::vector<typename Users::MetaData> Users::metaData_={
 {"id","int32_t","integer",4,1,1,1},
-{"username","std::string","character varying",50,0,0,1},
+{"username","std::string","character varying",100,0,0,0},
 {"password_hash","std::string","character varying",256,0,0,1},
 {"salt","std::string","character varying",36,0,0,1},
 {"email","std::string","character varying",254,0,0,0},
@@ -867,6 +867,11 @@ void Users::setUsername(const std::string &pUsername) noexcept
 void Users::setUsername(std::string &&pUsername) noexcept
 {
     username_ = std::make_shared<std::string>(std::move(pUsername));
+    dirtyFlag_[1] = true;
+}
+void Users::setUsernameToNull() noexcept
+{
+    username_.reset();
     dirtyFlag_[1] = true;
 }
 
@@ -2013,11 +2018,6 @@ bool Users::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(1, "username", pJson["username"], err, true))
             return false;
     }
-    else
-    {
-        err="The username column cannot be null";
-        return false;
-    }
     if(pJson.isMember("password_hash"))
     {
         if(!validJsonOfField(2, "password_hash", pJson["password_hash"], err, true))
@@ -2120,11 +2120,6 @@ bool Users::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(1, pMasqueradingVector[1], pJson[pMasqueradingVector[1]], err, true))
                   return false;
           }
-        else
-        {
-            err="The " + pMasqueradingVector[1] + " column cannot be null";
-            return false;
-        }
       }
       if(!pMasqueradingVector[2].empty())
       {
@@ -2458,8 +2453,7 @@ bool Users::validJsonOfField(size_t index,
         case 1:
             if(pJson.isNull())
             {
-                err="The " + fieldName + " column cannot be null";
-                return false;
+                return true;
             }
             if(!pJson.isString())
             {
@@ -2467,11 +2461,11 @@ bool Users::validJsonOfField(size_t index,
                 return false;
             }
             if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
-                .from_bytes(pJson.asCString()).size() > 50)
+                .from_bytes(pJson.asCString()).size() > 100)
             {
                 err="String length exceeds limit for the " +
                     fieldName +
-                    " field (the maximum value is 50)";
+                    " field (the maximum value is 100)";
                 return false;
             }
             break;

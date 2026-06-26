@@ -132,6 +132,7 @@ class Users
     ///Set the value of the column username
     void setUsername(const std::string &pUsername) noexcept;
     void setUsername(std::string &&pUsername) noexcept;
+    void setUsernameToNull() noexcept;
 
     /**  For column password_hash  */
     ///Get the value of the column password_hash, returns the default value if the column is null
