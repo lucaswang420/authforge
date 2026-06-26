@@ -1,21 +1,6 @@
-// settings.local.json - 个性化配置示例
-// 复制此文件为 settings.local.json 并根据你的系统修改路径
-// 此文件已加入 .gitignore，不会被提交到版本控制
-
 {
-    // 如果你的 Drogon 安装路径不同，在这里覆盖
-    // "cmake.sourceDirectory": "${workspaceFolder}/OAuth2Backend",
-
-    // 如果需要自定义 Conan 路径，取消注释并修改
-    // "C_Cpp.default.includePath": [
-    //     "${workspaceFolder}/**",
-    //     "C:/your/custom/path/to/drogon/include",
-    //     "C:/your/custom/path/to/conan/packages"
-    // ],
-
-    // 如果使用不同的 PostgreSQL 版本
-    // "C_Cpp.default.includePath": [
-    //     "C:/Program Files/PostgreSQL/14/include",
-    //     "C:/Program Files/PostgreSQL/14/include/server"
-    // ]
+  "_comment": "Copy this file to settings.local.json and customize for your system",
+  "_comment_drogon": "If your Drogon installation path differs, override C_Cpp.default.includePath here",
+  "_comment_postgresql": "If using a different PostgreSQL version, adjust paths accordingly",
+  "_comment_ignore": "settings.local.json is in .gitignore and will not be committed"
 }
