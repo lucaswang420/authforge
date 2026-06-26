@@ -32,13 +32,13 @@ async function handleLogin() {
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Username</label>
+          <label class="block text-sm font-medium text-gray-700">Email or Username</label>
           <input
             v-model="username"
             type="text"
             required
             class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-            placeholder="admin"
+            placeholder="admin or admin@example.com"
           />
         </div>
 

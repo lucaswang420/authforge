@@ -58,13 +58,13 @@ async function handleRegister() {
 
         <form v-if="!success" @submit.prevent="handleRegister" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <input v-model="username" type="text" required autocomplete="username"
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input v-model="email" type="email" required autocomplete="email"
               class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input v-model="email" type="email" required autocomplete="email"
+            <label class="block text-sm font-medium text-gray-700 mb-1">Username <span class="text-gray-400 font-normal">(optional)</span></label>
+            <input v-model="username" type="text" autocomplete="username"
               class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
           <div>
