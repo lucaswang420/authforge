@@ -5,8 +5,8 @@
 #include <string>
 
 using oauth2::utils::normalizeEmail;
-using oauth2::validation::EMAIL_PATTERN;
 using oauth2::validation::EMAIL_MAX_LEN;
+using oauth2::validation::EMAIL_PATTERN;
 
 // Helper: check whether an address passes the W3C HTML5 email regex.
 static bool matchesEmailPattern(const std::string &email)
@@ -39,12 +39,12 @@ DROGON_TEST(Unit_P0_Validation_Email_Pattern_AcceptsValid)
 
 DROGON_TEST(Unit_P0_Validation_Email_Pattern_RejectsInvalid)
 {
-    CHECK(!matchesEmailPattern("plainaddress"));     // no @
-    CHECK(!matchesEmailPattern("@no-local.com"));    // no local part
-    CHECK(!matchesEmailPattern("user@.com"));        // domain starts with dot
-    CHECK(!matchesEmailPattern("user@domain..com")); // consecutive dots in domain
-    CHECK(!matchesEmailPattern("user name@x.com"));  // embedded space
-    CHECK(!matchesEmailPattern("user@"));            // no domain
+    CHECK(!matchesEmailPattern("plainaddress"));      // no @
+    CHECK(!matchesEmailPattern("@no-local.com"));     // no local part
+    CHECK(!matchesEmailPattern("user@.com"));         // domain starts with dot
+    CHECK(!matchesEmailPattern("user@domain..com"));  // consecutive dots in domain
+    CHECK(!matchesEmailPattern("user name@x.com"));   // embedded space
+    CHECK(!matchesEmailPattern("user@"));             // no domain
 }
 
 // ========== EMAIL_PATTERN: length guard constant ==========
