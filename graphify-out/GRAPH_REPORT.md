@@ -1,45 +1,46 @@
-# Graph Report - .  (2026-06-02)
+# Graph Report - .  (2026-06-26)
 
 ## Corpus Check
-- Large corpus: 396 files ¡¤ ~410,738 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+- 321 files Â· ~458,626 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8338 nodes ¡¤ 21280 edges ¡¤ 181 communities detected
-- Extraction: 86% EXTRACTED ¡¤ 14% INFERRED ¡¤ 0% AMBIGUOUS ¡¤ INFERRED: 3069 edges (avg confidence: 0.8)
-- Token cost: 0 input ¡¤ 0 output
+- 8362 nodes Â· 21316 edges Â· 186 communities detected
+- Extraction: 86% EXTRACTED Â· 14% INFERRED Â· 0% AMBIGUOUS Â· INFERRED: 3084 edges (avg confidence: 0.8)
+- Token cost: 0 input Â· 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Swagger UI Bundle|Swagger UI Bundle]]
-- [[_COMMUNITY_Swagger UI ES Bundle|Swagger UI ES Bundle]]
-- [[_COMMUNITY_Swagger UI Core|Swagger UI Core]]
-- [[_COMMUNITY_Admin REST API|Admin REST API]]
-- [[_COMMUNITY_Swagger UI ES Core|Swagger UI ES Core]]
-- [[_COMMUNITY_Redis Storage Layer|Redis Storage Layer]]
-- [[_COMMUNITY_Swagger UI Models|Swagger UI Models]]
-- [[_COMMUNITY_Endpoint Extraction Tools|Endpoint Extraction Tools]]
-- [[_COMMUNITY_RBAC Models|RBAC Models]]
-- [[_COMMUNITY_Admin Frontend Services|Admin Frontend Services]]
-- [[_COMMUNITY_OAuth2 ORM Models|OAuth2 ORM Models]]
-- [[_COMMUNITY_Project Documentation|Project Documentation]]
-- [[_COMMUNITY_Production Hardening|Production Hardening]]
-- [[_COMMUNITY_Audit Logging & OpenAPI|Audit Logging & OpenAPI]]
-- [[_COMMUNITY_Common Utilities Design|Common Utilities Design]]
-- [[_COMMUNITY_API Media Types|API Media Types]]
-- [[_COMMUNITY_Organizations Model|Organizations Model]]
-- [[_COMMUNITY_Token Tree Parser|Token Tree Parser]]
-- [[_COMMUNITY_Emoji Manager Script|Emoji Manager Script]]
-- [[_COMMUNITY_PowerShell Test Scripts|PowerShell Test Scripts]]
-- [[_COMMUNITY_Test Utilities|Test Utilities]]
-- [[_COMMUNITY_OAuth2 Metrics|OAuth2 Metrics]]
-- [[_COMMUNITY_HTML Renderer|HTML Renderer]]
-- [[_COMMUNITY_SubRange Utility|SubRange Utility]]
-- [[_COMMUNITY_SubRange Utility B|SubRange Utility B]]
-- [[_COMMUNITY_HTML Renderer B|HTML Renderer B]]
-- [[_COMMUNITY_Social Link Icons|Social Link Icons]]
-- [[_COMMUNITY_TypeScript Vite Assets|TypeScript Vite Assets]]
-- [[_COMMUNITY_Concurrency Race Tests|Concurrency Race Tests]]
-- [[_COMMUNITY_Postgres Test Scripts|Postgres Test Scripts]]
-- [[_COMMUNITY_Admin Console Design|Admin Console Design]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 31|Community 31]]
 - [[_COMMUNITY_Community 32|Community 32]]
 - [[_COMMUNITY_Community 33|Community 33]]
@@ -190,6 +191,11 @@
 - [[_COMMUNITY_Community 178|Community 178]]
 - [[_COMMUNITY_Community 179|Community 179]]
 - [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `createElement()` - 485 edges
@@ -205,156 +211,156 @@
 
 ## Surprising Connections (you probably didn't know these)
 - `WeChatController (WeChat Open Platform Login)` --semantically_similar_to--> `GoogleController (Google OAuth Login)`  [INFERRED] [semantically similar]
-  CLAUDE.md ¡ú docs/backend/google-guide.md
-- `Refactor Baseline OpenAPI Full Signature` --semantically_similar_to--> `Route Manifest (Golden)`  [INFERRED] [semantically similar]
-  tools/refactor-baseline/endpoints/openapi.signature.txt ¡ú OAuth2Server/test/integration/error/golden/route_manifest.txt
+  CLAUDE.md â†’ docs/backend/google-guide.md
+- `Route Manifest (Golden)` --semantically_similar_to--> `Refactor Baseline OpenAPI Full Signature`  [INFERRED] [semantically similar]
+  OAuth2Server/test/integration/error/golden/route_manifest.txt â†’ tools/refactor-baseline/endpoints/openapi.signature.txt
 - `createErrorType()` --calls--> `create()`  [INFERRED]
-  docs\backend\api\swagger-ui\swagger-ui-es-bundle-core.js ¡ú OAuth2Server\controllers\OrganizationController.cc
-- `components_Logo()` --calls--> `createElement()`  [INFERRED]
-  docs\backend\api\swagger-ui\swagger-ui-standalone-preset.js ¡ú docs\backend\api\swagger-ui\swagger-ui-es-bundle.js
-- `fallback()` --calls--> `createElement()`  [INFERRED]
-  docs\backend\api\swagger-ui\swagger-ui-standalone-preset.js ¡ú docs\backend\api\swagger-ui\swagger-ui-es-bundle.js
+  docs\backend\api\swagger-ui\swagger-ui-es-bundle-core.js â†’ OAuth2Server\controllers\OrganizationController.cc
+- `H()` --calls--> `shallowEqualKeys()`  [INFERRED]
+  docs\backend\api\swagger-ui\swagger-ui-es-bundle.js â†’ docs\backend\api\swagger-ui\swagger-ui.js
+- `I()` --calls--> `SafeBuffer()`  [INFERRED]
+  docs\backend\api\swagger-ui\swagger-ui-es-bundle.js â†’ docs\backend\api\swagger-ui\swagger-ui-standalone-preset.js
 
 ## Hyperedges (group relationships)
-- **OAuth2 Authorization Code Flow End-to-End** ¡ª  [EXTRACTED 1.00]
-- **Storage Backend Implementations for IOAuth2Storage** ¡ª  [EXTRACTED 1.00]
-- **Production Deployment Stack** ¡ª  [EXTRACTED 1.00]
-- **OAuth2 Security Compliance Feature Set** ¡ª  [EXTRACTED]
-- **Common Utilities Refactoring Components** ¡ª  [EXTRACTED]
-- **Multi-Platform CI/CD Pipeline** ¡ª  [EXTRACTED]
-- **Production Hardening P0-P2 Phased Implementation** ¡ª prd_prod_hardening_spec, prd_prod_hardening_p0, prd_prod_hardening_p1, prd_prod_hardening_p2, prd_progress [EXTRACTED 1.00]
-- **Concurrency Lifetime Safety Audit: Data-Race to Use-After-Free Defect Chain** ¡ª category_b_tsan_findings, category_c_asan_findings, concept_data_race_defect_14, concept_uaf_defect_18, concept_deferring_storage [EXTRACTED 1.00]
-- **CMake Build Dependency Chain: Plugin -> Server -> Tests** ¡ª oauth2plugin_cmake, oauth2server_cmake, oauth2server_test_cmake, concept_cmake_self_contained_bootstrap [EXTRACTED 1.00]
+- **OAuth2 Authorization Code Flow End-to-End** â€”  [EXTRACTED 1.00]
+- **Storage Backend Implementations for IOAuth2Storage** â€”  [EXTRACTED 1.00]
+- **Production Deployment Stack** â€”  [EXTRACTED 1.00]
+- **OAuth2 Security Compliance Feature Set** â€”  [EXTRACTED]
+- **Common Utilities Refactoring Components** â€”  [EXTRACTED]
+- **Multi-Platform CI/CD Pipeline** â€”  [EXTRACTED]
+- **Production Hardening P0-P2 Phased Implementation** â€” prd_prod_hardening_spec, prd_prod_hardening_p0, prd_prod_hardening_p1, prd_prod_hardening_p2, prd_progress [EXTRACTED 1.00]
+- **Concurrency Lifetime Safety Audit: Data-Race to Use-After-Free Defect Chain** â€” category_b_tsan_findings, category_c_asan_findings, concept_data_race_defect_14, concept_uaf_defect_18, concept_deferring_storage [EXTRACTED 1.00]
+- **CMake Build Dependency Chain: Plugin -> Server -> Tests** â€” oauth2plugin_cmake, oauth2server_cmake, oauth2server_test_cmake, concept_cmake_self_contained_bootstrap [EXTRACTED 1.00]
 
 ## Communities
 
-### Community 0 - "Swagger UI Bundle"
+### Community 0 - "Community 0"
 Cohesion: 0.0
-Nodes (1322): _7bit(), _8bit(), $a(), ab(), absoluteify(), absolutifyPointer(), ac(), Accordion() (+1314 more)
+Nodes (1333): _7bit(), _8bit(), $a(), ab(), absoluteify(), absolutifyPointer(), ac(), Accordion() (+1325 more)
 
-### Community 1 - "Swagger UI ES Bundle"
+### Community 1 - "Community 1"
 Cohesion: 0.0
-Nodes (1277): redirectToLogin(), parseInt(), main(), buildFormData(), format(), bytes(), callbacks(), decodeRefName() (+1269 more)
+Nodes (1280): redirectToLogin(), parseInt(), clearTokens(), redirectToLogin(), setTokens(), tryRestoreSession(), main(), revokeRefreshToken() (+1272 more)
 
-### Community 2 - "Swagger UI Core"
+### Community 2 - "Community 2"
+Cohesion: 0.0
+Nodes (463): _7bit(), _8bit(), Accordion(), actions_show(), allowTryItOutFor(), api_formatAPI(), ApiKeyAuth, array() (+455 more)
+
+### Community 3 - "Community 3"
 Cohesion: 0.01
-Nodes (443): Accordion(), actions_show(), allowTryItOutFor(), api_formatAPI(), ApiKeyAuth, ArrayModel, Arrow(), ArrowDown() (+435 more)
+Nodes (624): assignUserRoles(), createClient(), createRole(), createScope(), dashboard(), deleteClient(), deleteRole(), deleteScope() (+616 more)
 
-### Community 3 - "Admin REST API"
+### Community 4 - "Community 4"
 Cohesion: 0.01
-Nodes (614): assignUserRoles(), createClient(), createRole(), createScope(), dashboard(), deleteClient(), deleteRole(), deleteScope() (+606 more)
+Nodes (338): N(), B(), Accordion(), actions_show(), add(), addChunk(), _addListener(), afterWrite() (+330 more)
 
-### Community 4 - "Swagger UI ES Core"
+### Community 5 - "Community 5"
 Cohesion: 0.01
-Nodes (346): _7bit(), B(), Accordion(), actions_show(), add(), addChunk(), _addListener(), afterWrite() (+338 more)
+Nodes (83): oauth2(), Annotation, App, auth_item_Auths, AuthError, BaseLayout, clone(), _cloneRegExp() (+75 more)
 
-### Community 5 - "Redis Storage Layer"
+### Community 6 - "Community 6"
 Cohesion: 0.01
-Nodes (86): oauth2(), Annotation, ArrayModel, AuthError, BaseLayout, clone(), _cloneRegExp(), Components (+78 more)
+Nodes (67): Annotation, BaseLayout, clone(), _cloneRegExp(), Components, Contact, ContextTree, createNode() (+59 more)
 
-### Community 6 - "Swagger UI Models"
+### Community 7 - "Community 7"
 Cohesion: 0.01
-Nodes (78): Annotation, ArrayModel, BaseLayout, clone(), _cloneRegExp(), Components, Contact, contact_Contact (+70 more)
+Nodes (244): extract_ps1_endpoints(), extract_sh_endpoints(), main(), normalize_endpoint(), Strip base URL and query params, normalize path variables., Extract endpoint x method pairs from a .ps1 file., Extract endpoint x method pairs from a .sh file., init() (+236 more)
 
-### Community 7 - "Endpoint Extraction Tools"
-Cohesion: 0.01
-Nodes (258): extract_ps1_endpoints(), extract_sh_endpoints(), main(), normalize_endpoint(), Strip base URL and query params, normalize path variables., Extract endpoint x method pairs from a .ps1 file., Extract endpoint x method pairs from a .sh file., init() (+250 more)
-
-### Community 8 - "RBAC Models"
+### Community 8 - "Community 8"
 Cohesion: 0.03
 Nodes (134): registerUser(), getRole(), outputArgs(), Permissions(), setCreatedAt(), setCreatedAtToNull(), setDescription(), setDescriptionToNull() (+126 more)
 
-### Community 9 - "Admin Frontend Services"
+### Community 9 - "Community 9"
 Cohesion: 0.04
-Nodes (75): copyToClipboard(), fetchAllScopes(), fetchClient(), resetSecret(), saveChanges(), saveScopes(), showError(), showSuccess() (+67 more)
+Nodes (111): getAccessTokens(), getAuthCodes(), getOrganizations(), getRefreshTokens(), Oauth2Clients(), outputArgs(), setAllowedGrantTypes(), setAllowedGrantTypesToNull() (+103 more)
 
-### Community 10 - "OAuth2 ORM Models"
-Cohesion: 0.05
-Nodes (83): getAccessTokens(), getAuthCodes(), getOrganizations(), getRefreshTokens(), Oauth2Clients(), outputArgs(), setAllowedGrantTypes(), setAllowedGrantTypesToNull() (+75 more)
-
-### Community 11 - "Project Documentation"
+### Community 10 - "Community 10"
 Cohesion: 0.06
 Nodes (62): Project Changelog and Release History, Claude Code Project Specification (CLAUDE.md), Root CMakeLists Build Configuration, Project README and Architecture Overview, Drogon OAuth2 Technical Specifications, OAuth2 API Endpoint Reference, OAuth2 System Architecture Overview, CI/CD Pipeline Guide (GitHub Actions) (+54 more)
 
-### Community 12 - "Production Hardening"
+### Community 11 - "Community 11"
 Cohesion: 0.04
 Nodes (60): Category B TSan Data-Race Findings, Category C ASan Use-After-Free Findings, Account Lockout with Exponential Backoff, Admin REST API (P1-7), Argon2id Password Hashing (P0-2), Structured Audit Logging (P1-6), Auth Code Atomic Consumption and Transactional Token Issuance (P0-4), AuthorizationFilter Default Deny (+52 more)
 
-### Community 13 - "Audit Logging & OpenAPI"
+### Community 12 - "Community 12"
+Cohesion: 0.1
+Nodes (38): _diff(), _format_field_diff(), _format_row(), _index(), _main(), Identity key for a baseline record: (METHOD, PATH)., report(), _row_key() (+30 more)
+
+### Community 13 - "Community 13"
 Cohesion: 0.07
 Nodes (5): log(), deprecated(), SpecMap, deprecated(), SpecMap
 
-### Community 14 - "Common Utilities Design"
+### Community 14 - "Community 14"
+Cohesion: 0.09
+Nodes (9): encoderAPI(), api_formatAPI(), encoderAPI(), mediaTypeAPI(), Namespace, objMap(), objReduce(), Store (+1 more)
+
+### Community 15 - "Community 15"
 Cohesion: 0.07
 Nodes (36): Common Utilities Refactoring Design, ConfigManager Component, ErrorHandler Component, OpenApiGenerator Component, Validator Component, Common Utilities Implementation Plan, OAuth2 Frontend Design, Vue 3 SPA Frontend Architecture (+28 more)
 
-### Community 15 - "API Media Types"
+### Community 16 - "Community 16"
 Cohesion: 0.1
 Nodes (5): api_formatAPI(), encoderAPI(), mediaTypeAPI(), Namespace, Store
 
-### Community 16 - "Organizations Model"
-Cohesion: 0.14
-Nodes (28): Organizations(), outputArgs(), setCreatedAt(), setCreatedAtToNull(), setId(), setIssuerOverride(), setIssuerOverrideToNull(), setLogoUri() (+20 more)
+### Community 17 - "Community 17"
+Cohesion: 0.13
+Nodes (5): FakeStorage, RawPtrService, objMap(), objReduce(), Store
 
-### Community 17 - "Token Tree Parser"
-Cohesion: 0.15
-Nodes (2): TokenTree, TokenTreeEmitter
+### Community 18 - "Community 18"
+Cohesion: 0.19
+Nodes (19): copyToClipboard(), fetchAllScopes(), fetchClient(), resetSecret(), saveChanges(), saveScopes(), showError(), showSuccess() (+11 more)
 
-### Community 18 - "Emoji Manager Script"
+### Community 19 - "Community 19"
+Cohesion: 0.12
+Nodes (17): categoryName(), cleanCell(), DROGON_TEST(), readFile(), sliceBetween(), splitRow(), tableLines(), trim() (+9 more)
+
+### Community 20 - "Community 20"
 Cohesion: 0.17
 Nodes (17): clean_emoji_from_file(), clean_mode(), get_project_files(), has_cleanable_emoji(), has_emoji(), main(), Clean emoji from a single file., Get all project files to scan/clean. (+9 more)
 
-### Community 19 - "PowerShell Test Scripts"
+### Community 21 - "Community 21"
 Cohesion: 0.37
 Nodes (13): Invoke-All(), Invoke-Ctest(), Invoke-Endpoints(), Invoke-Playwright(), Invoke-Selftest(), Invoke-Setup(), Invoke-Verify(), Resolve-Cfg() (+5 more)
 
-### Community 20 - "Test Utilities"
-Cohesion: 0.29
-Nodes (11): categoryName(), cleanCell(), DROGON_TEST(), readFile(), sliceBetween(), splitRow(), tableLines(), trim() (+3 more)
+### Community 22 - "Community 22"
+Cohesion: 0.2
+Nodes (3): mockApiError(), mockNetworkError(), overrideRoute()
 
-### Community 21 - "OAuth2 Metrics"
+### Community 23 - "Community 23"
 Cohesion: 0.22
 Nodes (2): observeLatency(), ~OperationTimer()
 
-### Community 22 - "HTML Renderer"
+### Community 24 - "Community 24"
 Cohesion: 0.28
 Nodes (3): emitsWrappingTags(), escapeHTML(), HTMLRenderer
 
-### Community 23 - "SubRange Utility"
+### Community 25 - "Community 25"
+Cohesion: 0.28
+Nodes (3): emitsWrappingTags(), escapeHTML(), HTMLRenderer
+
+### Community 26 - "Community 26"
+Cohesion: 0.39
+Nodes (4): Get-PostgresContainer(), Invoke-PsqlQuery(), Reset-AdminAccount(), Reset-AdminLockout()
+
+### Community 27 - "Community 27"
 Cohesion: 0.29
 Nodes (1): SubRange
 
-### Community 24 - "SubRange Utility B"
-Cohesion: 0.29
-Nodes (1): SubRange
-
-### Community 25 - "HTML Renderer B"
-Cohesion: 0.38
-Nodes (2): emitsWrappingTags(), HTMLRenderer
-
-### Community 26 - "Social Link Icons"
+### Community 28 - "Community 28"
 Cohesion: 0.29
 Nodes (7): BlueSky Icon, Discord Icon, Documentation Icon, GitHub Icon, Social/Community Icon, X (Twitter) Icon, Social/Link Icon Sprite Sheet
 
-### Community 27 - "TypeScript Vite Assets"
+### Community 29 - "Community 29"
 Cohesion: 0.4
 Nodes (6): TypeScript Language, Vite Build Tool, OAuth2Admin Favicon (Vite Lightning Bolt), OAuth2Admin Hero Illustration, TypeScript Logo, Vite Logo
 
-### Community 28 - "Concurrency Race Tests"
-Cohesion: 0.4
-Nodes (1): ModelCollapse
-
-### Community 29 - "Postgres Test Scripts"
-Cohesion: 0.8
-Nodes (4): Get-PostgresContainer(), Invoke-PsqlQuery(), Reset-AdminAccount(), Reset-AdminLockout()
-
-### Community 30 - "Admin Console Design"
+### Community 30 - "Community 30"
 Cohesion: 0.4
 Nodes (5): OAuth2 Frontend Implementation Plan, OAuth2 Admin Console, Admin Console Design Document, Admin Console Phase 5 Design, OAuth2 Frontend SPA Design Document
 
 ### Community 31 - "Community 31"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): drogon(), drogon_model()
 
 ### Community 32 - "Community 32"
 Cohesion: 0.67
@@ -401,16 +407,16 @@ Cohesion: 0.67
 Nodes (2): drogon(), drogon_model()
 
 ### Community 43 - "Community 43"
-Cohesion: 0.67
-Nodes (2): drogon(), drogon_model()
-
-### Community 44 - "Community 44"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 45 - "Community 45"
+### Community 44 - "Community 44"
 Cohesion: 0.5
 Nodes (4): Multi-Platform CI/CD Design, Matrix Strategy (Linux/Windows/macOS), Multi-Platform CI/CD Implementation Plan, Multi-Platform CI Validation Report
+
+### Community 45 - "Community 45"
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 46 - "Community 46"
 Cohesion: 0.67
@@ -421,28 +427,28 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 48 - "Community 48"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 49 - "Community 49"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 50 - "Community 50"
 Cohesion: 1.0
 Nodes (2): main(), migrate_file()
 
-### Community 51 - "Community 51"
+### Community 49 - "Community 49"
 Cohesion: 0.67
 Nodes (3): Skills Modernization Migration Guide, Project Skills Modernization Design, Project Skills Modernization Plan
 
-### Community 52 - "Community 52"
+### Community 50 - "Community 50"
 Cohesion: 0.67
 Nodes (3): Refactor Baseline Windows CTest, Refactor Baseline Admin Playwright Tests, Refactor Baseline Frontend Playwright Tests
 
-### Community 53 - "Community 53"
+### Community 51 - "Community 51"
 Cohesion: 1.0
 Nodes (3): Swagger / OpenAPI, Swagger/OpenAPI Favicon (16x16), Swagger/OpenAPI Favicon (32x32)
+
+### Community 52 - "Community 52"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 53 - "Community 53"
+Cohesion: 1.0
+Nodes (0): 
 
 ### Community 54 - "Community 54"
 Cohesion: 1.0
@@ -674,15 +680,15 @@ Nodes (0):
 
 ### Community 111 - "Community 111"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): Documentation Index and Organization, Documentation Organization Standards
 
 ### Community 112 - "Community 112"
 Cohesion: 1.0
-Nodes (2): Documentation Index and Organization, Documentation Organization Standards
+Nodes (2): TLS Termination and CSP Hardening, Security Checklist - Hardcoding Fixes
 
 ### Community 113 - "Community 113"
 Cohesion: 1.0
-Nodes (2): TLS Termination and CSP Hardening, Security Checklist - Hardcoding Fixes
+Nodes (0): 
 
 ### Community 114 - "Community 114"
 Cohesion: 1.0
@@ -938,186 +944,210 @@ Nodes (0):
 
 ### Community 177 - "Community 177"
 Cohesion: 1.0
-Nodes (1): Security Response Headers
+Nodes (0): 
 
 ### Community 178 - "Community 178"
 Cohesion: 1.0
-Nodes (1): Success Response Shapes (Golden)
+Nodes (0): 
 
 ### Community 179 - "Community 179"
 Cohesion: 1.0
-Nodes (1): Refactor Baseline OpenAPI Fixture Signature
+Nodes (0): 
 
 ### Community 180 - "Community 180"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 181 - "Community 181"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 182 - "Community 182"
+Cohesion: 1.0
+Nodes (1): Security Response Headers
+
+### Community 183 - "Community 183"
+Cohesion: 1.0
+Nodes (1): Success Response Shapes (Golden)
+
+### Community 184 - "Community 184"
+Cohesion: 1.0
+Nodes (1): Refactor Baseline OpenAPI Fixture Signature
+
+### Community 185 - "Community 185"
 Cohesion: 1.0
 Nodes (1): Frontend 6-Phase Implementation Structure
 
 ## Knowledge Gaps
 - **90 isolated node(s):** `Reference_Reference`, `EvaluationJsonSchemaUriError`, `EvaluationJsonSchema$anchorError`, `Reference_Reference`, `EvaluationJsonSchemaUriError` (+85 more)
-  These have ¡Ü1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 54`** (2 nodes): `manage.ps1`, `Show-Help()`
+  These have â‰¤1 connection - possible missing edges or undocumented components.
+- **Thin community `Community 52`** (2 nodes): `manage.ps1`, `Show-Help()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 53`** (2 nodes): `setupCounter()`, `counter.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 54`** (2 nodes): `App.vue`, `main.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 55`** (2 nodes): `App.vue`, `main.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (2 nodes): `setupCounter()`, `counter.ts`
+- **Thin community `Community 56`** (2 nodes): `loadAdminGetErrorMessage()`, `crossAppConsistency.property.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (2 nodes): `App.vue`, `main.ts`
+- **Thin community `Community 57`** (2 nodes): `common()`, `ConfigTypes.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (2 nodes): `loadAdminGetErrorMessage()`, `crossAppConsistency.property.test.ts`
+- **Thin community `Community 58`** (2 nodes): `OAuth2StandardController.h`, `controllers()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 59`** (2 nodes): `common()`, `ConfigTypes.h`
+- **Thin community `Community 59`** (2 nodes): `common()`, `ErrorCatalog.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (2 nodes): `OAuth2StandardController.h`, `controllers()`
+- **Thin community `Community 60`** (2 nodes): `common()`, `ErrorContext.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (2 nodes): `common()`, `ErrorCatalog.h`
+- **Thin community `Community 61`** (2 nodes): `common()`, `ErrorHandler.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (2 nodes): `common()`, `ErrorContext.h`
+- **Thin community `Community 62`** (2 nodes): `common()`, `ErrorResponder.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (2 nodes): `common()`, `ErrorHandler.h`
+- **Thin community `Community 63`** (2 nodes): `common()`, `ErrorTypes.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (2 nodes): `common()`, `ErrorResponder.h`
+- **Thin community `Community 64`** (2 nodes): `common()`, `OAuth2ErrorHandler.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (2 nodes): `common()`, `ErrorTypes.h`
+- **Thin community `Community 65`** (2 nodes): `RequestId.h`, `common()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (2 nodes): `common()`, `OAuth2ErrorHandler.h`
+- **Thin community `Community 66`** (2 nodes): `filters()`, `AuthorizationFilter.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (2 nodes): `RequestId.h`, `common()`
+- **Thin community `Community 67`** (2 nodes): `filters()`, `OAuth2AuthFilter.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (2 nodes): `filters()`, `AuthorizationFilter.h`
+- **Thin community `Community 68`** (2 nodes): `RequestValidationFilter.h`, `RequestValidationFilter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (2 nodes): `filters()`, `OAuth2AuthFilter.h`
+- **Thin community `Community 69`** (2 nodes): `observability()`, `AuditLogger.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (2 nodes): `RequestValidationFilter.h`, `RequestValidationFilter()`
+- **Thin community `Community 70`** (2 nodes): `observability()`, `OAuth2Metrics.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (2 nodes): `observability()`, `AuditLogger.h`
+- **Thin community `Community 71`** (2 nodes): `OpenApiGenerator.h`, `ParameterLocation()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 72`** (2 nodes): `observability()`, `OAuth2Metrics.h`
+- **Thin community `Community 72`** (2 nodes): `oauth2()`, `OAuth2CleanupService.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (2 nodes): `OpenApiGenerator.h`, `ParameterLocation()`
+- **Thin community `Community 73`** (2 nodes): `OAuth2Plugin.h`, `refreshTokenTtl_()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (2 nodes): `oauth2()`, `OAuth2CleanupService.h`
+- **Thin community `Community 74`** (2 nodes): `oauth2()`, `ClientService.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (2 nodes): `OAuth2Plugin.h`, `refreshTokenTtl_()`
+- **Thin community `Community 75`** (2 nodes): `oauth2()`, `IdentityService.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 76`** (2 nodes): `oauth2()`, `ClientService.h`
+- **Thin community `Community 76`** (2 nodes): `oauth2()`, `CachedOAuth2Storage.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 77`** (2 nodes): `oauth2()`, `IdentityService.h`
+- **Thin community `Community 77`** (2 nodes): `oauth2()`, `MemoryOAuth2Storage.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 78`** (2 nodes): `oauth2()`, `CachedOAuth2Storage.h`
+- **Thin community `Community 78`** (2 nodes): `PostgresOAuth2Storage.h`, `oauth2()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 79`** (2 nodes): `oauth2()`, `MemoryOAuth2Storage.h`
+- **Thin community `Community 79`** (2 nodes): `OAuth2Types.h`, `OAuth2Error()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 80`** (2 nodes): `PostgresOAuth2Storage.h`, `oauth2()`
+- **Thin community `Community 80`** (2 nodes): `oauth2()`, `CryptoUtils.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 81`** (2 nodes): `OAuth2Types.h`, `OAuth2Error()`
+- **Thin community `Community 81`** (2 nodes): `oauth2()`, `EmailNormalizer.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 82`** (2 nodes): `oauth2()`, `CryptoUtils.h`
+- **Thin community `Community 82`** (2 nodes): `oauth2()`, `EmailService.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 83`** (2 nodes): `oauth2()`, `EmailService.h`
+- **Thin community `Community 83`** (2 nodes): `oauth2()`, `JwkManager.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 84`** (2 nodes): `oauth2()`, `JwkManager.h`
+- **Thin community `Community 84`** (2 nodes): `SubjectGenerator.h`, `oauth2()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 85`** (2 nodes): `SubjectGenerator.h`, `oauth2()`
+- **Thin community `Community 85`** (2 nodes): `TotpUtils.h`, `oauth2()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 86`** (2 nodes): `TotpUtils.h`, `oauth2()`
+- **Thin community `Community 86`** (2 nodes): `validation()`, `HttpResponder.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 87`** (2 nodes): `validation()`, `HttpResponder.h`
+- **Thin community `Community 87`** (2 nodes): `RuleEngine.h`, `validation()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 88`** (2 nodes): `RuleEngine.h`, `validation()`
+- **Thin community `Community 88`** (2 nodes): `Rules.h`, `validation()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 89`** (2 nodes): `Rules.h`, `validation()`
+- **Thin community `Community 89`** (2 nodes): `RuleSet.h`, `validation()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 90`** (2 nodes): `RuleSet.h`, `validation()`
+- **Thin community `Community 90`** (2 nodes): `services()`, `AuthService.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 91`** (2 nodes): `services()`, `AuthService.h`
+- **Thin community `Community 91`** (2 nodes): `SchemaManager.h`, `schema()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 92`** (2 nodes): `SchemaManager.h`, `schema()`
+- **Thin community `Community 92`** (2 nodes): `AdminController()`, `AdminController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 93`** (2 nodes): `AdminController()`, `AdminController.h`
+- **Thin community `Community 93`** (2 nodes): `api()`, `ApiDocController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 94`** (2 nodes): `api()`, `ApiDocController.h`
+- **Thin community `Community 94`** (2 nodes): `ClientRegistrationController()`, `ClientRegistrationController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 95`** (2 nodes): `ClientRegistrationController()`, `ClientRegistrationController.h`
+- **Thin community `Community 95`** (2 nodes): `DeviceAuthController()`, `DeviceAuthController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 96`** (2 nodes): `DeviceAuthController()`, `DeviceAuthController.h`
+- **Thin community `Community 96`** (2 nodes): `EmailVerificationController()`, `EmailVerificationController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 97`** (2 nodes): `EmailVerificationController()`, `EmailVerificationController.h`
+- **Thin community `Community 97`** (2 nodes): `GitHubController()`, `GitHubController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 98`** (2 nodes): `GitHubController()`, `GitHubController.h`
+- **Thin community `Community 98`** (2 nodes): `GoogleController()`, `GoogleController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 99`** (2 nodes): `GoogleController()`, `GoogleController.h`
+- **Thin community `Community 99`** (2 nodes): `HealthController()`, `HealthController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 100`** (2 nodes): `HealthController()`, `HealthController.h`
+- **Thin community `Community 100`** (2 nodes): `MfaController()`, `MfaController.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 101`** (2 nodes): `MfaController()`, `MfaController.h`
+- **Thin community `Community 101`** (2 nodes): `OrganizationController.h`, `OrganizationController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 102`** (2 nodes): `OrganizationController.h`, `OrganizationController()`
+- **Thin community `Community 102`** (2 nodes): `SessionController.h`, `SessionController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 103`** (2 nodes): `SessionController.h`, `SessionController()`
+- **Thin community `Community 103`** (2 nodes): `UserSelfServiceController.h`, `UserSelfServiceController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 104`** (2 nodes): `UserSelfServiceController.h`, `UserSelfServiceController()`
+- **Thin community `Community 104`** (2 nodes): `WebAuthnController.h`, `WebAuthnController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 105`** (2 nodes): `WebAuthnController.h`, `WebAuthnController()`
+- **Thin community `Community 105`** (2 nodes): `WeChatController.h`, `WeChatController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 106`** (2 nodes): `WeChatController.h`, `WeChatController()`
+- **Thin community `Community 106`** (2 nodes): `TestBase.h`, `oauth2()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 107`** (2 nodes): `TestBase.h`, `oauth2()`
+- **Thin community `Community 107`** (2 nodes): `test_categories.h`, `TestPriority()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 108`** (2 nodes): `test_categories.h`, `TestPriority()`
+- **Thin community `Community 108`** (2 nodes): `concurrency()`, `CategoryC_DeferredStorageSupport.h`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 109`** (2 nodes): `concurrency()`, `CategoryC_DeferredStorageSupport.h`
+- **Thin community `Community 109`** (2 nodes): `Property4_PreservationSupport.h`, `concurrency()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 110`** (2 nodes): `Property4_PreservationSupport.h`, `concurrency()`
+- **Thin community `Community 110`** (2 nodes): `test-oauth2-endpoints.ps1`, `Test-Endpoint()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 111`** (2 nodes): `test-oauth2-endpoints.ps1`, `Test-Endpoint()`
+- **Thin community `Community 111`** (2 nodes): `Documentation Index and Organization`, `Documentation Organization Standards`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 112`** (2 nodes): `Documentation Index and Organization`, `Documentation Organization Standards`
+- **Thin community `Community 112`** (2 nodes): `TLS Termination and CSP Hardening`, `Security Checklist - Hardcoding Fixes`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 113`** (2 nodes): `TLS Termination and CSP Hardening`, `Security Checklist - Hardcoding Fixes`
+- **Thin community `Community 113`** (1 nodes): `swagger-initializer.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 114`** (1 nodes): `swagger-initializer.js`
+- **Thin community `Community 114`** (1 nodes): `playwright.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 115`** (1 nodes): `playwright.config.ts`
+- **Thin community `Community 115`** (1 nodes): `vite.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 116`** (1 nodes): `vite.config.ts`
+- **Thin community `Community 116`** (1 nodes): `vitest.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 117`** (1 nodes): `vitest.config.ts`
+- **Thin community `Community 117`** (1 nodes): `vite-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 118`** (1 nodes): `vite-env.d.ts`
+- **Thin community `Community 118`** (1 nodes): `AdminLayout.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 119`** (1 nodes): `AdminLayout.vue`
+- **Thin community `Community 119`** (1 nodes): `CallbackPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 120`** (1 nodes): `CallbackPage.vue`
+- **Thin community `Community 120`** (1 nodes): `LoginPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 121`** (1 nodes): `LoginPage.vue`
+- **Thin community `Community 121`** (1 nodes): `ApplicationsPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 122`** (1 nodes): `ApplicationsPage.vue`
+- **Thin community `Community 122`** (1 nodes): `DashboardPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 123`** (1 nodes): `DashboardPage.vue`
+- **Thin community `Community 123`** (1 nodes): `LogsPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 124`** (1 nodes): `LogsPage.vue`
+- **Thin community `Community 124`** (1 nodes): `RolesPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 125`** (1 nodes): `RolesPage.vue`
+- **Thin community `Community 125`** (1 nodes): `ScopesPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 126`** (1 nodes): `ScopesPage.vue`
+- **Thin community `Community 126`** (1 nodes): `SettingsPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 127`** (1 nodes): `SettingsPage.vue`
+- **Thin community `Community 127`** (1 nodes): `UsersPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 128`** (1 nodes): `UsersPage.vue`
+- **Thin community `Community 128`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 129`** (1 nodes): `index.ts`
+- **Thin community `Community 129`** (1 nodes): `zh-CN.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 130`** (1 nodes): `zh-CN.ts`
+- **Thin community `Community 130`** (1 nodes): `api-docs.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 131`** (1 nodes): `api-docs.spec.ts`
+- **Thin community `Community 131`** (1 nodes): `application-detail.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 132`** (1 nodes): `application-detail.spec.ts`
+- **Thin community `Community 132`** (1 nodes): `applications.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 133`** (1 nodes): `applications.spec.ts`
+- **Thin community `Community 133`** (1 nodes): `auth.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 134`** (1 nodes): `auth.spec.ts`
+- **Thin community `Community 134`** (1 nodes): `dashboard.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 135`** (1 nodes): `dashboard.spec.ts`
+- **Thin community `Community 135`** (1 nodes): `error-handling.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 136`** (1 nodes): `logs.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -1127,98 +1157,108 @@ Nodes (1): Frontend 6-Phase Implementation Structure
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 139`** (1 nodes): `scopes-management.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 140`** (1 nodes): `settings.spec.ts`
+- **Thin community `Community 140`** (1 nodes): `security.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 141`** (1 nodes): `user-detail.spec.ts`
+- **Thin community `Community 141`** (1 nodes): `settings.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 142`** (1 nodes): `users.spec.ts`
+- **Thin community `Community 142`** (1 nodes): `user-detail.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 143`** (1 nodes): `smoke.test.ts`
+- **Thin community `Community 143`** (1 nodes): `users.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 144`** (1 nodes): `playwright.config.ts`
+- **Thin community `Community 144`** (1 nodes): `ux.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 145`** (1 nodes): `vite.config.ts`
+- **Thin community `Community 145`** (1 nodes): `smoke.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 146`** (1 nodes): `vitest.config.ts`
+- **Thin community `Community 146`** (1 nodes): `playwright.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 147`** (1 nodes): `env.d.ts`
+- **Thin community `Community 147`** (1 nodes): `vite.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 148`** (1 nodes): `AppLogo.vue`
+- **Thin community `Community 148`** (1 nodes): `vitest.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 149`** (1 nodes): `AppAlert.vue`
+- **Thin community `Community 149`** (1 nodes): `env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 150`** (1 nodes): `AppButton.vue`
+- **Thin community `Community 150`** (1 nodes): `AppLogo.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 151`** (1 nodes): `AppInput.vue`
+- **Thin community `Community 151`** (1 nodes): `AppAlert.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 152`** (1 nodes): `AppLayout.vue`
+- **Thin community `Community 152`** (1 nodes): `AppButton.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 153`** (1 nodes): `AuthLayout.vue`
+- **Thin community `Community 153`** (1 nodes): `AppInput.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 154`** (1 nodes): `AuthorizedAppsPage.vue`
+- **Thin community `Community 154`** (1 nodes): `AppLayout.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 155`** (1 nodes): `DashboardPage.vue`
+- **Thin community `Community 155`** (1 nodes): `AuthLayout.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 156`** (1 nodes): `ProfilePage.vue`
+- **Thin community `Community 156`** (1 nodes): `AuthorizedAppsPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 157`** (1 nodes): `LoginPage.vue`
+- **Thin community `Community 157`** (1 nodes): `DashboardPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 158`** (1 nodes): `RegisterPage.vue`
+- **Thin community `Community 158`** (1 nodes): `ProfilePage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 159`** (1 nodes): `VerifyEmailPage.vue`
+- **Thin community `Community 159`** (1 nodes): `LoginPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 160`** (1 nodes): `CallbackPage.vue`
+- **Thin community `Community 160`** (1 nodes): `RegisterPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 161`** (1 nodes): `ConsentPage.vue`
+- **Thin community `Community 161`** (1 nodes): `VerifyEmailPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 162`** (1 nodes): `DeviceVerifyPage.vue`
+- **Thin community `Community 162`** (1 nodes): `CallbackPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 163`** (1 nodes): `GitHubCallbackPage.vue`
+- **Thin community `Community 163`** (1 nodes): `ConsentPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 164`** (1 nodes): `index.ts`
+- **Thin community `Community 164`** (1 nodes): `DeviceVerifyPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 165`** (1 nodes): `authService.ts`
+- **Thin community `Community 165`** (1 nodes): `GitHubCallbackPage.vue`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 166`** (1 nodes): `errorAdapter.property.test.ts`
+- **Thin community `Community 166`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 167`** (1 nodes): `userService.ts`
+- **Thin community `Community 167`** (1 nodes): `authService.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 168`** (1 nodes): `zh-CN.ts`
+- **Thin community `Community 168`** (1 nodes): `errorAdapter.property.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 169`** (1 nodes): `auth.ts`
+- **Thin community `Community 169`** (1 nodes): `userService.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 170`** (1 nodes): `index.ts`
+- **Thin community `Community 170`** (1 nodes): `zh-CN.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 171`** (1 nodes): `account.spec.ts`
+- **Thin community `Community 171`** (1 nodes): `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 172`** (1 nodes): `auth.spec.ts`
+- **Thin community `Community 172`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 173`** (1 nodes): `navigation.spec.ts`
+- **Thin community `Community 173`** (1 nodes): `account.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 174`** (1 nodes): `oauth.spec.ts`
+- **Thin community `Community 174`** (1 nodes): `auth.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 175`** (1 nodes): `smoke.test.ts`
+- **Thin community `Community 175`** (1 nodes): `navigation.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 176`** (1 nodes): `reset-account-lockout.ps1`
+- **Thin community `Community 176`** (1 nodes): `oauth.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 177`** (1 nodes): `Security Response Headers`
+- **Thin community `Community 177`** (1 nodes): `registration-validation.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 178`** (1 nodes): `Success Response Shapes (Golden)`
+- **Thin community `Community 178`** (1 nodes): `security.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 179`** (1 nodes): `Refactor Baseline OpenAPI Fixture Signature`
+- **Thin community `Community 179`** (1 nodes): `session-management.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 180`** (1 nodes): `Frontend 6-Phase Implementation Structure`
+- **Thin community `Community 180`** (1 nodes): `smoke.test.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 181`** (1 nodes): `reset-account-lockout.ps1`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 182`** (1 nodes): `Security Response Headers`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 183`** (1 nodes): `Success Response Shapes (Golden)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 184`** (1 nodes): `Refactor Baseline OpenAPI Fixture Signature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 185`** (1 nodes): `Frontend 6-Phase Implementation Structure`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `update()` connect `Swagger UI Bundle` to `Swagger UI ES Bundle`, `Swagger UI Core`, `Admin REST API`, `Endpoint Extraction Tools`?**
-  _High betweenness centrality (0.112) - this node is a cross-community bridge._
-- **Why does `C()` connect `Swagger UI ES Core` to `Swagger UI Bundle`, `Swagger UI ES Bundle`, `Swagger UI Core`, `Endpoint Extraction Tools`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
-- **Why does `createElement()` connect `Swagger UI Core` to `Swagger UI ES Bundle`, `Admin REST API`, `Swagger UI ES Core`, `Redis Storage Layer`, `Endpoint Extraction Tools`, `Admin Frontend Services`?**
-  _High betweenness centrality (0.064) - this node is a cross-community bridge._
+- **Why does `update()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 7`?**
+  _High betweenness centrality (0.101) - this node is a cross-community bridge._
+- **Why does `C()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`, `Community 7`?**
+  _High betweenness centrality (0.081) - this node is a cross-community bridge._
+- **Why does `createElement()` connect `Community 2` to `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 7`, `Community 14`, `Community 19`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **Are the 291 inferred relationships involving `createElement()` (e.g. with `.render()` and `.render()`) actually correct?**
   _`createElement()` has 291 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 177 inferred relationships involving `K()` (e.g. with `.getRootInjects()` and `.render()`) actually correct?**
