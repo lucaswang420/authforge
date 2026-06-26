@@ -24,10 +24,11 @@ class AuthService
   public:
     /**
      * @brief Async validate user credentials
+     * @param identifier Login identifier — email or username (含 @ 按 email 查，否则按 username 查)
      * @param callback Returns AuthResult on success, nullopt on failure
      */
     static void validateUser(
-      const std::string &username,
+      const std::string &identifier,
       const std::string &password,
       std::function<void(std::optional<AuthResult>)> &&callback
     );
