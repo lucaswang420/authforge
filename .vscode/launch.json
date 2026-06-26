@@ -5,10 +5,13 @@
             "name": "C++ Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/OAuth2Backend/build/${command:cmake.launchTargetDirectory}/${command:cmake.launchTarget}",
-            "args": [],
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "-c",
+                "config.json"
+            ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/OAuth2Backend",
+            "cwd": "${command:cmake.buildDirectory}/OAuth2Server/${command:cmake.buildType}",
             "environment": [],
             "console": "externalTerminal",
             "preLaunchTask": "CMake: Build Debug"
