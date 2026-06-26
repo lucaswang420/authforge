@@ -72,7 +72,7 @@ async function handleMfa() {
 
     <!-- Login Form -->
     <form v-else @submit.prevent="handleLogin" class="space-y-5">
-      <AppInput v-model="username" label="Username" placeholder="Enter your username" required autocomplete="username" />
+      <AppInput v-model="username" label="Email or Username" placeholder="you@example.com" required autocomplete="username" />
       <AppInput v-model="password" label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password" />
 
       <div class="flex justify-end">
