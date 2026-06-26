@@ -122,11 +122,17 @@ start "" "%SERVER_EXE%" -c config.json
 popd
 
 REM Wait for server to start
+REM Use 'ping' instead of 'timeout /t': ping has no name clash with MSYS
+REM (Unix 'timeout' shadows the Windows builtin when this .bat runs via
+REM bash/MSYS, breaking the wait). ping sends 8 pings at 1s intervals ~ 8s.
 echo Waiting for server to start...
-timeout /t 8 /nobreak >nul
+ping 127.0.0.1 -n 9 >nul
 
 REM Check if server is running
-tasklist /FI "IMAGENAME eq OAuth2Server.exe" 2>NUL | find /I /N "OAuth2Server.exe">NUL
+REM Use 'findstr' instead of 'find': MSYS has no 'findstr', so it always
+REM resolves to the Windows builtin even when this .bat runs via bash/MSYS
+REM (unlike 'find', which the Unix 'find' shadows).
+tasklist /FI "IMAGENAME eq OAuth2Server.exe" 2>NUL | findstr /I "OAuth2Server.exe">NUL
 if !errorlevel! neq 0 (
     echo [FAILED] Server failed to start or crashed. Check logs in OAuth2Server\logs
     set "FINAL_RESULT=1"
@@ -197,7 +203,10 @@ echo.
 
 :cleanup_and_exit
 REM Ensure server is stopped even on failure
-tasklist /FI "IMAGENAME eq OAuth2Server.exe" 2>NUL | find /I /N "OAuth2Server.exe">NUL
+REM Use 'findstr' instead of 'find': MSYS has no 'findstr', so it always
+REM resolves to the Windows builtin even when this .bat runs via bash/MSYS
+REM (unlike 'find', which the Unix 'find' shadows).
+tasklist /FI "IMAGENAME eq OAuth2Server.exe" 2>NUL | findstr /I "OAuth2Server.exe">NUL
 if "!errorlevel!"=="0" (
     taskkill /F /IM OAuth2Server.exe >nul 2>&1
 )
