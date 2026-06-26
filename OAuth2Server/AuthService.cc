@@ -14,7 +14,7 @@ namespace services
 {
 
 void AuthService::validateUser(
-  const std::string &username,
+  const std::string &identifier,
   const std::string &password,
   std::function<void(std::optional<AuthResult>)> &&callback
 )
@@ -25,10 +25,21 @@ void AuthService::validateUser(
     {
         auto mapper = Mapper<drogon_model::oauth2_db::Users>(app().getDbClient());
 
-        // Find user by username
+        // 登录标识分流：含 @ 视为 email（先归一再查），否则按 username 查
+        // USERNAME_PATTERN 不允许 @，二者天然互斥
+        bool isEmail = identifier.find('@') != std::string::npos;
+        std::string lookupKey = isEmail ? oauth2::utils::normalizeEmail(identifier) : identifier;
+        auto criteria =
+          isEmail
+            ? Criteria(drogon_model::oauth2_db::Users::Cols::_email, CompareOperator::EQ, lookupKey)
+            : Criteria(
+                drogon_model::oauth2_db::Users::Cols::_username, CompareOperator::EQ, lookupKey
+              );
+
+        // Find user by login identifier (email or username)
         mapper.findOne(
-          {drogon_model::oauth2_db::Users::Cols::_username, CompareOperator::EQ, username},
-          [sharedCb, password, username](const drogon_model::oauth2_db::Users &user) {
+          criteria,
+          [sharedCb, password, identifier](const drogon_model::oauth2_db::Users &user) {
               // Account lockout check
               auto now = std::chrono::duration_cast<std::chrono::seconds>(
                            std::chrono::system_clock::now().time_since_epoch()
@@ -49,7 +60,7 @@ void AuthService::validateUser(
 
               if (lockedUntil > now)
               {
-                  LOG_WARN << "Account locked for user: " << username << " until " << lockedUntil;
+                  LOG_WARN << "Account locked for user: " << identifier << " until " << lockedUntil;
                   (*sharedCb)(std::nullopt);
                   return;
               }
@@ -191,7 +202,10 @@ void AuthService::registerUser(
     }
 
     drogon_model::oauth2_db::Users newUser;
-    newUser.setUsername(username);
+    // username is optional in email-first model: leave NULL when absent
+    // (CHECK constraint forbids empty string, so only set when non-empty)
+    if (!username.empty())
+        newUser.setUsername(username);
     newUser.setPasswordHash(passwordHash);
     newUser.setSalt(salt);
     if (!email.empty())
@@ -294,7 +308,10 @@ void AuthService::getUserInfo(
                 [sharedCb, user, userId](const Result &r) {
                     Json::Value json;
                     json["sub"] = user.getValueOfPublicSub();
-                    json["name"] = user.getValueOfUsername();
+                    // OIDC name claim: username preferred, fallback to email when absent
+                    // (username is optional in email-first model)
+                    std::string displayName = user.getValueOfUsername();
+                    json["name"] = displayName.empty() ? user.getValueOfEmail() : displayName;
                     json["email"] = user.getValueOfEmail();
 
                     Json::Value roles(Json::arrayValue);
@@ -313,7 +330,10 @@ void AuthService::getUserInfo(
                              << e.base().what();
                     Json::Value json;
                     json["sub"] = user.getValueOfPublicSub();
-                    json["name"] = user.getValueOfUsername();
+                    // OIDC name claim: username preferred, fallback to email when absent
+                    // (username is optional in email-first model)
+                    std::string displayName = user.getValueOfUsername();
+                    json["name"] = displayName.empty() ? user.getValueOfEmail() : displayName;
                     json["email"] = user.getValueOfEmail();
                     json["roles"] = Json::Value(Json::arrayValue);
                     (*sharedCb)(json);

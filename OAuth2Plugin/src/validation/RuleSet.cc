@@ -391,32 +391,55 @@ std::vector<std::string> RuleSet::login(const drogon::HttpRequestPtr &req)
     std::vector<std::string> errors;
 
     // 优先从 POST body 获取参数
-    std::string username, password;
+    // username 字段语义为"登录标识"（email 或 username），保持 API 向后兼容
+    std::string identifier, password;
 
     if (req->contentType() == drogon::CT_APPLICATION_JSON)
     {
         auto json = req->getJsonObject();
         if (json)
         {
-            username = json->get("username", "").asString();
+            identifier = json->get("username", "").asString();
             password = json->get("password", "").asString();
         }
     }
     else
     {
         auto params = req->getParameters();
-        username = params["username"];
+        identifier = params["username"];
         password = params["password"];
     }
 
-    // 验证 username
-    if (username.empty())
+    // 验证登录标识（email 或 username，至少一个非空）
+    if (identifier.empty())
     {
         errors.push_back("username is required");
     }
-    else if (username.length() > 100)
+    else
     {
-        errors.push_back("username exceeds maximum length of 100 characters");
+        // 长度上限：取 username(100) 与 email(254) 的较大者
+        if (identifier.length() > EMAIL_MAX_LEN)
+        {
+            errors.push_back(
+              "username exceeds maximum length of " + std::to_string(EMAIL_MAX_LEN) + " characters"
+            );
+        }
+        // 若标识形如 email（含 @），校验格式，避免无效 email 进入查询
+        if (identifier.find('@') != std::string::npos)
+        {
+            try
+            {
+                std::regex re(EMAIL_PATTERN);
+                if (!std::regex_match(identifier, re))
+                {
+                    errors.push_back("email format is invalid");
+                }
+            }
+            catch (const std::regex_error &)
+            {
+                // 正则编译失败不应阻塞请求，降级为仅长度校验
+            }
+        }
     }
 
     // 验证 password
@@ -456,12 +479,8 @@ std::vector<std::string> RuleSet::registerUser(const drogon::HttpRequestPtr &req
         email = params["email"];
     }
 
-    // 验证 username
-    if (username.empty())
-    {
-        errors.push_back("username is required");
-    }
-    else if (username.length() > 100)
+    // 验证 username（可选字段：email-first 模型下 username 仅作展示名，非空时才校验长度）
+    if (!username.empty() && username.length() > 100)
     {
         errors.push_back("username exceeds maximum length of 100 characters");
     }
@@ -476,29 +495,30 @@ std::vector<std::string> RuleSet::registerUser(const drogon::HttpRequestPtr &req
         errors.push_back("password exceeds maximum length of 200 characters");
     }
 
-    // 验证 email（可选字段：非空时才校验格式与长度）
-    if (!email.empty())
+    // 验证 email（必填字段：email 是主登录键）
+    if (email.empty())
     {
-        if (email.length() > EMAIL_MAX_LEN)
+        errors.push_back("email is required");
+    }
+    else if (email.length() > EMAIL_MAX_LEN)
+    {
+        errors.push_back(
+          "email exceeds maximum length of " + std::to_string(EMAIL_MAX_LEN) + " characters"
+        );
+    }
+    else
+    {
+        try
         {
-            errors.push_back(
-              "email exceeds maximum length of " + std::to_string(EMAIL_MAX_LEN) + " characters"
-            );
+            std::regex re(EMAIL_PATTERN);
+            if (!std::regex_match(email, re))
+            {
+                errors.push_back("email format is invalid");
+            }
         }
-        else
+        catch (const std::regex_error &)
         {
-            try
-            {
-                std::regex re(EMAIL_PATTERN);
-                if (!std::regex_match(email, re))
-                {
-                    errors.push_back("email format is invalid");
-                }
-            }
-            catch (const std::regex_error &)
-            {
-                // 正则编译失败不应阻塞请求，降级为仅长度校验
-            }
+            // 正则编译失败不应阻塞请求，降级为仅长度校验
         }
     }
 

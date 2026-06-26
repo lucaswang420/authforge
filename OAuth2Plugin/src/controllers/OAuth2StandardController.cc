@@ -1564,14 +1564,25 @@ void OAuth2StandardController::userInfo(
               Json::Value userInfo;
               userInfo["sub"] = userId;
 
-              // Add database user info if available
-              if (dbUserInfo && dbUserInfo->isMember("username"))
+              // Build OIDC claims from storage result.
+              // storage->getUserInfo returns {id, username?, email?} with no name field,
+              // so compute the 'name' claim here: username preferred, fallback to email
+              // (username is optional in the email-first model) so strict OIDC clients
+              // never see an empty/missing name.
+              if (dbUserInfo)
               {
-                  userInfo["username"] = (*dbUserInfo)["username"];
-                  userInfo["name"] = (*dbUserInfo)["username"];  // OpenID Connect 'name' claim
-                  if (dbUserInfo->isMember("email"))
+                  std::string uname =
+                    dbUserInfo->isMember("username") ? (*dbUserInfo)["username"].asString() : "";
+                  std::string email =
+                    dbUserInfo->isMember("email") ? (*dbUserInfo)["email"].asString() : "";
+                  userInfo["name"] = uname.empty() ? email : uname;  // OpenID Connect 'name' claim
+                  if (!uname.empty())
                   {
-                      userInfo["email"] = (*dbUserInfo)["email"];
+                      userInfo["username"] = uname;
+                  }
+                  if (!email.empty())
+                  {
+                      userInfo["email"] = email;
                   }
               }
               else
