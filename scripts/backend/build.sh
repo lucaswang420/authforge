@@ -141,7 +141,20 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     CMAKE_PROJECT_FLAGS="$CMAKE_PROJECT_FLAGS -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3) -DCURL_ROOT=$(brew --prefix curl) -DCMAKE_FIND_FRAMEWORK=LAST"
 fi
 
+# Configure: run cmake without aborting on error so we can show a friendly hint.
+set +e
 cmake "$PROJECT_DIR" $CMAKE_PROJECT_FLAGS
+CMAKE_CONFIG_RC=$?
+set -e
+if [ $CMAKE_CONFIG_RC -ne 0 ]; then
+    echo -e "${RED}[Error] CMake configuration failed.${NC}"
+    echo -e "${YELLOW}Hint: a common cause is a missing Drogon or Jsoncpp system package.${NC}"
+    echo -e "${YELLOW}      build.sh links against system packages (no Conan) on Linux/macOS.${NC}"
+    echo -e "${YELLOW}      Run the one-time prerequisites first:${NC}"
+    echo -e "${YELLOW}        ./manage.sh build-backend --install-deps${NC}"
+    echo -e "${YELLOW}        ./manage.sh build-backend --build-drogon${NC}"
+    exit 1
+fi
 
 echo -e "${YELLOW}[INFO] Building...${NC}"
 cmake --build . --config $BUILD_TYPE -- -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
