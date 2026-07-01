@@ -479,10 +479,30 @@ std::vector<std::string> RuleSet::registerUser(const drogon::HttpRequestPtr &req
         email = params["email"];
     }
 
-    // 验证 username（可选字段：email-first 模型下 username 仅作展示名，非空时才校验长度）
-    if (!username.empty() && username.length() > 100)
+    // 验证 username（可选字段：非空时须同时满足长度与字符集。
+    // USERNAME_PATTERN 不含 @，强制该约束可防止含 @ 的 username 在登录
+    // 分流（identifier.find('@')）时被误判为 email 而永远无法登录）
+    if (!username.empty())
     {
-        errors.push_back("username exceeds maximum length of 100 characters");
+        if (username.length() > 100)
+        {
+            errors.push_back("username exceeds maximum length of 100 characters");
+        }
+        else
+        {
+            try
+            {
+                std::regex re(USERNAME_PATTERN);
+                if (!std::regex_match(username, re))
+                {
+                    errors.push_back("username format is invalid");
+                }
+            }
+            catch (const std::regex_error &)
+            {
+                // 正则编译失败不应阻塞请求，降级为仅长度校验
+            }
+        }
     }
 
     // 验证 password
