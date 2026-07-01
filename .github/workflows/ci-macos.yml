@@ -20,8 +20,10 @@ jobs:
 
       - name: Install Drogon dependencies
         run: |
-          # Upgrade Homebrew
-          brew upgrade
+          # Refresh Homebrew formula index (do NOT upgrade preinstalled
+          # packages — a blanket `brew upgrade` breaks the job whenever any
+          # preinstalled formula (e.g. xcodes) lacks an arm64 bottle).
+          brew update
 
           # Install core dependencies (no databases needed for build-only)
           brew install git cmake
