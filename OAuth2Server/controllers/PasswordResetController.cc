@@ -1,6 +1,7 @@
 #include "PasswordResetController.h"
 #include <oauth2/utils/CryptoUtils.h>
 #include <oauth2/utils/PasswordHasher.h>
+#include <oauth2/utils/EmailNormalizer.h>
 #include <oauth2/utils/EmailService.h>
 #include <oauth2/plugin/OAuth2Plugin.h>
 #include <oauth2/observability/AuditLogger.h>
@@ -93,6 +94,12 @@ void PasswordResetController::request(
         );
         return;
     }
+
+    // Fold aliases/case to the canonical form BEFORE lookup — registration
+    // stores the normalized address (AuthService::registerUser), so a raw
+    // Gmail plus/dot alias would otherwise miss the row and silently skip
+    // the reset email (anti-enumeration still returns 200).
+    email = oauth2::utils::normalizeEmail(email);
 
     // Always return 200 regardless of whether email exists (prevent enumeration)
     auto db = app().getDbClient();
