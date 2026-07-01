@@ -100,3 +100,6 @@ graphify-out/*
 
 # Codegraph runtime state (PID, socket path - changes every session)
 .codegraph/daemon.pid
+
+# Superpowers SDD scratch (task briefs, reports, progress ledger)
+.superpowers/
