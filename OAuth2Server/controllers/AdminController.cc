@@ -2,6 +2,7 @@
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 #include <oauth2/utils/CryptoUtils.h>
+#include <oauth2/utils/EmailNormalizer.h>
 #include <oauth2/observability/openapi/OpenApiGenerator.h>
 #include <oauth2/error/ErrorResponder.h>
 #include <atomic>
@@ -2057,8 +2058,10 @@ void AdminController::updateUser(
 
     if (jsonBody->isMember("email"))
     {
+        // Normalize on write so admin edits stay consistent with registration
+        // (login + password reset look up the canonical form).
         setClauses.push_back("email = $" + std::to_string(paramIdx++));
-        params.push_back((*jsonBody)["email"].asString());
+        params.push_back(oauth2::utils::normalizeEmail((*jsonBody)["email"].asString()));
     }
     if (jsonBody->isMember("email_verified"))
     {
