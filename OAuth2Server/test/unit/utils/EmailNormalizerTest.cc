@@ -64,6 +64,10 @@ DROGON_TEST(Unit_P1_Utils_EmailNormalizer_GmailFoldsDotsAndPlus)
     CHECK(normalizeEmail("U.S.Er+Newsletter@gmail.com") == "user@gmail.com");
     // googlemail.com is the same mailbox as gmail.com after folding.
     CHECK(normalizeEmail("user.x@googlemail.com") == "userx@googlemail.com");
+    // Equivalence: an alias and its canonical form MUST fold to the same key.
+    // This is the invariant password-reset lookup (Task 3) and admin write
+    // (Task 5) rely on — a plus/dot/case variant resolves to the stored row.
+    CHECK(normalizeEmail("User.Tag+promo@gmail.com") == normalizeEmail("usertag@gmail.com"));
 }
 
 DROGON_TEST(Unit_P1_Utils_EmailNormalizer_NonGmailUnchanged)
