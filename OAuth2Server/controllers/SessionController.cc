@@ -769,10 +769,27 @@ void SessionController::registerUser(
     auto errors = oauth2::validation::RuleSet::registerUser(req);
     if (oauth2::validation::HttpResponder::respondIfErrors(errors, std::move(callback)))
         return;
-    auto params = req->getParameters();
-    std::string username = params["username"];
-    std::string password = params["password"];
-    std::string email = params["email"];
+    // Parse the same fields RuleSet::registerUser validated. Duplicated inline
+    // (not shared with RuleSet) by decision: getParameters() returns empty for
+    // application/json bodies, which previously persisted bogus accounts.
+    std::string username, password, email;
+    if (req->contentType() == drogon::CT_APPLICATION_JSON)
+    {
+        auto json = req->getJsonObject();
+        if (json)
+        {
+            username = json->get("username", "").asString();
+            password = json->get("password", "").asString();
+            email = json->get("email", "").asString();
+        }
+    }
+    else
+    {
+        auto params = req->getParameters();
+        username = params["username"];
+        password = params["password"];
+        email = params["email"];
+    }
 
     AuthService::registerUser(
       username, password, email, [callback, email, req](const std::string &error) {
