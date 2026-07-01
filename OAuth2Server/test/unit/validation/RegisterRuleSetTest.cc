@@ -16,8 +16,7 @@ static HttpRequestPtr makeRegisterRequest(
     auto req = HttpRequest::newHttpRequest();
     req->setMethod(drogon::Post);
     req->setPath("/api/register");
-    std::string body =
-      "username=" + username + "&password=" + password + "&email=" + email;
+    std::string body = "username=" + username + "&password=" + password + "&email=" + email;
     req->setBody(body);
     req->addHeader("Content-Type", "application/x-www-form-urlencoded");
     return req;
