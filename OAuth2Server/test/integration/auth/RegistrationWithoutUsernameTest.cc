@@ -1,6 +1,7 @@
 #include <drogon/drogon_test.h>
 #include <drogon/drogon.h>
 #include <oauth2/plugin/OAuth2Plugin.h>
+#include <oauth2/models/Users.h>
 #include <oauth2/utils/EmailNormalizer.h>
 #include <future>
 #include <chrono>
@@ -14,7 +15,8 @@ namespace
 void cleanupEmail(const std::string &email)
 {
     auto db = app().getDbClient();
-    if (!db) return;
+    if (!db)
+        return;
     std::promise<void> p;
     db->execSqlAsync(
       "DELETE FROM users WHERE email = $1",
@@ -69,8 +71,10 @@ DROGON_TEST(Integration_Registration_EmailOnly_JsonBody)
       "SELECT username, email FROM users WHERE email = $1",
       [&](const Result &r) {
           bool ok = !r.empty();
-          if (ok) ok = r[0]["username"].isNull();
-          if (ok) ok = r[0]["email"].as<std::string>() == canonical;
+          if (ok)
+              ok = r[0]["username"].isNull();
+          if (ok)
+              ok = r[0]["email"].as<std::string>() == canonical;
           pRead.set_value(ok);
       },
       [&](const DrogonDbException &) { pRead.set_value(false); },
