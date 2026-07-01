@@ -12,7 +12,8 @@ namespace
 void cleanupEmail(const std::string &email)
 {
     auto db = app().getDbClient();
-    if (!db) return;
+    if (!db)
+        return;
     std::promise<void> p;
     db->execSqlAsync(
       "DELETE FROM users WHERE email = $1",
@@ -43,15 +44,14 @@ DROGON_TEST(Integration_Login_Dispatch_IsEmailVersusUsername)
     cleanupEmail(email);
 
     // The dispatcher's invariant: presence of '@' means email.
-    std::string ident1 = "alice_99";      // no '@'  -> username branch
-    std::string ident2 = "alice@example.com"; // '@' -> email branch
+    std::string ident1 = "alice_99";           // no '@'  -> username branch
+    std::string ident2 = "alice@example.com";  // '@' -> email branch
     CHECK(ident1.find('@') == std::string::npos);
     CHECK(ident2.find('@') != std::string::npos);
 
     // Gmail alias folding: a plus/dot alias must resolve to the canonical key
     // that registration stored, so login (and password reset) hit the same row.
-    CHECK(oauth2::utils::normalizeEmail("Alice.Tag+promo@gmail.com")
-          == "alicetag@gmail.com");
+    CHECK(oauth2::utils::normalizeEmail("Alice.Tag+promo@gmail.com") == "alicetag@gmail.com");
 
     cleanupEmail(email);
 }
