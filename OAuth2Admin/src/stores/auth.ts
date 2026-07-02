@@ -4,6 +4,40 @@ import axios from 'axios'
 import { normalizeError, sessionExpiredError } from '../services/errorAdapter'
 import type { NormalizedError } from '../services/errorAdapter'
 
+// Refresh token is persisted in sessionStorage so a page refresh can restore the
+// session without re-prompting credentials. The access token stays in memory only
+// (never persisted), limiting exposure to XSS. sessionStorage is scoped to the
+// tab and cleared when the tab closes. See A-LOGIN-014 / A-SEC-002.
+const REFRESH_TOKEN_STORAGE_KEY = 'admin_refresh_token'
+
+function persistRefreshToken(token: string | null) {
+  try {
+    if (token) {
+      sessionStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token)
+    } else {
+      sessionStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+    }
+  } catch {
+    // sessionStorage may be unavailable (private mode, disabled); degrade to
+    // in-memory only — login still works for the lifetime of the tab.
+  }
+}
+
+function loadPersistedRefreshToken(): string | null {
+  try {
+    return sessionStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+// Shared promise so the router guard, the app bootstrap, and any component
+// mounting during the first tick all wait for the same one-shot session
+// restoration. Without this, the initial navigation can run before
+// restoreSession() finishes, see isAuthenticated === false, and bounce to
+// /login even though the refresh token is valid. See A-LOGIN-014.
+let sessionRestorePromise: Promise<boolean> | null = null
+
 /**
  * Navigate to the login view after a failed 401 token refresh
  * (Requirement 10.5).
@@ -74,6 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       accessToken.value = tokenResp.data.access_token
       refreshToken.value = tokenResp.data.refresh_token
+      persistRefreshToken(refreshToken.value)
 
       // Step 3: Fetch user info
       await fetchUserInfo()
@@ -106,29 +141,72 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // In-flight refresh promise. When multiple requests 401 concurrently (common
+  // on page load: userinfo + dashboard + list endpoints), all of them must share
+  // a single refresh_token exchange — the backend rotates the refresh token on
+  // each use, so a second concurrent exchange would hit the now-invalidated
+  // token and log the user out. See A-LOGIN-014.
+  let refreshInFlight: Promise<boolean> | null = null
+
   async function refreshAccessToken() {
     if (!refreshToken.value) return false
-    try {
-      const resp = await axios.post('/oauth2/token', new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken.value,
-        client_id: 'admin-console',
-      }), {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      })
-      accessToken.value = resp.data.access_token
-      refreshToken.value = resp.data.refresh_token
-      return true
-    } catch {
-      logout()
-      return false
-    }
+    if (refreshInFlight) return refreshInFlight
+    refreshInFlight = (async () => {
+      try {
+        const resp = await axios.post('/oauth2/token', new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken.value,
+          client_id: 'admin-console',
+        }), {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        })
+        accessToken.value = resp.data.access_token
+        refreshToken.value = resp.data.refresh_token
+        persistRefreshToken(refreshToken.value)
+        return true
+      } catch {
+        logout()
+        return false
+      } finally {
+        refreshInFlight = null
+      }
+    })()
+    return refreshInFlight
   }
 
   function logout() {
     accessToken.value = null
     refreshToken.value = null
     user.value = null
+    persistRefreshToken(null)
+  }
+
+  /**
+   * Restore a previously established session after a page refresh.
+   * Uses the persisted refresh token to obtain a fresh access token. If the
+   * refresh fails (expired/revoked), the session is cleared silently and the
+   * user is treated as unauthenticated. Returns true if the session was
+   * restored. See A-LOGIN-014.
+   */
+  async function restoreSession(): Promise<boolean> {
+    const persisted = loadPersistedRefreshToken()
+    if (!persisted) return false
+    refreshToken.value = persisted
+    const ok = await refreshAccessToken()
+    if (!ok) return false
+    await fetchUserInfo()
+    // Verify the restored session still has the admin role.
+    return !!user.value?.roles?.includes('admin')
+  }
+
+  // Deduplicate session restoration across concurrent callers (router guard +
+  // app bootstrap). Returns a shared promise; the underlying restoreSession
+  // runs at most once per page load. See A-LOGIN-014.
+  function ensureSessionRestored(): Promise<boolean> {
+    if (!sessionRestorePromise) {
+      sessionRestorePromise = restoreSession()
+    }
+    return sessionRestorePromise
   }
 
   // Axios interceptor for auto-attaching token
@@ -184,6 +262,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     fetchUserInfo,
     refreshAccessToken,
+    restoreSession,
+    ensureSessionRestored,
     logout,
   }
 })

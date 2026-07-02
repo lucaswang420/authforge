@@ -130,6 +130,14 @@ async function revokeByUser() {
 
 function formatTime(ts: string) {
   if (!ts) return '—'
+  // The backend returns expires_at/created_at as a Unix-epoch-seconds string
+  // (e.g. "1751464800"); a numeric string parsed by new Date(string) yields
+  // "Invalid Date". Detect epoch-seconds and convert to milliseconds. ISO 8601
+  // strings (logs) pass through unchanged. See A-TOK-012.
+  const asNum = Number(ts)
+  if (!Number.isNaN(asNum) && /^-?\d+$/.test(ts.trim())) {
+    try { return new Date(asNum * 1000).toLocaleString() } catch { return ts }
+  }
   try { return new Date(ts).toLocaleString() } catch { return ts }
 }
 

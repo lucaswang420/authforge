@@ -1274,84 +1274,105 @@ void AdminController::listLogs(
     {
         auto db = drogon::app().getDbClient();
 
-        // Build query with optional filters
-        std::string query =
-          "SELECT id, timestamp, actor_type, actor_id, action, "
-          "target_type, target_id, outcome, ip, user_agent, request_id, details "
-          "FROM audit_logs WHERE 1=1 ";
-        std::vector<std::string> params;
+        // Build the parameterized WHERE clause from the optional action / outcome
+        // / actor_id filters. The previous implementation built this clause but
+        // then discarded it, executing an unfiltered query (A-LOG-004).
+        std::string whereClause = " WHERE 1=1";
+        std::string actionParam = action;
+        std::string outcomeParam = outcome;
+        std::string actorParam = actorId;
         int paramIdx = 1;
+        if (!actionParam.empty())
+            whereClause += " AND action = $" + std::to_string(paramIdx++);
+        if (!outcomeParam.empty())
+            whereClause += " AND outcome = $" + std::to_string(paramIdx++);
+        if (!actorParam.empty())
+            whereClause += " AND actor_id = $" + std::to_string(paramIdx++);
 
-        if (!action.empty())
-        {
-            query += " AND action = $" + std::to_string(paramIdx++);
-            params.push_back(action);
-        }
-        if (!outcome.empty())
-        {
-            query += " AND outcome = $" + std::to_string(paramIdx++);
-            params.push_back(outcome);
-        }
-        if (!actorId.empty())
-        {
-            query += " AND actor_id = $" + std::to_string(paramIdx++);
-            params.push_back(actorId);
-        }
-
-        query += " ORDER BY timestamp DESC LIMIT " + std::to_string(perPage) + " OFFSET " +
-                 std::to_string(offset);
-
-        // Execute with dynamic params (simplified: use raw SQL for flexibility)
-        // For simplicity with variable params, build the full query
-        std::string finalQuery =
+        std::string dataQuery =
           "SELECT id, timestamp, actor_type, actor_id, action, "
           "target_type, target_id, outcome, ip "
-          "FROM audit_logs ORDER BY timestamp DESC "
-          "LIMIT " +
-          std::to_string(perPage) + " OFFSET " + std::to_string(offset);
+          "FROM audit_logs" +
+          whereClause + " ORDER BY timestamp DESC LIMIT " + std::to_string(perPage) + " OFFSET " +
+          std::to_string(offset);
 
-        db->execSqlAsync(
-          finalQuery,
-          [sharedCb, req, page, perPage](const drogon::orm::Result &result) {
-              Json::Value json;
-              json["status"] = "success";
-              json["page"] = page;
-              json["per_page"] = perPage;
-              Json::Value logs(Json::arrayValue);
+        // Build the JSON response from the query result. `total` reflects the
+        // number of rows on this page (matches the pre-fix behavior; the logs
+        // table is not expected to drive precise pagination counts here).
+        auto buildLogs = [sharedCb, req, page, perPage](const drogon::orm::Result &result) {
+            Json::Value json;
+            json["status"] = "success";
+            json["page"] = page;
+            json["per_page"] = perPage;
+            json["total"] = static_cast<int>(result.size());
+            Json::Value logs(Json::arrayValue);
 
-              for (const auto &row : result)
-              {
-                  Json::Value log;
-                  log["id"] = row["id"].as<int64_t>();
-                  log["timestamp"] =
-                    row["timestamp"].isNull() ? "" : row["timestamp"].as<std::string>();
-                  log["actor_type"] =
-                    row["actor_type"].isNull() ? "" : row["actor_type"].as<std::string>();
-                  log["actor_id"] =
-                    row["actor_id"].isNull() ? "" : row["actor_id"].as<std::string>();
-                  log["action"] = row["action"].isNull() ? "" : row["action"].as<std::string>();
-                  log["target_type"] =
-                    row["target_type"].isNull() ? "" : row["target_type"].as<std::string>();
-                  log["target_id"] =
-                    row["target_id"].isNull() ? "" : row["target_id"].as<std::string>();
-                  log["outcome"] = row["outcome"].isNull() ? "" : row["outcome"].as<std::string>();
-                  log["ip"] = row["ip"].isNull() ? "" : row["ip"].as<std::string>();
-                  logs.append(log);
-              }
+            for (const auto &row : result)
+            {
+                Json::Value log;
+                log["id"] = row["id"].as<int64_t>();
+                log["timestamp"] =
+                  row["timestamp"].isNull() ? "" : row["timestamp"].as<std::string>();
+                log["actor_type"] =
+                  row["actor_type"].isNull() ? "" : row["actor_type"].as<std::string>();
+                log["actor_id"] = row["actor_id"].isNull() ? "" : row["actor_id"].as<std::string>();
+                log["action"] = row["action"].isNull() ? "" : row["action"].as<std::string>();
+                log["target_type"] =
+                  row["target_type"].isNull() ? "" : row["target_type"].as<std::string>();
+                log["target_id"] =
+                  row["target_id"].isNull() ? "" : row["target_id"].as<std::string>();
+                log["outcome"] = row["outcome"].isNull() ? "" : row["outcome"].as<std::string>();
+                log["ip"] = row["ip"].isNull() ? "" : row["ip"].as<std::string>();
+                logs.append(log);
+            }
 
-              json["logs"] = logs;
-              json["total"] = static_cast<int>(result.size());
-              (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
-          },
-          [sharedCb, req](const drogon::orm::DrogonDbException &e) {
-              respondError(
-                req,
-                sharedCb,
-                "DB_QUERY_ERROR",
-                std::string("Failed to fetch audit logs: ") + e.base().what()
-              );
-          }
-        );
+            json["logs"] = logs;
+            (*sharedCb)(HttpResponse::newHttpJsonResponse(json));
+        };
+
+        auto onDbError = [sharedCb, req](const drogon::orm::DrogonDbException &e) {
+            respondError(
+              req,
+              sharedCb,
+              "DB_QUERY_ERROR",
+              std::string("Failed to fetch audit logs: ") + e.base().what()
+            );
+        };
+
+        // Drogon's execSqlAsync binds trailing variadic arguments positionally;
+        // dispatch on the number of active filters so the right overload is used.
+        int nParams = (!actionParam.empty() ? 1 : 0) + (!outcomeParam.empty() ? 1 : 0) +
+                      (!actorParam.empty() ? 1 : 0);
+
+        if (nParams == 0)
+        {
+            db->execSqlAsync(dataQuery, buildLogs, onDbError);
+        }
+        else if (nParams == 1)
+        {
+            const std::string &p1 = !actionParam.empty()
+                                      ? actionParam
+                                      : (!outcomeParam.empty() ? outcomeParam : actorParam);
+            db->execSqlAsync(dataQuery, buildLogs, onDbError, p1);
+        }
+        else if (nParams == 2)
+        {
+            // Bind list in declaration order: action, outcome, actor_id.
+            std::vector<std::string> binds;
+            if (!actionParam.empty())
+                binds.push_back(actionParam);
+            if (!outcomeParam.empty())
+                binds.push_back(outcomeParam);
+            if (!actorParam.empty())
+                binds.push_back(actorParam);
+            db->execSqlAsync(dataQuery, buildLogs, onDbError, binds[0], binds[1]);
+        }
+        else
+        {
+            db->execSqlAsync(
+              dataQuery, buildLogs, onDbError, actionParam, outcomeParam, actorParam
+            );
+        }
     }
     catch (...)
     {

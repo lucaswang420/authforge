@@ -76,10 +76,18 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const auth = useAuthStore()
   if (to.meta.requiresAuth !== false && !auth.isAuthenticated) {
-    next({ name: 'login' })
+    // Wait for the one-shot session restoration before deciding. On a fresh
+    // load with a valid persisted refresh token, this flips isAuthenticated to
+    // true so the user is not bounced to /login. See A-LOGIN-014.
+    const restored = await auth.ensureSessionRestored()
+    if (restored) {
+      next()
+    } else {
+      next({ name: 'login' })
+    }
   } else {
     next()
   }
