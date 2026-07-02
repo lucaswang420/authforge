@@ -8,11 +8,19 @@ const loading = ref(true)
 const page = ref(1)
 const errorMessage = ref('')
 
+// Filters (A-LOG-004). action/outcome/actor_id are passed as query params; the
+// backend applies them server-side.
+const actionFilter = ref('')
+const outcomeFilter = ref('')
+
 async function fetchLogs() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const resp = await axios.get('/api/admin/logs', { params: { page: page.value, per_page: 50 } })
+    const params: Record<string, string | number> = { page: page.value, per_page: 50 }
+    if (actionFilter.value) params.action = actionFilter.value
+    if (outcomeFilter.value) params.outcome = outcomeFilter.value
+    const resp = await axios.get('/api/admin/logs', { params })
     logs.value = resp.data.logs || []
   } catch (e) {
     const normalized = normalizeError(e)
@@ -21,6 +29,18 @@ async function fetchLogs() {
   } finally {
     loading.value = false
   }
+}
+
+function applyFilters() {
+  page.value = 1
+  fetchLogs()
+}
+
+function clearFilters() {
+  actionFilter.value = ''
+  outcomeFilter.value = ''
+  page.value = 1
+  fetchLogs()
 }
 
 function formatTime(ts: string) {
@@ -34,6 +54,43 @@ onMounted(fetchLogs)
 <template>
   <div>
     <h2 class="text-2xl font-bold text-gray-900 mb-6">Audit Logs</h2>
+
+    <!-- Filter bar -->
+    <div class="bg-white shadow rounded-lg p-4 mb-4 flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">Action:</label>
+        <input
+          v-model="actionFilter"
+          type="text"
+          placeholder="e.g. login_success"
+          class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          @keyup.enter="applyFilters"
+        />
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700">Outcome:</label>
+        <select
+          v-model="outcomeFilter"
+          class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="">(any)</option>
+          <option value="success">success</option>
+          <option value="failure">failure</option>
+        </select>
+      </div>
+      <button
+        @click="applyFilters"
+        class="px-4 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+      >
+        Apply
+      </button>
+      <button
+        @click="clearFilters"
+        class="px-4 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50"
+      >
+        Clear
+      </button>
+    </div>
 
     <!-- Error Banner -->
     <div v-if="errorMessage" class="mb-6 rounded-md bg-red-50 p-4">

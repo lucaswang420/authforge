@@ -103,3 +103,5 @@ graphify-out/*
 
 # Superpowers SDD scratch (task briefs, reports, progress ledger)
 .superpowers/
+
+.playwright-mcp/

@@ -71,5 +71,30 @@ test.describe('Dashboard - unhealthy state', () => {
     await loginAsAdmin(page)
     await expect(page.locator('text=Unhealthy')).toBeVisible()
   })
+
+  // A-DASH-006: stats API failure must surface a descriptive error banner.
+  // The Frontend_Error_Module (normalizeError) maps the backend error CODE to
+  // a localized message — INTERNAL_ERROR → "服务器内部错误" — rather than
+  // echoing the raw backend message string (Requirement 8.6). We assert the
+  // banner renders the localized mapping, not the raw payload.
+  test('shows descriptive error banner when stats API fails (A-DASH-006)', async ({ page }) => {
+    await setupAuthenticatedMocks(page)
+    await page.route('**/api/admin/dashboard/stats', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'INTERNAL_ERROR', category: 'SYSTEM', message: 'Stats query failed' },
+        }),
+      })
+    })
+    await loginAsAdmin(page)
+    const banner = page.locator('.bg-red-50')
+    await expect(banner).toBeVisible()
+    // INTERNAL_ERROR is mapped to its localized message; the raw backend
+    // message is intentionally NOT surfaced to the UI.
+    await expect(banner).toContainText('服务器内部错误')
+    await expect(banner).not.toContainText('Stats query failed')
+  })
 })
 
