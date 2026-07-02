@@ -108,6 +108,39 @@ test.describe('User Management', () => {
     expect(apiCalled).toBe(false)
   })
 
+  // A-USR-RL-005: assigning a non-existent role must surface the backend error
+  // through the Frontend_Error_Module. normalizeError maps the error CODE to a
+  // localized message (Requirement 8.6) — the raw backend message is not shown.
+  // VALIDATION_RESOURCE_NOT_FOUND is the catalog code for a missing resource.
+  test('non-existent role shows error message (A-USR-RL-005)', async ({ page }) => {
+    await page.route('**/api/admin/users/*/roles', async (route) => {
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: {
+              code: 'VALIDATION_RESOURCE_NOT_FOUND',
+              category: 'VALIDATION',
+              message: 'Role does not exist',
+            },
+          }),
+        })
+      } else {
+        await route.continue()
+      }
+    })
+    await page.locator('button:has-text("Assign Roles")').first().click()
+    await page.fill('input[placeholder="admin, user"]', 'superadmin')
+    await page.click('button:has-text("Save Roles")')
+    // VALIDATION_RESOURCE_NOT_FOUND is mapped to "资源不存在"; the raw backend
+    // message is intentionally NOT surfaced.
+    const errorEl = page.locator('.bg-red-50')
+    await expect(errorEl.first()).toBeVisible()
+    await expect(errorEl.first()).toContainText('资源不存在')
+    await expect(errorEl.first()).not.toContainText('Role does not exist')
+  })
+
   test('API error displays error message', async ({ page }) => {
     await page.route('**/api/admin/users', async (route) => {
       await route.fulfill({

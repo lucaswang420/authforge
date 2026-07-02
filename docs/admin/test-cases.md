@@ -248,7 +248,7 @@
 
 | ID | Test Case | Steps | Expected Result | Priority |
 |----|-----------|-------|-----------------|----------|
-| A-SEC-001 | CSRF protection | Submit forms | CSRF token included in requests | P0 |
+| A-SEC-001 | CSRF protection (CORS same-origin) | Submit forms / send API requests | Bearer-token architecture: auth token is NOT in a cookie, so classic CSRF does not apply. Protection is enforced by backend CORS with strict exact-match Origin allowlist (no wildcards) — `main.cc` origin check. Cross-origin requests from non-allowlisted origins are rejected | P0 |
 | A-SEC-002 | Token storage | After login | Auth token not in URL or localStorage in plaintext | P0 |
 | A-SEC-003 | Route guard bypass | Manually enter `/admin/users` URL without auth | Redirected to login | P0 |
 | A-SEC-004 | Client secret display | View/create client secret | Secret shown only once, not persisted in page state | P0 |

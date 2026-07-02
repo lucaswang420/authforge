@@ -110,4 +110,35 @@ test.describe('Security', () => {
       expect(pageContent).not.toContain('new-secret-after-reset')
     })
   })
+
+  // A-SEC-001: This SPA uses Bearer tokens (Authorization header), not cookies,
+  // for authentication. Classic CSRF exploits the browser's automatic cookie
+  // attachment — irrelevant here because the auth credential is never in a
+  // cookie. Cross-origin protection is enforced server-side by a strict
+  // CORS Origin allowlist (main.cc, exact match, no wildcards). These tests
+  // verify the CSRF-immune invariants the frontend must maintain.
+  test.describe('CSRF protection (Bearer-token + CORS)', () => {
+    test('auth credential is not stored in a cookie', async ({ page }) => {
+      await setupAuthenticatedMocks(page)
+      await loginAsAdmin(page)
+      // No auth cookie is set — the credential lives in sessionStorage
+      // (refresh token) + memory (access token), immune to automatic
+      // cross-origin submission.
+      const cookieBlob = await page.evaluate(() => document.cookie)
+      expect(cookieBlob).toBe('')
+    })
+
+    test('API requests carry Bearer token in Authorization header', async ({ page }) => {
+      await setupAuthenticatedMocks(page)
+      await loginAsAdmin(page)
+      // Re-trigger an API call and capture its Authorization header. The
+      // axios request interceptor must attach the access token as Bearer.
+      const [request] = await Promise.all([
+        page.waitForRequest((req) => req.url().includes('/api/admin/dashboard/stats')),
+        page.click('nav a:has-text("Dashboard")'),
+      ])
+      const authHeader = await request.headerValue('authorization')
+      expect(authHeader).toMatch(/^Bearer\s+\S+/)
+    })
+  })
 })
