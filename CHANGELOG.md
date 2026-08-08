@@ -7,6 +7,129 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+#### OAuth/OIDC 合規審計 Batch 0 — P0 安全修復 (#21–#25)
+
+- **F-002 (#21)**：client_secret 哈希寫入路徑統一為「有鹽小寫 SHA-256」，
+  與校驗路徑一致（此前寫入用無鹽大寫 SHA-256，導致動態註冊/管理端
+  創建的客戶端永遠無法通過 token 認證）。註冊與管理端 reset 路徑同步
+  輪換 salt；新增 `utils::hashClientSecretWithSalt`。
+- **F-003 (#22)**：`refresh_token` grant 增加客戶端認證（RFC 6749
+  §3.2.1/§6）：CONFIDENTIAL 客戶端缺失/錯誤 secret 返回 401
+  `invalid_client`（含 `WWW-Authenticate: Basic`），PUBLIC 客戶端僅校驗
+  client_id 存在。
+- **F-004 (#23)**：Redis 後端 client_secret 比較改為常量時間比較；三個
+  存儲後端統一使用 `authforge::common::utils::constantTimeMemcmp`；刪除
+  洩漏比較結果的 LOG_DEBUG。
+- **F-005 (#24)**：獨立 Redis 存儲模式正式棄用：啟動時 LOG_ERROR 明示，
+  該模式下 refresh_token grant 返回 `unsupported_grant_type`（替代誤導性
+  的 invalid_grant）。目標架構為 Postgres 存儲 + Redis 緩存（另立
+  issue）。文檔見 `docs/backend/configuration-guide.md` §3。
+- **F-016 (#25)**：issuer 一致性修復：access token 簽發時寫入配置的
+  issuer（此前從不寫入，introspect 返回 schema 硬編碼默認值）；刪除
+  Postgres/Redis/Memory 三後端硬編碼的 `https://oauth.example.com`；
+  introspect 空 iss 由配置的 issuer 兜底；discovery 對 issuer 尾斜線歸一
+  化；非 localhost 的 http issuer 啟動告警。introspect `iss` 與 discovery
+  `issuer` 字節一致（OIDC Discovery §3）。
+
+#### OAuth/OIDC 合規審計 Batch 1 — 協議正確性 (#26/#28/#31/#33/#34/#35/#36)
+
+- **F-007 (#26)**：授權端點錯誤按 RFC 6749 §4.1.2.1 分流 —— client_id 未知
+  /redirect_uri 無效仍直接 4xx，其餘錯誤（invalid_scope、PKCE-required、
+  server_error 等）改為 302 重定向到已驗證的 redirect_uri 並回顯 state。
+- **F-006 (#28)**：資源端點 401（攜帶無效/過期憑證）發出 RFC 6750 §3
+  `WWW-Authenticate: Bearer realm, error="invalid_token"` 挑戰。
+- **F-015 (#31)**：`device_authorization` 端點按 client_type 分支認證
+  （RFC 8628 §3.1.1）：CONFIDENTIAL 需 client_secret，PUBLIC 僅校驗存在
+  （此前以空 secret 調用 validateClient，機密客戶端無法發起 device flow）。
+- **F-011 (#33)**：PKCE 預設改為強制（RFC 9700 §2.1.1），`config.json`/
+  `config.dev.json`/`config.ci.json`/`config.prod.json` 顯式
+  `require_pkce_for_public: true`。
+- **F-012 (#34)**：device flow 輪詢過快返回 `slow_down`（RFC 8628 §3.5），
+  `oauth2_device_codes` 新增 `last_polled_at` 列並每次輪詢更新；
+  `slow_down` 時將 interval 遞增 5 秒並持久化。
+- **F-008/F-009/F-013 (#35)**：token 端點 validation gate 發 RFC 6749 §5.2
+  `error: invalid_request` 信封（此前用應用信封 VALIDATION_INVALID_INPUT）；
+  authorization_code 兌換時若授權時綁定了 redirect_uri 則請求必須攜帶且匹配
+  （§4.1.3，此前空 redirect_uri 可繞過比較）；authorize 端校驗
+  `code_challenge_method ∈ {plain, S256}`（RFC 7636 §4.3）。
+- **F-014 (#36)**：redirect_uri 強制 https（RFC 8252 §7.3），豁免僅
+  `http://127.0.0.1`/`http://[::1]` loopback IP 字面量（端口通配，`localhost`
+  不豁免）；新增配置開關 `auth.allow_http_redirect_uri`（dev 開/prod 關）；
+  seed 與測試中 `localhost` redirect_uri 同步改為 `127.0.0.1`。
+
+#### OAuth/OIDC 合規審計 Batch 2 — OIDC 全量擴展 (#29/#30/#32/#37)
+
+- **F-021/F-022 (#29)**：`prompt` / `max_age` / `auth_time` / `acr` / `amr`
+  全量支持。登入成功寫入 session `auth_time`/`amr`（MFA 完成追加 `mfa`）；
+  authorize 解析 `prompt`（none/login/consent/select_account）與 `max_age`，
+  按 OIDC Core §3.1.2.1 強制（none+其他值 400；prompt=none 無 session →
+  302 `login_required`/`consent_required`；prompt=login/max_age 超齡 → 強制
+  重認證；prompt=consent → 強制同意頁）。授權碼持久化 `auth_time`/`amr`
+  （PostgresGrantRepository save/get/consumeAuthCode）；兌換時 id_token 增發
+  `auth_time`（>0 時）、`amr`（JSON 陣列）、`acr`（1=password / 2=MFA）。
+  discovery 新增 `prompt_values_supported`、`acr_values_supported`、
+  `end_session_endpoint`，`claims_supported` 補 auth_time/acr/amr。
+- **F-025 (#32)**：`refresh_token` 與 `device_code` grant 在 scope 含 openid
+  且 JwkManager 可用時重發 id_token（OIDC Core §12，refresh 無 nonce）。
+  新增 `OAuth2Plugin::signIdToken()` 助手集中簽發邏輯。
+- **F-027/F-028 (#30)**：新增 `/oauth2/end_session`（GET+POST）RP-Initiated
+  Logout 端點：校驗 `id_token_hint`、`post_logout_redirect_uri` 須為該客戶端
+  註冊 redirect_uri、回顯 `state`、`session()->clear()`；合法 302，否則 400。
+  現有 `SessionController::logout` 補 `session()->clear()`（F-028）。
+- **F-017 (#37)**：`token_endpoint_auth_method` 持久化 + 強制。
+  `oauth2_clients` 新增列（NULL 保留舊寬容 Basic→body 回退）。DTO/Client
+  聚合暴露該字段；註冊/管理端持久化並回顯（PUBLIC 默認 `none`，CONFIDENTIAL
+  默認 `client_secret_basic`）。token/introspect/revoke 按聲明方法強制
+  （basic 僅接 Basic 頭 / post 僅接 body / none 拒絕任何 secret）。
+  seed 顯式賦值（vue-client/admin-console='none'，backend-svc='client_secret_basic'）。
+- **F-023/F-024 (#37)**：userinfo 要求 access token scope 含 openid，否則
+  403 + `WWW-Authenticate: Bearer error="insufficient_scope"`；M2M token
+  （subject `client:*`）直接拒。順帶返回 `email_verified` 聲明。
+
+#### OAuth/OIDC 合規審計 Batch 3 — 加固與清理 (#27/#38/#39)
+
+- **F-010 (#27)**：最小路徑→required-scope 強制（`OAuth2AuthFilter` /
+  `AuthorizationFilter`）。`/oauth2/userinfo`→`openid`、`/api/me` 與
+  `/api/me/*`→`profile`、`/api/admin/*`→`admin` scope（與既有 RBAC 角色檢查
+  並存，scope 閘門先跑）。不足時 403 + RFC 6750 §3.1 `WWW-Authenticate:
+  Bearer error="insufficient_scope", scope="<required>"`。新增框架無關的
+  `authforge::drogon::utils::hasScope()` 助手（空格分隔 token 精確匹配，
+  避免 `openidprofile` 誤過 `openid`）。完整資源-scope 授權模型為後續工作
+  （見 `docs/backend/api-reference.md`）。整合測試覆蓋：openid-only token
+  訪問 `/api/me` → 403、openid+profile token（無 admin）訪問 `/api/admin` →
+  403、預設 admin token（含 admin scope）仍可訪問受保護路由。
+- **F-018 (#38)**：進程內滑動窗口限流。`/oauth2/token`、`/oauth2/introspect`、
+  `/oauth2/revoke` 與 device_code 輪詢共享一個 `RateLimiter` 單例（函數局部
+  static），按 (client_ip, client_id) 分桶；窗口內失敗計數達閾值（默認 30
+  次/60s，可經 `custom_config["auth"]["rate_limit"]` 配置）→ 429 +
+  `Retry-After` + OAuth2 錯誤信封。**僅計失敗**（認證/校驗失敗），成功清零
+  ——整合測試套件（大量連續成功請求）不受影響。整合測試覆蓋：35 次連續
+  失敗的 token 請求觸發 429。
+- **F-019 (#39)**：token/introspect/revoke 所有成功響應加 `Cache-Control:
+  no-store` + `Pragma: no-cache`（RFC 6749 §5.1 / RFC 7009 §2.2.1）。
+  新增 `TokenEndpointController::applyNoStoreHeaders()` 助手，覆蓋 6 個成功
+  返回點（revoke 2 處經 `createSuccessResponse`、introspect 2 處、token
+  authorization_code/refresh/client_credentials/device_code 各 1 處）。
+- **F-020 (#39)**：authorize 終態重定向的 `state`/`code` 經 urlEncode
+  （`AuthorizationEndpointController.cc`、`SessionController.cc`）。（Batch 3
+  前置作業，由父會話完成。）
+- **F-001 (#39)**：`openapi.yaml` token grant_type enum 補
+  `urn:ietf:params:oauth:grant-type:device_code`。（Batch 3 前置作業。）
+- **F-024 驗收**：確認 userinfo 返回 `email_verified`（Batch 2 已實現於
+  `TokenEndpointController.cc:1753`，本次僅驗收）。
+- **F-026（文檔化，不實現）**：nonce 服端防重放非 OIDC 規範強制
+  （OIDC §15.5.2 是客戶端 MUST），服務端僅回顯 nonce、不存儲用於重放檢查
+  ——見 `docs/backend/api-reference.md`。
+- **F-029 / F-030 / F-031（文檔化，不改碼）**：
+  - F-029：JWKS 金鑰輪轉為後續運維工作（當前單一靜態 kid，init-once）——
+    見 `docs/backend/configuration-guide.md`。
+  - F-030：客戶端管理僅經 `/api/admin/clients/*`（admin-only），無 RFC 7592
+    `registration_access_token` 自管理——見 `docs/backend/api-reference.md`。
+  - F-031：Memory 存儲後端僅供測試/開發，明文存儲密鑰，生產禁用——見
+    `docs/backend/data-persistence.md`。
+
 ### Changed
 
 #### 依賴升級 (Dependencies)

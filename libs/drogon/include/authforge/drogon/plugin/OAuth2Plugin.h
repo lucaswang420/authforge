@@ -185,7 +185,9 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
       const std::string &codeChallenge,
       const std::string &codeChallengeMethod,
       const std::string &nonce,
-      std::function<void(bool, std::string, std::string)> &&callback
+      std::function<void(bool, std::string, std::string)> &&callback,
+      int64_t authTime = 0,
+      const std::string &amr = ""
     );
 
     /**
@@ -372,6 +374,17 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
         return storageType_;
     }
 
+    // F-016: the configured issuer URL (custom config metadata.issuer, default
+    // http://localhost:5555, trailing slash normalized at startup). Read once
+    // in initAndStart(); controllers use it to stamp issuer on access tokens
+    // (client_credentials/device paths) and to backfill introspection iss when
+    // a storage backend returns none -- keeping it byte-identical to the
+    // discovery document's issuer.
+    const std::string &getIssuer() const
+    {
+        return issuer_;
+    }
+
     // ========== Observability Ports (M8 Task 40, decision b) ==========
     // Expose the Adapter-side IAuditSink / IMetrics instances so Drogon-layer
     // code (libs/drogon controllers) can emit audit events / metrics through
@@ -397,6 +410,22 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     {
         return authorizationService_;
     }
+
+    // F-025 (OIDC Core §12): sign an id_token for the refresh_token and
+    // device_code grant paths (which issue tokens outside TokenService and
+    // therefore cannot reuse its inline id_token signing). Builds the
+    // standard claims (iss/sub/aud/iat/exp) and signs with the configured
+    // JwkManager. Returns an empty string when the JwkManager is not
+    // initialized (callers then omit id_token, matching the
+    // authorization_code path's behavior). authTime/amr, when non-default,
+    // are carried over so RPs that requested max_age still get auth_time on
+    // refresh-issued id_tokens.
+    std::string signIdToken(
+      const std::string &subject,
+      const std::string &clientId,
+      int64_t authTime = 0,
+      const std::string &amr = ""
+    ) const;
 
   private:
     // Phase 4.6a: storage_ (the god IOAuth2Storage) is gone. The plugin now
@@ -437,6 +466,9 @@ class OAuth2Plugin : public drogon::Plugin<OAuth2Plugin>
     std::shared_ptr<authforge::oauth2::protocol::AuthorizationService> authorizationService_;
 
     std::string storageType_;
+
+    // F-016: configured issuer, read once in initAndStart() (see getIssuer()).
+    std::string issuer_;
 
     // TTL Configuration (Seconds)
     // Note: These are set once during initAndStart() and only read afterwards

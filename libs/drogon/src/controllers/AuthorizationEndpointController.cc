@@ -7,12 +7,36 @@
 #include <authforge/drogon/observability/openapi/OpenApiGenerator.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
+#include <algorithm>
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <sstream>
 
 using namespace authforge::drogon::controllers;
 using namespace authforge::drogon::observability::openapi;
+
+namespace
+{
+// F-007 (RFC 6749 §4.1.2.1): once client_id and redirect_uri have been
+// verified, every authorization-endpoint error MUST be delivered as a 302
+// back to the client's redirect_uri with error/error_description/state in
+// the query -- never as a direct JSON/HTML 4xx.
+::drogon::HttpResponsePtr buildAuthorizeErrorRedirect(
+  const std::string &redirectUri,
+  const std::string &error,
+  const std::string &description,
+  const std::string &state
+)
+{
+    std::string location = redirectUri + "?error=" + error;
+    if (!description.empty())
+        location += "&error_description=" + ::drogon::utils::urlEncode(description);
+    if (!state.empty())
+        location += "&state=" + ::drogon::utils::urlEncode(state);
+    return ::drogon::HttpResponse::newRedirectionResponse(location);
+}
+}  // namespace
 
 namespace authforge::drogon::controllers
 {
@@ -63,6 +87,19 @@ void AuthorizationEndpointController::initApiDocsImpl()
         "(recommended)",
         authforge::drogon::observability::openapi::ParameterType::STRING,
         authforge::drogon::observability::openapi::ParameterLocation::QUERY,
+        false},
+       {"prompt",
+        "Space-separated prompt values (none|login|consent). "
+        "none forbids UI; login forces re-auth; consent forces the consent "
+        "screen (OIDC Core §3.1.2.1).",
+        authforge::drogon::observability::openapi::ParameterType::STRING,
+        authforge::drogon::observability::openapi::ParameterLocation::QUERY,
+        false},
+       {"max_age",
+        "Maximum allowable age of the user's authentication in seconds. If "
+        "the session auth_time is older, re-authentication is forced.",
+        authforge::drogon::observability::openapi::ParameterType::STRING,
+        authforge::drogon::observability::openapi::ParameterLocation::QUERY,
         false}};
     authorizeEndpoint
       .responses = {{302, "Redirect to client with authorization code"}, {400, "Invalid request"}};
@@ -108,6 +145,44 @@ void AuthorizationEndpointController::authorize(
     std::string codeChallenge = params["code_challenge"];
     std::string codeChallengeMethod = params["code_challenge_method"];
     std::string nonce = params["nonce"];
+    // F-022 (OIDC Core §3.1.2.1): prompt and max_age drive whether the
+    // authorization server may reuse an existing session or must force
+    // re-authentication / consent. prompt is a space-separated list of
+    // none|login|consent|select_account; max_age is the max acceptable
+    // age of the user's auth_time in seconds.
+    std::string promptParam = params["prompt"];
+    std::string maxAgeParam = params["max_age"];
+
+    // Parse the prompt values once (space-separated).
+    std::vector<std::string> promptValues;
+    {
+        std::stringstream pss(promptParam);
+        std::string pitem;
+        while (std::getline(pss, pitem, ' '))
+        {
+            if (!pitem.empty())
+                promptValues.push_back(pitem);
+        }
+    }
+    auto promptHas = [&promptValues](const std::string &v) {
+        return std::find(promptValues.begin(), promptValues.end(), v) != promptValues.end();
+    };
+
+    // F-022 (OIDC Core §3.1.2.1): prompt=none combined with any other value
+    // is a malformed request -> invalid_request direct 400 (not a redirect:
+    // the request is self-contradictory before client_id/redirect_uri are
+    // even validated, so this is a client error per F-007's "direct 4xx for
+    // malformed-request" rule).
+    if (promptHas("none") && promptValues.size() > 1)
+    {
+        auto resp = ::drogon::HttpResponse::newHttpResponse();
+        resp->setStatusCode(::drogon::k400BadRequest);
+        resp->setBody(
+          "prompt=none cannot be combined with other prompt values (OIDC Core §3.1.2.1)"
+        );
+        callback(resp);
+        return;
+    }
 
     // P0-4: State Parameter Enforcement
     if (state.empty())
@@ -201,6 +276,30 @@ void AuthorizationEndpointController::authorize(
         return;
     }
 
+    // F-022: collapse the parsed prompt/max_age into the booleans the
+    // downstream branches act on, so the async chain only needs to thread a
+    // few flags (not the raw strings).
+    bool promptNone = promptHas("none");
+    bool promptLogin = promptHas("login");
+    bool promptConsent = promptHas("consent");
+    // max_age: integer seconds. Invalid (non-numeric / negative) is treated
+    // as absent to stay lenient with malformed clients (OIDC Core §3.1.2.1
+    // only specifies the semantics for a valid max_age).
+    int64_t maxAgeSeconds = -1;
+    if (!maxAgeParam.empty())
+    {
+        try
+        {
+            maxAgeSeconds = std::stoll(maxAgeParam);
+            if (maxAgeSeconds < 0)
+                maxAgeSeconds = -1;
+        }
+        catch (const std::exception &)
+        {
+            maxAgeSeconds = -1;
+        }
+    }
+
     // Validate Client (Async)
     plugin->validateClient(
       clientId,
@@ -215,6 +314,10 @@ void AuthorizationEndpointController::authorize(
        codeChallengeMethod,
        nonce,
        req,
+       promptNone,
+       promptLogin,
+       promptConsent,
+       maxAgeSeconds,
        callback = std::move(callback)](bool validClient) mutable {
           if (!validClient)
           {
@@ -251,6 +354,10 @@ void AuthorizationEndpointController::authorize(
              codeChallengeMethod,
              nonce,
              req,
+             promptNone,
+             promptLogin,
+             promptConsent,
+             maxAgeSeconds,
              callback = std::move(callback)](bool validUri) mutable {
                 if (!validUri)
                 {
@@ -259,6 +366,30 @@ void AuthorizationEndpointController::authorize(
                     resp->setBody("Invalid redirect_uri");
                     callback(resp);
                     return;
+                }
+
+                // F-013 (RFC 7636 §4.2): code_challenge_method, when present,
+                // MUST be "plain" or "S256"; omitted defaults to "plain".
+                // client_id/redirect_uri are already verified above, so per the
+                // F-007 rule the error is redirected back to the client.
+                if (!codeChallengeMethod.empty())
+                {
+                    if (codeChallengeMethod != "plain" && codeChallengeMethod != "S256")
+                    {
+                        callback(
+                          buildAuthorizeErrorRedirect(
+                            redirectUri,
+                            "invalid_request",
+                            "code_challenge_method must be 'plain' or 'S256'",
+                            state
+                          )
+                        );
+                        return;
+                    }
+                }
+                else if (!codeChallenge.empty())
+                {
+                    codeChallengeMethod = "plain";
                 }
 
                 std::vector<std::string> requestedScopes;
@@ -286,6 +417,20 @@ void AuthorizationEndpointController::authorize(
 
                 if (userId.empty())
                 {
+                    // F-022 (OIDC Core §3.1.2.1): prompt=none requires that
+                    // no UI be shown. With no authenticated session, the
+                    // request cannot be satisfied non-interactively -> return
+                    // an error redirect with login_required (never show UI).
+                    if (promptNone)
+                    {
+                        callback(buildAuthorizeErrorRedirect(
+                          redirectUri,
+                          "login_required",
+                          "prompt=none requested but no active session",
+                          state
+                        ));
+                        return;
+                    }
                     // Not logged in -> redirect to the login screen (unchanged
                     // behavior; the engine's scope/consent tiers only apply to
                     // an authenticated subject).
@@ -308,6 +453,73 @@ void AuthorizationEndpointController::authorize(
                     // screen so login.csp's hidden fields can hand it back to
                     // SessionController::login (which already threads it into
                     // generateAuthorizationCode).
+                    if (!codeChallenge.empty())
+                    {
+                        location += "&code_challenge=" + ::drogon::utils::urlEncode(codeChallenge) +
+                                    "&code_challenge_method=" +
+                                    ::drogon::utils::urlEncode(codeChallengeMethod);
+                    }
+                    if (!nonce.empty())
+                        location += "&nonce=" + ::drogon::utils::urlEncode(nonce);
+                    auto resp = ::drogon::HttpResponse::newRedirectionResponse(location);
+                    callback(resp);
+                    return;
+                }
+
+                // F-022 (OIDC Core §3.1.2.1): the session exists, but
+                // prompt/max_age may still force re-authentication. Read the
+                // session's auth_time (set by SessionController::login /
+                // MfaController::verifyLogin) to evaluate max_age, and honor
+                // prompt=login by dropping the silent path entirely.
+                int64_t sessAuthTime = 0;
+                std::string sessAmr;
+                if (req->session())
+                {
+                    if (req->session()->find("auth_time"))
+                        sessAuthTime = req->session()->get<int64_t>("auth_time");
+                    if (req->session()->find("amr"))
+                        sessAmr = req->session()->get<std::string>("amr");
+                }
+                // max_age: if the session's auth_time is older than max_age
+                // (or absent), force re-authentication.
+                bool maxAgeExceeded = false;
+                if (maxAgeSeconds >= 0)
+                {
+                    if (sessAuthTime <= 0)
+                    {
+                        maxAgeExceeded = true;
+                    }
+                    else
+                    {
+                        auto nowSecs = std::chrono::duration_cast<std::chrono::seconds>(
+                                         std::chrono::system_clock::now().time_since_epoch()
+                        )
+                                         .count();
+                        if ((static_cast<int64_t>(nowSecs) - sessAuthTime) > maxAgeSeconds)
+                            maxAgeExceeded = true;
+                    }
+                }
+                if (promptLogin || maxAgeExceeded)
+                {
+                    // Force re-authentication: redirect to the login screen,
+                    // preserving the authorize context the same way the
+                    // no-session branch does. prompt=none + login is already
+                    // rejected above, so promptNone is false here.
+                    auto customConfig = ::drogon::app().getCustomConfig();
+                    std::string loginUrl = "/login";
+                    if (
+                      customConfig.isMember("oauth2") &&
+                      customConfig["oauth2"].isMember("login_url")
+                    )
+                    {
+                        loginUrl = customConfig["oauth2"]["login_url"].asString();
+                    }
+                    std::string location =
+                      loginUrl + "?client_id=" + ::drogon::utils::urlEncode(clientId) +
+                      "&redirect_uri=" + ::drogon::utils::urlEncode(redirectUri) +
+                      "&scope=" + ::drogon::utils::urlEncode(scope) +
+                      "&state=" + ::drogon::utils::urlEncode(state) +
+                      "&response_type=" + ::drogon::utils::urlEncode(responseType);
                     if (!codeChallenge.empty())
                     {
                         location += "&code_challenge=" + ::drogon::utils::urlEncode(codeChallenge) +
@@ -344,6 +556,10 @@ void AuthorizationEndpointController::authorize(
                    codeChallenge,
                    codeChallengeMethod,
                    nonce,
+                   promptNone,
+                   promptConsent,
+                   sessAuthTime,
+                   sessAmr,
                    callback = std::move(callback)](
                     authforge::oauth2::access::ScopeValidationSummary summary
                   ) mutable {
@@ -351,6 +567,8 @@ void AuthorizationEndpointController::authorize(
                       {
                           // Tier 1 (scope_not_allowed_for_client) -> invalid_scope;
                           // Tier 2 (admin_role_required) -> access_denied.
+                          // F-007: client_id/redirect_uri are verified, so the
+                          // error goes back to the client as a 302 redirect.
                           std::string error = "invalid_scope";
                           std::string desc = summary.invalidReasons.empty()
                                                ? "scope validation failed"
@@ -359,21 +577,33 @@ void AuthorizationEndpointController::authorize(
                           {
                               error = "access_denied";
                           }
-                          Json::Value jsonErr;
-                          jsonErr["error"] = error;
-                          jsonErr["error_description"] = desc;
-                          auto resp = ::drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                          resp->setStatusCode(
-                            authforge::common::error::OAuth2ErrorHandler::getHttpStatusCode(error)
-                          );
-                          callback(resp);
+                          callback(buildAuthorizeErrorRedirect(redirectUri, error, desc, state));
                           return;
                       }
 
-                      if (summary.needsConsent())
+                      // F-022 (OIDC Core §3.1.2.1): prompt=consent forces the
+                      // consent screen even if prior consent covers every scope;
+                      // the OR makes the engine treat consent as required.
+                      bool needsConsent = summary.needsConsent() || promptConsent;
+                      if (needsConsent)
                       {
-                          // At least one requested scope lacks recorded consent ->
-                          // route to the consent screen (unchanged redirect shape).
+                          // F-022: prompt=none forbids any UI. If consent is
+                          // required (either by the engine or prompt=consent),
+                          // the request cannot be satisfied non-interactively ->
+                          // consent_required error redirect.
+                          if (promptNone)
+                          {
+                              callback(buildAuthorizeErrorRedirect(
+                                redirectUri,
+                                "consent_required",
+                                "prompt=none requested but user interaction (consent) is required",
+                                state
+                              ));
+                              return;
+                          }
+                          // At least one requested scope lacks recorded consent
+                          // (or prompt=consent forced it) -> route to the consent
+                          // screen (unchanged redirect shape).
                           auto customConfig = ::drogon::app().getCustomConfig();
                           std::string consentUrl = "/consent";
                           if (
@@ -414,7 +644,9 @@ void AuthorizationEndpointController::authorize(
                       // login path enforced this, so a returning user's
                       // /oauth2/authorize replay bypassed the policy).
                       auto customConfig = ::drogon::app().getCustomConfig();
-                      bool requirePkce = false;
+                      // F-011 (RFC 9700 §2.1.1): PKCE mandatory by default
+                      // for all authorization_code clients.
+                      bool requirePkce = true;
                       if (
                         customConfig.isMember("auth") &&
                         customConfig["auth"].isMember("require_pkce_for_public")
@@ -426,17 +658,16 @@ void AuthorizationEndpointController::authorize(
                       {
                           LOG_WARN << "[SECURITY] client " << clientId
                                    << " re-authorization without PKCE (enforcement enabled)";
-                          Json::Value jsonErr;
-                          jsonErr["error"] = "invalid_request";
-                          jsonErr["error_description"] =
-                            "PKCE (code_challenge) is required for public clients";
-                          auto resp = ::drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                          resp->setStatusCode(
-                            authforge::common::error::OAuth2ErrorHandler::getHttpStatusCode(
-                              "invalid_request"
+                          // F-007: PKCE-required is a post-validation error ->
+                          // 302 back to the client, not a direct 400.
+                          callback(
+                            buildAuthorizeErrorRedirect(
+                              redirectUri,
+                              "invalid_request",
+                              "PKCE (code_challenge) is required for public clients",
+                              state
                             )
                           );
-                          callback(resp);
                           return;
                       }
 
@@ -455,19 +686,25 @@ void AuthorizationEndpointController::authorize(
                             if (!success)
                             {
                                 LOG_ERROR << "Failed to generate authorization code: " << error;
-                                Json::Value jsonErr;
-                                jsonErr["error"] = "server_error";
-                                jsonErr["error_description"] =
-                                  "Failed to generate authorization code";
-                                auto resp = ::drogon::HttpResponse::newHttpJsonResponse(jsonErr);
-                                resp->setStatusCode(::drogon::k500InternalServerError);
-                                callback(resp);
+                                // F-007: server_error also redirects back to
+                                // the client per RFC 6749 §4.1.2.1.
+                                callback(
+                                  buildAuthorizeErrorRedirect(
+                                    redirectUri,
+                                    "server_error",
+                                    "Failed to generate authorization code",
+                                    state
+                                  )
+                                );
                                 return;
                             }
 
-                            std::string location = redirectUri + "?code=" + code;
+                            // F-020 (RFC 6749 §4.1.2/§4.1.3): urlEncode the
+                            // code and state so special chars survive the query.
+                            std::string location =
+                              redirectUri + "?code=" + ::drogon::utils::urlEncode(code);
                             if (!state.empty())
-                                location += "&state=" + state;
+                                location += "&state=" + ::drogon::utils::urlEncode(state);
                             auto resp = ::drogon::HttpResponse::newRedirectionResponse(location);
                             if (auto m = ::drogon::app().getPlugin<::OAuth2Plugin>()->getMetrics())
                                 m->incrementCounter(
@@ -476,7 +713,9 @@ void AuthorizationEndpointController::authorize(
                                   static_cast<double>(302)
                                 );
                             callback(resp);
-                        }
+                        },
+                        sessAuthTime,
+                        sessAmr
                       );
                   }
                 );

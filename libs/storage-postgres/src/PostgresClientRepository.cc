@@ -1,31 +1,7 @@
 #include <authforge/storage/postgres/PostgresClientRepository.h>
+#include <authforge/common/utils/ConstantTimeCompare.h>
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
-
-namespace
-{
-/**
- * @brief Constant-time memory comparison to prevent timing attacks.
- * Returns 0 if buffers are equal, non-zero otherwise.
- * Verbatim copy from the original PostgresOAuth2Storage.cc anonymous
- * namespace helper (validateClient is the only caller in this file, same as
- * in the original).
- */
-inline int constantTimeMemcmp(const void *s1, const void *s2, size_t n)
-{
-    const unsigned char *p1 = static_cast<const unsigned char *>(s1);
-    const unsigned char *p2 = static_cast<const unsigned char *>(s2);
-    int result = 0;
-    size_t i;
-
-    for (i = 0; i < n; ++i)
-    {
-        result |= p1[i] ^ p2[i];
-    }
-
-    return result;
-}
-}  // namespace
 
 #include <authforge/storage/postgres/models/Oauth2Clients.h>
 #include <authforge/storage/postgres/models/Oauth2Scopes.h>
@@ -33,6 +9,11 @@ inline int constantTimeMemcmp(const void *s1, const void *s2, size_t n)
 
 namespace authforge::storage::postgres
 {
+
+// F-004: constant-time comparison now comes from the shared
+// authforge::common::utils::constantTimeMemcmp (previously a verbatim
+// anonymous-namespace copy lived here and in Memory/Redis backends).
+using ::authforge::common::utils::constantTimeMemcmp;
 
 // Task 27.5: callback + DTO aliases for the new base interface; safe at namespace scope here (this
 // .cc does not include IOAuth2Storage.h, so no oauth2::* clash).
@@ -100,6 +81,10 @@ void PostgresClientRepository::getClient(const std::string &clientId, ClientCall
 
               client.clientSecretHash = row.getValueOfClientSecret();
               client.salt = row.getValueOfSalt();
+              // F-017: read the declared token-endpoint auth method so the
+              // token/introspect/revoke endpoints can enforce it. Empty (NULL
+              // column) preserves the legacy lenient Basic->body fallback.
+              client.tokenEndpointAuthMethod = row.getValueOfTokenEndpointAuthMethod();
 
               std::string uris = row.getValueOfRedirectUris();
               LOG_DEBUG << "Postgres getClient: Redirect URIs -> " << uris;

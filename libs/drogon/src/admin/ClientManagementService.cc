@@ -4,12 +4,14 @@
 #include <authforge/storage/postgres/models/Oauth2ClientScopes.h>
 #include <authforge/drogon/error/ErrorResponder.h>
 #include <authforge/drogon/utils/CryptoUtils.h>
+#include <authforge/drogon/validation/RuleSet.h>
 
 #include <drogon/drogon.h>
 #include <drogon/utils/Utilities.h>
 
 #include <atomic>
 #include <mutex>
+#include <optional>
 #include <sstream>
 
 namespace authforge::drogon::admin
@@ -53,6 +55,24 @@ void respondError(
         return nullptr;
     }
 }
+
+// F-014: enforce the redirect_uri scheme policy (https required, loopback
+// IP-literal exemption, auth.allow_http_redirect_uri override) on the
+// comma-separated redirect_uris column value.
+std::optional<std::string> validateRedirectUriList(const std::string &list)
+{
+    std::stringstream ss(list);
+    std::string item;
+    while (std::getline(ss, item, ','))
+    {
+        if (item.empty())
+            continue;
+        auto err = ::authforge::drogon::validation::RuleSet::validateRedirectUri(item);
+        if (err)
+            return "invalid redirect_uri '" + item + "': " + *err;
+    }
+    return std::nullopt;
+}
 }  // namespace
 
 // Bring the ORM + model names into scope for the out-of-class method
@@ -93,6 +113,8 @@ void ClientManagementService::listClients(const ::drogon::HttpRequestPtr &req, R
               client["name"] = row.getValueOfName();
               client["redirect_uris"] = row.getValueOfRedirectUris();
               client["allowed_grant_types"] = row.getValueOfAllowedGrantTypes();
+              // F-017: surface the declared token-endpoint auth method.
+              client["token_endpoint_auth_method"] = row.getValueOfTokenEndpointAuthMethod();
               clients.append(client);
           }
           json["clients"] = clients;
@@ -113,6 +135,7 @@ void ClientManagementService::createClient(const ::drogon::HttpRequestPtr &req, 
     std::string redirectUris;
     std::string allowedGrantTypes = "authorization_code";
     std::string clientType = "CONFIDENTIAL";
+    std::string tokenEndpointAuthMethod;
 
     auto jsonBody = req->getJsonObject();
     if (jsonBody)
@@ -121,12 +144,33 @@ void ClientManagementService::createClient(const ::drogon::HttpRequestPtr &req, 
         redirectUris = jsonBody->get("redirect_uris", "").asString();
         allowedGrantTypes = jsonBody->get("allowed_grant_types", "authorization_code").asString();
         clientType = jsonBody->get("client_type", "CONFIDENTIAL").asString();
+        tokenEndpointAuthMethod = jsonBody->get("token_endpoint_auth_method", "").asString();
+    }
+    // F-017: apply per-type defaults (PUBLIC -> none, CONFIDENTIAL ->
+    // client_secret_basic) when the admin omits the field.
+    if (tokenEndpointAuthMethod.empty())
+    {
+        tokenEndpointAuthMethod =
+          (clientType == "PUBLIC") ? "none" : "client_secret_basic";
+    }
+
+    // F-014: reject non-compliant redirect URIs at creation time.
+    if (!redirectUris.empty())
+    {
+        if (auto uriError = validateRedirectUriList(redirectUris))
+        {
+            respondError(req, cb, "VALIDATION_FORMAT_ERROR", "createClient: " + *uriError);
+            return;
+        }
     }
 
     std::string clientId = ::drogon::utils::getUuid();
     std::string clientSecret = ::authforge::drogon::utils::generateSecureToken();
-    std::string secretHash = ::authforge::drogon::utils::hashToken(clientSecret);
+    // F-002: salt FIRST, then salted hash -- validateClient computes
+    // sha256(secret + salt); an unsalted stored hash never matches.
     std::string salt = ::drogon::utils::getUuid().substr(0, 36);
+    std::string secretHash =
+      ::authforge::drogon::utils::hashClientSecretWithSalt(clientSecret, salt);
 
     auto db = getDbOrRespond(req, cb);
     if (!db)
@@ -142,16 +186,19 @@ void ClientManagementService::createClient(const ::drogon::HttpRequestPtr &req, 
     row.setName(name);
     row.setRedirectUris(redirectUris);
     row.setAllowedGrantTypes(allowedGrantTypes);
+    // F-017: persist the declared token-endpoint auth method.
+    row.setTokenEndpointAuthMethod(tokenEndpointAuthMethod);
 
     Mapper<Oauth2Clients> mapper(db);
     mapper.insert(
       row,
-      [cb, clientId, clientSecret](const Oauth2Clients &) {
+      [cb, clientId, clientSecret, tokenEndpointAuthMethod](const Oauth2Clients &) {
           Json::Value json;
           json["status"] = "success";
           json["message"] = "Client created successfully";
           json["client_id"] = clientId;
           json["client_secret"] = clientSecret;  // Only returned once at creation time
+          json["token_endpoint_auth_method"] = tokenEndpointAuthMethod;
           json["note"] = "Store the client_secret securely. It will not be shown again.";
           auto resp = ::drogon::HttpResponse::newHttpJsonResponse(json);
           resp->setStatusCode(::drogon::k201Created);
@@ -194,6 +241,8 @@ void ClientManagementService::getClient(
           json["name"] = row.getValueOfName();
           json["redirect_uris"] = row.getValueOfRedirectUris();
           json["allowed_grant_types"] = row.getValueOfAllowedGrantTypes();
+          // F-017: surface the declared token-endpoint auth method.
+          json["token_endpoint_auth_method"] = row.getValueOfTokenEndpointAuthMethod();
 
           // Fetch scopes for this client (separate query -- JOIN-in-a-single-
           // query is forbidden per db-operations.md; the original code already
@@ -257,6 +306,16 @@ void ClientManagementService::updateClient(
     {
         respondError(req, cb, "VALIDATION_INVALID_INPUT", "No fields to update");
         return;
+    }
+
+    // F-014: reject non-compliant redirect URIs at update time.
+    if (hasRedirectUris)
+    {
+        if (auto uriError = validateRedirectUriList((*jsonBody)["redirect_uris"].asString()))
+        {
+            respondError(req, cb, "VALIDATION_FORMAT_ERROR", "updateClient: " + *uriError);
+            return;
+        }
     }
 
     auto db = getDbOrRespond(req, cb);
@@ -365,7 +424,11 @@ void ClientManagementService::resetClientSecret(
     }
 
     std::string newSecret = ::authforge::drogon::utils::generateSecureToken();
-    std::string newSecretHash = ::authforge::drogon::utils::hashToken(newSecret);
+    // F-002: reset MUST also rotate the salt and hash with it; the old
+    // implementation kept the stale salt and stored an unsalted hash.
+    std::string newSalt = ::drogon::utils::getUuid().substr(0, 36);
+    std::string newSecretHash =
+      ::authforge::drogon::utils::hashClientSecretWithSalt(newSecret, newSalt);
 
     auto db = getDbOrRespond(req, cb);
     if (!db)
@@ -376,8 +439,9 @@ void ClientManagementService::resetClientSecret(
     Mapper<Oauth2Clients> mapper(db);
     mapper.findOne(
       Criteria(Oauth2Clients::Cols::_client_id, CompareOperator::EQ, clientId),
-      [cb, req, clientId, newSecret, newSecretHash, db](Oauth2Clients row) {
+      [cb, req, clientId, newSecret, newSecretHash, newSalt, db](Oauth2Clients row) {
           row.setClientSecret(newSecretHash);
+          row.setSalt(newSalt);
           Mapper<Oauth2Clients> updateMapper(db);
           updateMapper.update(
             row,

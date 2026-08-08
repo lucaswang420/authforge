@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $passed = 0
 $failed = 0
-$total = 56
+$total = 58
 $adminPassword = "admin"  # Track current admin password across tests
 
 # Import common functions
@@ -71,6 +71,7 @@ Test-Endpoint "Test 3: OIDC Discovery" {
     if (-not $r.issuer) { throw "missing issuer" }
     if (-not $r.jwks_uri) { throw "missing jwks_uri" }
     if (-not $r.scopes_supported) { throw "missing scopes_supported" }
+    $script:discoveryIssuer = $r.issuer
     Write-Host "    Issuer: $($r.issuer)"
 }
 
@@ -92,6 +93,7 @@ Test-Endpoint "Test 4: JWKS" {
 $authCode = $null
 $accessToken = $null
 $refreshToken = $null
+$discoveryIssuer = $null
 
 Test-Endpoint "Test 5: OAuth2 Login" {
     $body = @{
@@ -148,14 +150,42 @@ Test-Endpoint "Test 7: UserInfo" {
 }
 
 # ========================================
-# Test 8: Admin Dashboard
+# Test 8: Admin Dashboard (F-010: requires admin scope -- use admin-console token)
 # ========================================
 Test-Endpoint "Test 8: Admin Dashboard" {
-    if (-not $accessToken) { throw "skipped: no token" }
-    $headers = @{ Authorization = "Bearer $accessToken" }
+    # F-010: /api/admin/* now requires the `admin` scope on the access token
+    # (in addition to the RBAC admin role). The vue-client token from Test 6
+    # carries only `openid profile`, so it would 403 here -- obtain a proper
+    # admin-scoped token via the admin-console client instead.
+    $adminToken = Get-AdminToken -BaseUrl $BaseUrl
+    if (-not $adminToken) { throw "no admin token" }
+    $headers = @{ Authorization = "Bearer $adminToken" }
     $r = Invoke-RestMethod -Uri "$BaseUrl/api/admin/dashboard" -Method Get -Headers $headers
     if ($r.status -ne "success") { throw "status != success" }
     Write-Host "    Message: $($r.message)"
+}
+
+# ========================================
+# Test 8b: Insufficient scope on /api/admin (F-010, 403 insufficient_scope)
+# ========================================
+Test-Endpoint "Test 8b: /api/admin without admin scope -> 403 insufficient_scope" {
+    if (-not $accessToken) { throw "skipped: no token" }
+    # The vue-client token carries only `openid profile` (no admin scope) ->
+    # F-010 rejects with 403 + WWW-Authenticate: Bearer error="insufficient_scope".
+    $headers = @{ Authorization = "Bearer $accessToken" }
+    try {
+        $null = Invoke-RestMethod -Uri "$BaseUrl/api/admin/dashboard" -Method Get -Headers $headers
+        throw "expected 403, got success"
+    } catch [System.Net.WebException] {
+        $resp = $_.Exception.Response
+        if ($null -eq $resp) { throw "no HTTP response" }
+        $code = [int]$resp.StatusCode
+        if ($code -ne 403) { throw "expected 403, got $code" }
+        $wwwAuth = $resp.Headers["WWW-Authenticate"]
+        if ($wwwAuth -notmatch 'insufficient_scope') { throw "WWW-Authenticate missing insufficient_scope: $wwwAuth" }
+        if ($wwwAuth -notmatch 'scope="admin"') { throw "WWW-Authenticate missing scope=admin: $wwwAuth" }
+        Write-Host "    403 insufficient_scope (scope=admin) confirmed"
+    }
 }
 
 # ========================================
@@ -179,16 +209,48 @@ Test-Endpoint "Test 9: Token Refresh" {
 }
 
 # ========================================
+# Test 9b: Token Refresh - Confidential client without secret (F-003, 401)
+# ========================================
+Test-Endpoint "Test 9b: Token Refresh - Missing client_secret (401)" {
+    if (-not $refreshToken) { throw "skipped: no refresh_token" }
+    # F-003 (RFC 6749 SS6/SS3.2.1): refreshing with a CONFIDENTIAL client
+    # now requires client authentication; omitting the secret MUST yield
+    # 401 invalid_client (+ WWW-Authenticate: Basic).
+    $body = @{
+        grant_type = 'refresh_token'
+        refresh_token = $refreshToken
+        client_id = 'vue-client'
+    }
+    try {
+        Invoke-WebRequest -Uri "$BaseUrl/oauth2/token" -Method Post -Body $body -UseBasicParsing -ErrorAction Stop | Out-Null
+        throw "refresh without client_secret should fail for confidential client"
+    } catch {
+        $resp = $_.Exception.Response
+        if ($resp.StatusCode -ne "Unauthorized") { throw "expected 401, got $($resp.StatusCode)" }
+        $respBody = ""
+        try {
+            $sr = [System.IO.StreamReader]::new($resp.GetResponseStream())
+            $respBody = $sr.ReadToEnd()
+        } catch {}
+        if ($respBody -notmatch '"error"\s*:\s*"invalid_client"') { throw "expected invalid_client, got: $respBody" }
+        Write-Host "    401 + invalid_client returned for unauthenticated refresh"
+    }
+}
+
+# ========================================
 # Test 10: Client Credentials Grant
 # ========================================
 Test-Endpoint "Test 10: Client Credentials" {
+    # F-017: backend-svc is seeded token_endpoint_auth_method=client_secret_basic,
+    # so its secret MUST travel via HTTP Basic (body form is now rejected).
+    $basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("backend-svc:test-secret"))
+    $headers = @{ Authorization = "Basic $basicAuth" }
     $body = @{
         grant_type = 'client_credentials'
         client_id = 'backend-svc'
-        client_secret = 'test-secret'
         scope = 'read'
     }
-    $r = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body $body
+    $r = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body $body -Headers $headers
     if (-not $r.access_token) { throw "no access_token" }
     if ($r.refresh_token) { throw "client_credentials should NOT have refresh_token" }
     if ($r.scope -ne "read") { throw "scope mismatch" }
@@ -210,7 +272,10 @@ Test-Endpoint "Test 11: Token Introspection" {
     }
     $r = Invoke-RestMethod -Uri "$BaseUrl/oauth2/introspect" -Method Post -Body $body
     if ($r.active -ne $true) { throw "active != true" }
-    Write-Host "    Active: $($r.active), Sub: $($r.sub), Scope: $($r.scope)"
+    # F-016: introspection iss MUST be byte-identical to the discovery issuer
+    if (-not $r.iss) { throw "introspection missing iss claim" }
+    if ($discoveryIssuer -and $r.iss -cne $discoveryIssuer) { throw "iss '$($r.iss)' != discovery issuer '$discoveryIssuer'" }
+    Write-Host "    Active: $($r.active), Sub: $($r.sub), Scope: $($r.scope), Iss: $($r.iss)"
 }
 
 # ========================================
@@ -272,7 +337,7 @@ Test-Endpoint "Test 14: User Profile" {
     $tokenBody = @{
         grant_type = 'authorization_code'; code = $login.code
         redirect_uri = 'http://127.0.0.1:5173/callback'
-        client_id = 'vue-client'; client_secret = '123456'
+        client_id = 'vue-client'
     }
     $tok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body $tokenBody
     $script:accessToken = $tok.access_token
@@ -339,7 +404,7 @@ Test-Endpoint "Test 17: Password Change" {
         $restoreTok = Invoke-RestMethod -Uri "$BaseUrl/oauth2/token" -Method Post -Body @{
             grant_type = 'authorization_code'; code = $restoreLogin.code
             redirect_uri = 'http://127.0.0.1:5173/callback'
-            client_id = 'vue-client'; client_secret = '123456'
+            client_id = 'vue-client'
         }
         $restoreHeaders = @{ Authorization = "Bearer $($restoreTok.access_token)"; "Content-Type" = "application/json" }
         Invoke-RestMethod -Uri "$BaseUrl/api/me/password" -Method Put -Body '{"old_password":"NewPass123!","new_password":"admin"}' -Headers $restoreHeaders | Out-Null
@@ -893,7 +958,8 @@ Test-Endpoint "Test 41: POST /oauth2/token - Expired/used authorization code" {
 
 Test-Endpoint "Test 42: POST /oauth2/introspect - Malformed token" {
     # Introspection of a malformed token: may return active=false or an error
-    $body = @{ token = "not-a-real-token-at-all"; client_id = "vue-client"; client_secret = "123456" }
+    # F-017: vue-client is PUBLIC (token_endpoint_auth_method='none'); no secret.
+    $body = @{ token = "not-a-real-token-at-all"; client_id = "vue-client" }
     try {
         $r = Invoke-RestMethod -Uri "$BaseUrl/oauth2/introspect" -Method Post -Body $body
         if ($r.active -ne $false) { throw "malformed token should be active=false" }
@@ -907,7 +973,8 @@ Test-Endpoint "Test 42: POST /oauth2/introspect - Malformed token" {
 Test-Endpoint "Test 43: POST /oauth2/revoke - Already revoked token (idempotent)" {
     $tok = Get-UserToken -BaseUrl $BaseUrl -Username "admin" -Password $adminPassword
     # RFC 7009: client-credential auth via body only; no Bearer header needed.
-    $body = @{ token = $tok; client_id = "vue-client"; client_secret = "123456" }
+    # F-017: vue-client is PUBLIC (token_endpoint_auth_method='none'); no secret.
+    $body = @{ token = $tok; client_id = "vue-client" }
     # Revoke once
     Invoke-WebRequest -Uri "$BaseUrl/oauth2/revoke" -Method Post -Body $body -UseBasicParsing | Out-Null
     # Revoke again - should succeed (idempotent)

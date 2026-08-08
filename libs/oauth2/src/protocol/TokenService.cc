@@ -129,7 +129,9 @@ void TokenService::generateAuthorizationCode(
   const std::string &codeChallenge,
   const std::string &codeChallengeMethod,
   const std::string &nonce,
-  std::function<void(bool, std::string, std::string)> &&callback
+  std::function<void(bool, std::string, std::string)> &&callback,
+  int64_t authTime,
+  const std::string &amr
 )
 {
     if (!grants_ || !crypto_)
@@ -149,6 +151,10 @@ void TokenService::generateAuthorizationCode(
     authCode.codeChallengeMethod = codeChallengeMethod;
     authCode.nonce = nonce;
     authCode.expiresAt = nowSeconds() + authCodeTtl_;
+    // F-022 (OIDC Core §3.1.3.7): thread the session's auth_time + amr onto
+    // the code so the token endpoint can stamp them into the id_token.
+    authCode.authTime = authTime;
+    authCode.amr = amr;
 
     grants_->saveAuthCode(authCode, [callback = std::move(callback), code]() {
         callback(true, code, "");
@@ -249,6 +255,11 @@ void TokenService::exchangeCodeForToken(
                       // default (which the introspect endpoint silently omits).
                       token.issuedAt = now;
                       token.expiresAt = now + self->accessTokenTtl_;
+                      // F-016: stamp the configured issuer at issuance so
+                      // introspection's iss matches the discovery document
+                      // (previously the column was never written and the DB
+                      // default leaked a hardcoded example.com URL).
+                      token.issuer = self->issuer_;
 
                       auto refreshTokenStr = generateSecureToken(*self->crypto_);
                       auto familyId = generateSecureToken(*self->crypto_, 16);
@@ -313,6 +324,52 @@ void TokenService::exchangeCodeForToken(
                                 if (!authCode.nonce.empty())
                                 {
                                     idTokenClaims["nonce"] = authCode.nonce;
+                                }
+                                // F-022 (OIDC Core §2/§3.1.3.7): auth_time is
+                                // REQUIRED when max_age is requested; we always
+                                // emit it so RPs can enforce max_age client-side.
+                                if (authCode.authTime > 0)
+                                {
+                                    idTokenClaims["auth_time"] = (Json::Int64)authCode.authTime;
+                                }
+                                // F-022: acr/amr reflect the authentication
+                                // strength. acr "1" = password only, "2" = MFA
+                                // (amr contains "mfa"); emit only when amr is set.
+                                if (!authCode.amr.empty())
+                                {
+                                    Json::Value amrArray(Json::arrayValue);
+                                    // amr is space-separated on the code; split
+                                    // into the JSON array per OIDC Core §2.
+                                    size_t s = 0;
+                                    while (s < authCode.amr.size())
+                                    {
+                                        size_t e = authCode.amr.find(' ', s);
+                                        if (e == std::string::npos)
+                                            e = authCode.amr.size();
+                                        if (e > s)
+                                            amrArray.append(authCode.amr.substr(s, e - s));
+                                        s = e + 1;
+                                    }
+                                    if (!amrArray.empty())
+                                    {
+                                        idTokenClaims["amr"] = amrArray;
+                                        // MFA if any amr entry is "mfa",
+                                        // otherwise password-level only.
+                                        bool mfa = false;
+                                        for (const auto &v : amrArray)
+                                        {
+                                            if (v.asString() == "mfa")
+                                            {
+                                                mfa = true;
+                                                break;
+                                            }
+                                        }
+                                        // R-1 (OIDC Core §2): acr is a STRING
+                                        // claim, and discovery advertises string
+                                        // values "1"/"2" -- emit as string, not
+                                        // integer.
+                                        idTokenClaims["acr"] = mfa ? "2" : "1";
+                                    }
                                 }
 
                                 std::string idToken = self->jwkManager_->signJwt(idTokenClaims);
@@ -405,6 +462,8 @@ void TokenService::refreshAccessToken(
           // P2 #10: record real issue time for introspection iat.
           token.issuedAt = now;
           token.expiresAt = now + self->accessTokenTtl_;
+          // F-016: same issuer stamping as the authorization_code path above.
+          token.issuer = self->issuer_;
 
           auto newRefreshTokenStr = generateSecureToken(*self->crypto_);
           authforge::oauth2::model::OAuth2RefreshToken newRt;
@@ -417,7 +476,7 @@ void TokenService::refreshAccessToken(
           newRt.familyId = storedRt->familyId;
 
           self->tokens_->saveTokenPair(
-            token, newRt, [self, callback, newTokenStr, newRefreshTokenStr, storedRt](bool ok) {
+            token, newRt, [self, callback, newTokenStr, newRefreshTokenStr, storedRt, now](bool ok) {
                 if (!ok)
                 {
                     // Same silent-failure guard as exchangeCodeForToken:
@@ -432,6 +491,28 @@ void TokenService::refreshAccessToken(
                 // P1 #6: real configured lifetime, not hardcoded 3600.
                 json["expires_in"] = (Json::Int64)self->accessTokenTtl_;
                 json["refresh_token"] = newRefreshTokenStr;
+                // F-025 (OIDC Core §12): refresh_token grant with an openid
+                // scope MUST re-issue an id_token when the server supports
+                // OIDC. There is no nonce on refresh (the original request's
+                // nonce is not carried forward per §12), and auth_time/amr
+                // are omitted (the OAuth2RefreshToken DTO does not persist
+                // them; acceptable per §12 -- only sub/aud/iss/iat/exp are
+                // required on refresh-issued id_tokens).
+                if (
+                  self->jwkManager_ && self->jwkManager_->isInitialized() &&
+                  storedRt->scope.find("openid") != std::string::npos
+                )
+                {
+                    Json::Value idTokenClaims;
+                    idTokenClaims["iss"] = self->issuer_;
+                    idTokenClaims["sub"] = storedRt->userId;
+                    idTokenClaims["aud"] = storedRt->clientId;
+                    idTokenClaims["iat"] = (Json::Int64)now;
+                    idTokenClaims["exp"] = (Json::Int64)(now + self->accessTokenTtl_);
+                    std::string idToken = self->jwkManager_->signJwt(idTokenClaims);
+                    if (!idToken.empty())
+                        json["id_token"] = idToken;
+                }
                 callback(json);
             }
           );

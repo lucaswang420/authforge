@@ -10,9 +10,10 @@ BASE_URL="${1:-http://127.0.0.1:5555}"
 ACCESS_TOKEN=""
 REFRESH_TOKEN=""
 AUTH_CODE=""
+DISCOVERY_ISSUER=""
 ADMIN_PASSWORD="admin"  # Track current admin password across tests
 
-TOTAL=56
+TOTAL=58
 
 echo "========================================"
 echo "Pre-test Setup"
@@ -55,7 +56,8 @@ test_3() {
     assert_json_exists "$r" "issuer" || return 1
     assert_json_exists "$r" "jwks_uri" || return 1
     assert_json_exists "$r" "scopes_supported" || return 1
-    echo "    Issuer: $(echo "$r" | jq -r '.issuer')"
+    DISCOVERY_ISSUER=$(echo "$r" | jq -r '.issuer')
+    echo "    Issuer: $DISCOVERY_ISSUER"
 }
 run_test "Test 3: OIDC Discovery" test_3
 
@@ -91,7 +93,7 @@ test_6() {
     [ -n "$AUTH_CODE" ] || { echo "    skipped: no auth code"; return 1; }
     local r
     r=$(curl -s -X POST "$BASE_URL/oauth2/token" \
-        -d "grant_type=authorization_code&code=$AUTH_CODE&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+        -d "grant_type=authorization_code&code=$AUTH_CODE&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client")
     ACCESS_TOKEN=$(echo "$r" | jq -r '.access_token')
     REFRESH_TOKEN=$(echo "$r" | jq -r '.refresh_token')
     [ -n "$ACCESS_TOKEN" ] && [ "$ACCESS_TOKEN" != "null" ] || { echo "    no access_token"; return 1; }
@@ -117,21 +119,43 @@ test_7() {
 }
 run_test "Test 7: UserInfo" test_7
 
-# Test 8: Admin Dashboard
+# Test 8: Admin Dashboard (F-010: requires admin scope -- use admin-console token)
 test_8() {
-    [ -n "$ACCESS_TOKEN" ] || { echo "    skipped: no token"; return 1; }
+    # F-010: /api/admin/* now requires the `admin` scope on the access token.
+    # The vue-client token (Test 6) carries only `openid profile`, so obtain
+    # a proper admin-scoped token via the admin-console client.
+    local admin_token
+    admin_token=$(get_admin_token "$BASE_URL" admin admin)
+    [ -n "$admin_token" ] || { echo "    no admin token"; return 1; }
     local r
-    r=$(curl -s -H "Authorization: Bearer $ACCESS_TOKEN" "$BASE_URL/api/admin/dashboard")
+    r=$(curl -s -H "Authorization: Bearer $admin_token" "$BASE_URL/api/admin/dashboard")
     assert_json_field "$r" "status" "success" || return 1
 }
 run_test "Test 8: Admin Dashboard" test_8
+
+# Test 8b: Insufficient scope on /api/admin (F-010, 403 insufficient_scope)
+test_8b() {
+    [ -n "$ACCESS_TOKEN" ] || { echo "    skipped: no token"; return 1; }
+    # The vue-client token carries only `openid profile` (no admin scope) ->
+    # F-010 rejects with 403 + WWW-Authenticate: Bearer error="insufficient_scope".
+    local code www_auth
+    code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $ACCESS_TOKEN" \
+        "$BASE_URL/api/admin/dashboard")
+    [ "$code" = "403" ] || { echo "    expected 403, got $code"; return 1; }
+    www_auth=$(curl -s -D - -o /dev/null -H "Authorization: Bearer $ACCESS_TOKEN" \
+        "$BASE_URL/api/admin/dashboard" | grep -i "^WWW-Authenticate:")
+    echo "$www_auth" | grep -q "insufficient_scope" || { echo "    missing insufficient_scope: $www_auth"; return 1; }
+    echo "$www_auth" | grep -q 'scope="admin"' || { echo "    missing scope=admin: $www_auth"; return 1; }
+    echo "    403 insufficient_scope (scope=admin) confirmed"
+}
+run_test "Test 8b: /api/admin without admin scope -> 403 insufficient_scope" test_8b
 
 # Test 9: Token Refresh
 test_9() {
     [ -n "$REFRESH_TOKEN" ] || { echo "    skipped: no refresh_token"; return 1; }
     local r
     r=$(curl -s -X POST "$BASE_URL/oauth2/token" \
-        -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN&client_id=vue-client&client_secret=123456")
+        -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN&client_id=vue-client")
     local new_at new_rt
     new_at=$(echo "$r" | jq -r '.access_token')
     new_rt=$(echo "$r" | jq -r '.refresh_token')
@@ -143,11 +167,34 @@ test_9() {
 }
 run_test "Test 9: Token Refresh" test_9
 
+# Test 9b: Token Refresh - Missing client_secret (F-003, 401)
+test_9b() {
+    [ -n "$REFRESH_TOKEN" ] || { echo "    skipped: no refresh_token"; return 1; }
+    # F-003 (RFC 6749 SS6/SS3.2.1): refreshing with a CONFIDENTIAL client
+    # now requires client authentication; omitting the secret MUST yield
+    # 401 invalid_client (+ WWW-Authenticate: Basic).
+    local code body
+    code=$(curl -s -o /tmp/refresh_no_secret.$$ -w '%{http_code}' \
+        -X POST "$BASE_URL/oauth2/token" \
+        -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN&client_id=vue-client")
+    body=$(cat /tmp/refresh_no_secret.$$)
+    rm -f /tmp/refresh_no_secret.$$
+    [ "$code" = "401" ] || { echo "    expected 401, got $code"; return 1; }
+    echo "$body" | jq -e '.error == "invalid_client"' >/dev/null \
+        || { echo "    expected invalid_client error body, got: $body"; return 1; }
+    echo "    401 + invalid_client returned for unauthenticated refresh"
+}
+run_test "Test 9b: Token Refresh - Missing client_secret (401)" test_9b
+
 # Test 10: Client Credentials
 test_10() {
-    local r
+    local r basic_auth
+    # F-017: backend-svc is seeded token_endpoint_auth_method=client_secret_basic,
+    # so its secret MUST travel via HTTP Basic (the body form is now rejected).
+    basic_auth=$(printf 'backend-svc:test-secret' | base64)
     r=$(curl -s -X POST "$BASE_URL/oauth2/token" \
-        -d "grant_type=client_credentials&client_id=backend-svc&client_secret=test-secret&scope=read")
+        -H "Authorization: Basic $basic_auth" \
+        -d "grant_type=client_credentials&client_id=backend-svc&scope=read")
     local at rt scope
     at=$(echo "$r" | jq -r '.access_token')
     rt=$(echo "$r" | jq -r '.refresh_token // empty')
@@ -164,22 +211,32 @@ test_11() {
     # RFC 7662: introspect authenticates the CALLING CLIENT via client
     # credentials (Basic header or body client_id/client_secret), NOT a
     # user Bearer token. No Authorization header is sent.
+    # F-017: vue-client is seeded token_endpoint_auth_method='none' (PUBLIC),
+    # so NO client_secret is sent -- the 'none' method rejects any secret.
     local r
     r=$(curl -s -X POST "$BASE_URL/oauth2/introspect" \
-        -d "token=$ACCESS_TOKEN&client_id=vue-client&client_secret=123456")
+        -d "token=$ACCESS_TOKEN&client_id=vue-client")
     local active
     active=$(echo "$r" | jq -r '.active')
     [ "$active" = "true" ] || { echo "    active != true"; return 1; }
-    echo "    Active: $active, Sub: $(echo "$r" | jq -r '.sub')"
+    # F-016: introspection iss MUST be byte-identical to the discovery issuer
+    local iss
+    iss=$(echo "$r" | jq -r '.iss')
+    [ -n "$iss" ] && [ "$iss" != "null" ] || { echo "    introspection missing iss claim"; return 1; }
+    if [ -n "$DISCOVERY_ISSUER" ]; then
+        [ "$iss" = "$DISCOVERY_ISSUER" ] || { echo "    iss '$iss' != discovery issuer '$DISCOVERY_ISSUER'"; return 1; }
+    fi
+    echo "    Active: $active, Sub: $(echo "$r" | jq -r '.sub'), Iss: $iss"
 }
 run_test "Test 11: Token Introspection" test_11
 
 # Test 12: Token Revocation
 test_12() {
     [ -n "$ACCESS_TOKEN" ] || { echo "    skipped: no token"; return 1; }
-    # RFC 7009: revoke authenticates the calling client via body credentials.
+    # RFC 7009: revoke authenticates the calling client.
+    # F-017: vue-client is PUBLIC (token_endpoint_auth_method='none'); no secret.
     curl -s -X POST "$BASE_URL/oauth2/revoke" \
-        -d "token=$ACCESS_TOKEN&client_id=vue-client&client_secret=123456" >/dev/null
+        -d "token=$ACCESS_TOKEN&client_id=vue-client" >/dev/null
     # Verify revoked (Bearer header here checks userinfo rejects the token)
     local code
     code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $ACCESS_TOKEN" "$BASE_URL/oauth2/userinfo")
@@ -211,7 +268,7 @@ test_14() {
     code=$(echo "$login_resp" | jq -r '.code')
     local tok_resp
     tok_resp=$(curl -s -X POST "$BASE_URL/oauth2/token" \
-        -d "grant_type=authorization_code&code=$code&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+        -d "grant_type=authorization_code&code=$code&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client")
     ACCESS_TOKEN=$(echo "$tok_resp" | jq -r '.access_token')
 
     local r
@@ -259,7 +316,7 @@ test_17() {
     if [ -n "$restore_code" ] && [ "$restore_code" != "null" ]; then
         local tok_resp
         tok_resp=$(curl -s -X POST "$BASE_URL/oauth2/token" \
-            -d "grant_type=authorization_code&code=$restore_code&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+            -d "grant_type=authorization_code&code=$restore_code&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client")
         local restore_token
         restore_token=$(echo "$tok_resp" | jq -r '.access_token')
         curl -s -X PUT -H "Authorization: Bearer $restore_token" -H "Content-Type: application/json" \
@@ -699,7 +756,7 @@ run_test "Test 40: PUT /api/me/password - No auth (401)" test_40
 test_41() {
     local code
     code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE_URL/oauth2/token" \
-        -d "grant_type=authorization_code&code=already-used-or-expired-code-xyz&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client&client_secret=123456")
+        -d "grant_type=authorization_code&code=already-used-or-expired-code-xyz&redirect_uri=http://127.0.0.1:5173/callback&client_id=vue-client")
     if [ "$code" = "400" ]; then
         echo "    Correctly rejected expired code: 400"
     else
@@ -713,7 +770,7 @@ test_42() {
     # RFC 7662: client-credential auth via body only; no Bearer header needed.
     local r
     r=$(curl -s -X POST "$BASE_URL/oauth2/introspect" \
-        -d "token=not-a-real-token-at-all&client_id=vue-client&client_secret=123456")
+        -d "token=not-a-real-token-at-all&client_id=vue-client")
     local active
     active=$(echo "$r" | jq -r '.active')
     [ "$active" = "false" ] || { echo "    malformed token should be active=false, got $active"; return 1; }
@@ -729,11 +786,11 @@ test_43() {
     # RFC 7009: client-credential auth via body only; no Bearer header needed.
     # Revoke once
     curl -s -X POST "$BASE_URL/oauth2/revoke" \
-        -d "token=$tok&client_id=vue-client&client_secret=123456" >/dev/null
+        -d "token=$tok&client_id=vue-client" >/dev/null
     # Revoke again
     local code
     code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-        "$BASE_URL/oauth2/revoke" -d "token=$tok&client_id=vue-client&client_secret=123456")
+        "$BASE_URL/oauth2/revoke" -d "token=$tok&client_id=vue-client")
     echo "    Second revocation: $code"
 }
 run_test "Test 43: POST /oauth2/revoke - Already revoked (idempotent)" test_43

@@ -1,15 +1,16 @@
 -- DEV ONLY: Sample OAuth2 client for Vue frontend development
 -- DO NOT use in production!
 
-INSERT INTO oauth2_clients (client_id, client_type, client_secret, salt, name, redirect_uris, allowed_grant_types)
+INSERT INTO oauth2_clients (client_id, client_type, client_secret, salt, name, redirect_uris, allowed_grant_types, token_endpoint_auth_method)
 VALUES (
     'vue-client',
     'PUBLIC',
     '42a121b66fb9f1d4f73125788f42eb6799110c6aeae5a9a12a2fed5307a0088d',
     'random_salt',
     'Vue Front-end Client',
-    'http://localhost:5173/callback,http://localhost:8080/callback',
-    'authorization_code,refresh_token'
+    'http://127.0.0.1:5173/callback,http://127.0.0.1:8080/callback',
+    'authorization_code,refresh_token',
+    'none'
 )
 ON CONFLICT (client_id) DO NOTHING;
 

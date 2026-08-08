@@ -11,6 +11,21 @@ using namespace authforge::drogon::observability::openapi;
 namespace authforge::drogon::controllers
 {
 
+namespace
+{
+// F-016: normalize a trailing slash so the advertised issuer (and every
+// endpoint URL derived from it) is byte-identical to the issuer OAuth2Plugin
+// stamps on tokens at startup (which applies the same normalization). Without
+// this, metadata.issuer="https://auth.example.com/" produced
+// "https://auth.example.com//oauth2/token" and an iss/issuer mismatch.
+std::string normalizeIssuer(std::string url)
+{
+    while (url.size() > 1 && url.back() == '/')
+        url.pop_back();
+    return url;
+}
+}  // namespace
+
 ::OAuth2Plugin *DiscoveryController::resolvePlugin() const
 {
     return plugin_ ? plugin_ : ::drogon::app().getPlugin<::OAuth2Plugin>();
@@ -76,7 +91,7 @@ void DiscoveryController::metadata(
     auto customConfig = ::drogon::app().getCustomConfig();
     if (customConfig.isMember("metadata") && customConfig["metadata"].isMember("issuer"))
     {
-        baseUrl = customConfig["metadata"]["issuer"].asString();
+        baseUrl = normalizeIssuer(customConfig["metadata"]["issuer"].asString());
     }
     if (baseUrl.empty())
     {
@@ -104,6 +119,10 @@ void DiscoveryController::metadata(
     metadata["revocation_endpoint_auth_methods_supported"].append("client_secret_post");
     metadata["revocation_endpoint_auth_methods_supported"].append("client_secret_basic");
 
+    // R-5: registration_endpoint is implemented (POST /oauth2/register, admin
+    // gated) -- advertise it so clients can discover it.
+    metadata["registration_endpoint"] = baseUrl + "/oauth2/register";
+
     // OpenID Connect support (partial, based on what we implement)
     metadata["scopes_supported"] = Json::Value(Json::arrayValue);
     metadata["scopes_supported"].append("openid");
@@ -122,6 +141,11 @@ void DiscoveryController::metadata(
     metadata["grant_types_supported"].append("refresh_token");
     metadata["grant_types_supported"].append("client_credentials");
     metadata["grant_types_supported"].append("urn:ietf:params:oauth:grant-type:device_code");
+
+    // R-5 (RFC 8414 §2 REQUIRED): subject_types_supported. Only "public" is
+    // implemented (no pairwise pseudonymous subject support).
+    metadata["subject_types_supported"] = Json::Value(Json::arrayValue);
+    metadata["subject_types_supported"].append("public");
 
     // PKCE support
     metadata["code_challenge_methods_supported"] = Json::Value(Json::arrayValue);
@@ -159,7 +183,7 @@ void DiscoveryController::oidcDiscovery(
     auto customConfig = ::drogon::app().getCustomConfig();
     if (customConfig.isMember("metadata") && customConfig["metadata"].isMember("issuer"))
     {
-        baseUrl = customConfig["metadata"]["issuer"].asString();
+        baseUrl = normalizeIssuer(customConfig["metadata"]["issuer"].asString());
     }
     if (baseUrl.empty())
     {
@@ -175,6 +199,9 @@ void DiscoveryController::oidcDiscovery(
     discovery["jwks_uri"] = baseUrl + "/.well-known/jwks.json";
     discovery["introspection_endpoint"] = baseUrl + "/oauth2/introspect";
     discovery["revocation_endpoint"] = baseUrl + "/oauth2/revoke";
+    // R-5: registration_endpoint is implemented (POST /oauth2/register, admin
+    // gated) -- advertise it.
+    discovery["registration_endpoint"] = baseUrl + "/oauth2/register";
 
     discovery["scopes_supported"] = Json::Value(Json::arrayValue);
     discovery["scopes_supported"].append("openid");
@@ -205,6 +232,23 @@ void DiscoveryController::oidcDiscovery(
     discovery["code_challenge_methods_supported"].append("S256");
     discovery["code_challenge_methods_supported"].append("plain");
 
+    // F-022 (OIDC Core §3.1.2.1 / §5.1): advertise prompt/max_age support and
+    // the auth_time/acr/amr claims the id_token now carries.
+    // R-4: only the values the authorize endpoint actually honors are
+    // advertised -- select_account is NOT implemented (no account-picker
+    // branch), so it is omitted to avoid an advertised-but-not-honored gap.
+    discovery["prompt_values_supported"] = Json::Value(Json::arrayValue);
+    discovery["prompt_values_supported"].append("none");
+    discovery["prompt_values_supported"].append("login");
+    discovery["prompt_values_supported"].append("consent");
+
+    discovery["acr_values_supported"] = Json::Value(Json::arrayValue);
+    discovery["acr_values_supported"].append("1");  // password-only
+    discovery["acr_values_supported"].append("2");  // MFA
+
+    // F-027 (OIDC RP-Initiated Logout 1.0): the end_session endpoint URL.
+    discovery["end_session_endpoint"] = baseUrl + "/oauth2/end_session";
+
     discovery["claims_supported"] = Json::Value(Json::arrayValue);
     discovery["claims_supported"].append("sub");
     discovery["claims_supported"].append("name");
@@ -215,6 +259,11 @@ void DiscoveryController::oidcDiscovery(
     discovery["claims_supported"].append("exp");
     discovery["claims_supported"].append("iat");
     discovery["claims_supported"].append("nonce");
+    // F-022: auth_time/acr/amr are conditionally emitted on the id_token
+    // (auth_time when set, acr/amr when the session recorded an amr).
+    discovery["claims_supported"].append("auth_time");
+    discovery["claims_supported"].append("acr");
+    discovery["claims_supported"].append("amr");
 
     auto resp = ::drogon::HttpResponse::newHttpJsonResponse(discovery);
     resp->setContentTypeCode(::drogon::CT_APPLICATION_JSON);

@@ -23,6 +23,9 @@
 // authforge::identity::IdentityService (the thin forwarder over bundle repos) is still
 // constructed here for the scopeRequiresAdminRole pure-function path.
 #include <authforge/drogon/services/IdentityService.h>
+// F-018: process-wide sliding-window rate limiter (token/introspect/revoke/
+// device-polling). Header-only, framework-free; configured once at startup.
+#include <authforge/common/utils/RateLimiter.h>
 #include <drogon/drogon.h>
 
 using namespace drogon;
@@ -94,6 +97,52 @@ void OAuth2Plugin::initAndStart(const Json::Value &config)
     if (customConfig.isMember("metadata") && customConfig["metadata"].isMember("issuer"))
     {
         issuer = customConfig["metadata"]["issuer"].asString();
+    }
+    // F-016: normalize a trailing slash once, at the single startup read, so
+    // every consumer (token issuance, introspection backfill, discovery) sees
+    // the same byte string and discovery endpoints never produce
+    // "https://issuer//oauth2/...".
+    while (issuer.size() > 1 && issuer.back() == '/')
+        issuer.pop_back();
+    issuer_ = issuer;
+    // F-016: an http:// issuer is only sane for local development; anything
+    // else means tokens/discovery will advertise a non-TLS issuer in a
+    // deployment that is presumably reachable over the network.
+    if (issuer.rfind("http://", 0) == 0 &&
+        issuer.find("localhost") == std::string::npos &&
+        issuer.find("127.0.0.1") == std::string::npos &&
+        issuer.find("[::1]") == std::string::npos)
+    {
+        LOG_WARN << "OAuth2Plugin: metadata.issuer \"" << issuer
+                 << "\" uses plain http on a non-loopback host; production "
+                    "deployments MUST configure an https:// issuer";
+    }
+
+    // F-018: configure the process-wide failure rate limiter for the token
+    // / introspect / revoke / device-code-polling endpoints. Reads
+    // custom_config["auth"]["rate_limit"] once at startup; if absent the
+    // built-in defaults stand (30 failures per (ip+client_id) per 60s). The
+    // limiter is a function-local singleton, so this single configure() call
+    // is seen by all four controllers that consult it.
+    {
+        authforge::common::utils::RateLimiterConfig rlCfg =
+          authforge::common::utils::RateLimiterConfig::defaults();
+        if (customConfig.isMember("auth") &&
+            customConfig["auth"].isMember("rate_limit") &&
+            customConfig["auth"]["rate_limit"].isObject())
+        {
+            const auto &rl = customConfig["auth"]["rate_limit"];
+            if (rl.isMember("max_failures") && rl["max_failures"].isUInt())
+                rlCfg.maxFailures =
+                  static_cast<std::size_t>(rl["max_failures"].asUInt());
+            if (rl.isMember("window_seconds") && rl["window_seconds"].isUInt())
+                rlCfg.windowSeconds =
+                  std::chrono::seconds(rl["window_seconds"].asUInt());
+        }
+        authforge::common::utils::RateLimiter::instance().configure(rlCfg);
+        LOG_DEBUG << "OAuth2Plugin: rate limiter configured (max_failures="
+                  << rlCfg.maxFailures
+                  << ", window_seconds=" << rlCfg.windowSeconds.count() << ")";
     }
 
     // Initialize Services
@@ -235,6 +284,18 @@ void OAuth2Plugin::initStorage(const Json::Value &config)
     }
     else if (storageType_ == "redis")
     {
+        // F-005: standalone Redis storage is DEPRECATED. Its refresh-token
+        // persistence was always a no-op (rotation/reuse-cascade silently
+        // non-functional); the supported production topology is postgres
+        // storage + (future) redis cache layer. The mode still boots for
+        // backward compatibility, but refresh_token grant is rejected
+        // explicitly (see refreshAccessToken) instead of failing with a
+        // misleading invalid_grant.
+        LOG_ERROR << "OAuth2Plugin: storage_type=\"redis\" is DEPRECATED and "
+                     "will be removed. Refresh-token rotation is NOT "
+                     "functional in this mode (refresh_token grant is "
+                     "rejected). Use storage_type=\"postgres\"; Redis will "
+                     "return only as a cache layer in front of Postgres.";
         std::string clientName = config["redis"].get("client_name", "default").asString();
         authforge::storage::redis::RedisRepositoryBundle bundle(clientName);
         assignOAuth2(
@@ -357,7 +418,9 @@ void OAuth2Plugin::generateAuthorizationCode(
   const std::string &codeChallenge,
   const std::string &codeChallengeMethod,
   const std::string &nonce,
-  std::function<void(bool, std::string, std::string)> &&callback
+  std::function<void(bool, std::string, std::string)> &&callback,
+  int64_t authTime,
+  const std::string &amr
 )
 {
     tokenService_->generateAuthorizationCode(
@@ -368,7 +431,9 @@ void OAuth2Plugin::generateAuthorizationCode(
       codeChallenge,
       codeChallengeMethod,
       nonce,
-      std::move(callback)
+      std::move(callback),
+      authTime,
+      amr
     );
 }
 
@@ -392,6 +457,23 @@ void OAuth2Plugin::refreshAccessToken(
   std::function<void(const Json::Value &)> &&callback
 )
 {
+    // F-005: the standalone Redis backend never persisted refresh tokens
+    // (saveRefreshToken/getRefreshToken are no-ops), so rotation and
+    // reuse-detection silently do not work there. That mode is deprecated
+    // (postgres storage + redis cache is the target architecture); reject
+    // the grant explicitly instead of surfacing a misleading invalid_grant.
+    if (storageType_ == "redis")
+    {
+        Json::Value err;
+        err["error"] = "unsupported_grant_type";
+        err["error_description"] =
+          "refresh_token grant is not supported with storage_type=\"redis\" "
+          "(deprecated mode without refresh-token persistence); use "
+          "storage_type=\"postgres\"";
+        if (callback)
+            callback(err);
+        return;
+    }
     tokenService_->refreshAccessToken(refreshToken, clientId, std::move(callback));
 }
 
@@ -580,6 +662,10 @@ void OAuth2Plugin::getUserInfo(
           userInfo["id"] = data->id;
           userInfo["username"] = data->username;
           userInfo["email"] = data->email;
+          // F-024 (OIDC Core §5.1): expose email_verified so RPs can tell
+          // verified from unverified email addresses. UserData carries this
+          // from the users row (Task 39 widened the identity repository).
+          userInfo["email_verified"] = data->emailVerified;
           callback(userInfo);
       };
 
@@ -625,6 +711,76 @@ std::string OAuth2Plugin::generateSha256Hash(const std::string &input)
     // authforge::oauth2::pkce Domain package.
     static authforge::drogon::adapters::OpenSslCryptoProvider cryptoProvider;
     return authforge::oauth2::pkce::computeCodeChallenge(input, "S256", cryptoProvider);
+}
+
+std::string OAuth2Plugin::signIdToken(
+  const std::string &subject,
+  const std::string &clientId,
+  int64_t authTime,
+  const std::string &amr
+) const
+{
+    // F-025 (OIDC Core §12): refresh_token and device_code grants issue
+    // tokens outside TokenService, so they cannot reuse its inline id_token
+    // signing. This helper centralizes the claim set + signing so both
+    // paths (and any future one) build identical id_tokens. Returns "" when
+    // the JwkManager is not initialized, which callers map to "omit
+    // id_token" (matching the authorization_code path in
+    // TokenService::exchangeCodeForToken).
+    if (!jwkManager_ || !jwkManager_->isInitialized())
+        return "";
+
+    auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                 std::chrono::system_clock::now().time_since_epoch()
+    )
+                 .count();
+    Json::Value claims;
+    claims["iss"] = issuer_;
+    claims["sub"] = subject;
+    claims["aud"] = clientId;
+    claims["iat"] = static_cast<Json::Int64>(now);
+    // OIDC Core §2: id_token exp follows the access-token TTL (the longest
+    // the access token remains usable, so the id_token stays valid for the
+    // same window).
+    claims["exp"] = static_cast<Json::Int64>(now + accessTokenTtl_);
+    // F-022: carry auth_time/amr when available (refresh tokens issued from
+    // an MFA-elevated login keep acr=2). On refresh/device these are often
+    // absent (the refresh DTO does not persist them), in which case they are
+    // omitted -- acceptable per OIDC §12 (auth_time is only required when
+    // the original auth request had max_age).
+    if (authTime > 0)
+        claims["auth_time"] = static_cast<Json::Int64>(authTime);
+    if (!amr.empty())
+    {
+        Json::Value amrArray(Json::arrayValue);
+        size_t s = 0;
+        while (s < amr.size())
+        {
+            size_t e = amr.find(' ', s);
+            if (e == std::string::npos)
+                e = amr.size();
+            if (e > s)
+                amrArray.append(amr.substr(s, e - s));
+            s = e + 1;
+        }
+        if (!amrArray.empty())
+        {
+            claims["amr"] = amrArray;
+            bool mfa = false;
+            for (const auto &v : amrArray)
+            {
+                if (v.asString() == "mfa")
+                {
+                    mfa = true;
+                    break;
+                }
+            }
+            // R-1 (OIDC Core §2): acr is a STRING claim (discovery advertises
+            // "1"/"2"); emit as string, not integer.
+            claims["acr"] = mfa ? "2" : "1";
+        }
+    }
+    return jwkManager_->signJwt(claims);
 }
 
 bool OAuth2Plugin::scopeRequiresAdminRole(const std::string &scope)
